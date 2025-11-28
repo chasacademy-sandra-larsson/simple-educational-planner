@@ -198,9 +198,14 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
       for (const subject of data.program.foundationSubjects.subjects) {
         if (subject.courses && Array.isArray(subject.courses)) {
           for (const course of subject.courses) {
+            // Combine subject name with course name if course name is generic "Nivå X"
+            const courseName = course.name.startsWith('Nivå ')
+              ? `${subject.name} ${course.name.replace('Nivå ', '')}`
+              : course.name;
+
             courses.push({
               courseCode: course.code,
-              name: course.name,
+              name: courseName,
               points: parseInt(course.points) || 0,
               category: "FOUNDATIONAL_SUBJECTS",
             });
@@ -214,9 +219,14 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
       for (const subject of data.program.programmeSpecificSubjects.subjects) {
         if (subject.courses && Array.isArray(subject.courses)) {
           for (const course of subject.courses) {
+            // Combine subject name with course name if course name is generic "Nivå X"
+            const courseName = course.name.startsWith('Nivå ')
+              ? `${subject.name} ${course.name.replace('Nivå ', '')}`
+              : course.name;
+
             courses.push({
               courseCode: course.code,
-              name: course.name,
+              name: courseName,
               points: parseInt(course.points) || 0,
               category: "PROGRAMME_SPECIFIC_SUBJECTS",
             });
@@ -233,9 +243,14 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
         for (const subject of orientation.subjects) {
           if (subject.courses && Array.isArray(subject.courses)) {
             for (const course of subject.courses) {
+              // Combine subject name with course name if course name is generic "Nivå X"
+              const courseName = course.name.startsWith('Nivå ')
+                ? `${subject.name} ${course.name.replace('Nivå ', '')}`
+                : course.name;
+
               courses.push({
                 courseCode: course.code,
-                name: course.name,
+                name: courseName,
                 points: parseInt(course.points) || 0,
                 category: "ORIENTATION",
               });
