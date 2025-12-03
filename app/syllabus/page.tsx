@@ -3,7 +3,7 @@
 import { useState } from "react";
 import ProgramSelector from "./program-selector";
 import OrientationSelector from "./orientation-selector";
-import CourseList from "./course-list";
+import CoursePlanner from "./course-planner";
 
 export default function SyllabusPage() {
     const [selectedProgram, setSelectedProgram] = useState<string>("");
@@ -36,7 +36,7 @@ export default function SyllabusPage() {
                 )}
 
                 {selectedProgram && selectedOrientation && (
-                    <CourseList
+                    <CoursePlanner
                         programCode={selectedProgram}
                         orientationCode={selectedOrientation}
                     />
