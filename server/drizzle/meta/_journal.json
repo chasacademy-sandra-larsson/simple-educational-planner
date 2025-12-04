@@ -1,0 +1,20 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1764778094997,
+      "tag": "0000_fearless_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1764860023687,
+      "tag": "0001_wild_sauron",
+      "breakpoints": true
+    }
+  ]
+}
