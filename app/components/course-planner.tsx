@@ -16,6 +16,8 @@ import {
 interface CoursePlannerProps {
     programCode: string;
     orientationCode: string;
+    onAssignmentsChange?: (assignments: { courseCode: string; courseName: string; points: number; category: string; year: number }[]) => void;
+    readOnly?: boolean;
 }
 
 type YearId = "unassigned" | "year1" | "year2" | "year3";
@@ -49,6 +51,8 @@ const INDIVIDUAL_CHOICE_COURSE: Course = {
 export default function CoursePlanner({
     programCode,
     orientationCode,
+    onAssignmentsChange,
+    readOnly = false,
 }: CoursePlannerProps) {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(false);
@@ -92,6 +96,29 @@ export default function CoursePlanner({
 
         fetchCourses();
     }, [programCode, orientationCode]);
+
+    // Notify parent component when assignments change
+    useEffect(() => {
+        if (!onAssignmentsChange || courses.length === 0) return;
+
+        const yearMapping = {
+            'year1': 1,
+            'year2': 2,
+            'year3': 3,
+        } as const;
+
+        const assignedCourses = courses
+            .filter(course => assignments[course.courseCode] && assignments[course.courseCode] !== 'unassigned')
+            .map(course => ({
+                courseCode: course.courseCode,
+                courseName: course.name,
+                points: course.points,
+                category: course.category as string,
+                year: yearMapping[assignments[course.courseCode] as 'year1' | 'year2' | 'year3'],
+            }));
+
+        onAssignmentsChange(assignedCourses);
+    }, [assignments, courses, onAssignmentsChange]);
 
     const handleDragStart = (event: DragStartEvent) => {
         const courseCode = event.active.id as string;
@@ -145,74 +172,78 @@ export default function CoursePlanner({
         return <div className="mt-4 text-zinc-500">No courses found for this program.</div>;
     }
 
-    return (
+    const content = (
+        <div className="mt-8 w-full">
+            <div className={`mb-6 p-4 rounded-lg border transition-colors ${isValidTotal
+                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                }`}>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="text-sm">
+                        <p className={isValidTotal ? "text-green-900 dark:text-green-100" : "text-blue-900 dark:text-blue-100"}>
+                            <strong>Course Planning:</strong> {readOnly ? 'Viewing assigned courses' : 'Drag and drop courses to assign them to Year 1, 2, or 3'}.
+                        </p>
+                        <p className={`text-xs mt-1 ${isValidTotal ? "text-green-700 dark:text-green-300" : "text-blue-700 dark:text-blue-300"}`}>
+                            (Includes 200 points for Individual Choice)
+                        </p>
+                    </div>
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${isValidTotal
+                        ? "bg-green-100 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-800 dark:text-green-100"
+                        : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                        }`}>
+                        <span className="font-semibold">Total Points:</span>
+                        <span className={`font-bold ${isValidTotal
+                            ? "text-green-700 dark:text-green-300"
+                            : totalPoints > 2500 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"
+                            }`}>
+                            {totalPoints}
+                        </span>
+                        <span className="text-zinc-400 dark:text-zinc-500">/ 2500</span>
+                        {isValidTotal && (
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <h2 className="text-xl font-semibold mb-6 text-zinc-900 dark:text-zinc-100">
+                Course Planning
+            </h2>
+
+            {/* Side-by-side layout: Unassigned on left, Years 1-3 stacked vertically on right */}
+            <div className="grid grid-cols-2 gap-6">
+                {/* Unassigned Courses - left column with categories */}
+                <div className="flex flex-col">
+                    <UnassignedCoursesByCategory courses={getCoursesByYear("unassigned")} readOnly={readOnly} />
+                </div>
+
+                {/* Year 1, 2, 3 - stacked vertically in right column */}
+                <div className="flex flex-col gap-6">
+                    {(["year1", "year2", "year3"] as YearId[]).map((yearId) => (
+                        <DropZone
+                            key={yearId}
+                            yearId={yearId}
+                            label={YEAR_LABELS[yearId]}
+                            courses={getCoursesByYear(yearId)}
+                            totalPoints={getTotalPoints(yearId)}
+                            readOnly={readOnly}
+                        />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
+    return readOnly ? content : (
         <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
         >
-            <div className="mt-8 w-full">
-                <div className={`mb-6 p-4 rounded-lg border transition-colors ${isValidTotal
-                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                    : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                    }`}>
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div className="text-sm">
-                            <p className={isValidTotal ? "text-green-900 dark:text-green-100" : "text-blue-900 dark:text-blue-100"}>
-                                <strong>Course Planning:</strong> Drag and drop courses to assign them to Year 1, 2, or 3.
-                            </p>
-                            <p className={`text-xs mt-1 ${isValidTotal ? "text-green-700 dark:text-green-300" : "text-blue-700 dark:text-blue-300"}`}>
-                                (Includes 200 points for Individual Choice)
-                            </p>
-                        </div>
-                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${isValidTotal
-                            ? "bg-green-100 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-800 dark:text-green-100"
-                            : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
-                            }`}>
-                            <span className="font-semibold">Total Points:</span>
-                            <span className={`font-bold ${isValidTotal
-                                ? "text-green-700 dark:text-green-300"
-                                : totalPoints > 2500 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"
-                                }`}>
-                                {totalPoints}
-                            </span>
-                            <span className="text-zinc-400 dark:text-zinc-500">/ 2500</span>
-                            {isValidTotal && (
-                                <svg className="w-5 h-5 text-green-600 dark:text-green-400 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <h2 className="text-xl font-semibold mb-6 text-zinc-900 dark:text-zinc-100">
-                    Course Planning
-                </h2>
-
-                {/* Side-by-side layout: Unassigned on left, Years 1-3 stacked vertically on right */}
-                <div className="grid grid-cols-2 gap-6">
-                    {/* Unassigned Courses - left column with categories */}
-                    <div className="flex flex-col">
-                        <UnassignedCoursesByCategory courses={getCoursesByYear("unassigned")} />
-                    </div>
-
-                    {/* Year 1, 2, 3 - stacked vertically in right column */}
-                    <div className="flex flex-col gap-6">
-                        {(["year1", "year2", "year3"] as YearId[]).map((yearId) => (
-                            <DropZone
-                                key={yearId}
-                                yearId={yearId}
-                                label={YEAR_LABELS[yearId]}
-                                courses={getCoursesByYear(yearId)}
-                                totalPoints={getTotalPoints(yearId)}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </div>
-
+            {content}
             <DragOverlay>
                 {activeCourse ? <CourseCard course={activeCourse} isDragging /> : null}
             </DragOverlay>
@@ -222,9 +253,10 @@ export default function CoursePlanner({
 
 interface UnassignedCoursesByCategoryProps {
     courses: Course[];
+    readOnly?: boolean;
 }
 
-function UnassignedCoursesByCategory({ courses }: UnassignedCoursesByCategoryProps) {
+function UnassignedCoursesByCategory({ courses, readOnly = false }: UnassignedCoursesByCategoryProps) {
     const { setNodeRef } = useDroppable({ id: "unassigned" });
 
     // Group courses by category
@@ -261,7 +293,7 @@ function UnassignedCoursesByCategory({ courses }: UnassignedCoursesByCategoryPro
                                     </h4>
                                     <div className="space-y-2">
                                         {categoryCourses.map((course) => (
-                                            <DraggableCourse key={course.courseCode} course={course} />
+                                            <DraggableCourse key={course.courseCode} course={course} readOnly={readOnly} />
                                         ))}
                                     </div>
                                 </div>
@@ -280,9 +312,10 @@ interface DropZoneProps {
     label: string;
     courses: Course[];
     totalPoints: number;
+    readOnly?: boolean;
 }
 
-function DropZone({ yearId, label, courses, totalPoints }: DropZoneProps) {
+function DropZone({ yearId, label, courses, totalPoints, readOnly = false }: DropZoneProps) {
     const { setNodeRef } = useDroppable({ id: yearId });
 
     const isUnassigned = yearId === "unassigned";
@@ -320,7 +353,7 @@ function DropZone({ yearId, label, courses, totalPoints }: DropZoneProps) {
                     </div>
                 ) : (
                     courses.map((course) => (
-                        <DraggableCourse key={course.courseCode} course={course} />
+                        <DraggableCourse key={course.courseCode} course={course} readOnly={readOnly} />
                     ))
                 )}
             </div>
@@ -330,11 +363,13 @@ function DropZone({ yearId, label, courses, totalPoints }: DropZoneProps) {
 
 interface DraggableCourseProps {
     course: Course;
+    readOnly?: boolean;
 }
 
-function DraggableCourse({ course }: DraggableCourseProps) {
+function DraggableCourse({ course, readOnly = false }: DraggableCourseProps) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: course.courseCode,
+        disabled: readOnly,
     });
 
     const style = transform
@@ -345,13 +380,13 @@ function DraggableCourse({ course }: DraggableCourseProps) {
 
     return (
         <div
-            ref={setNodeRef}
+            ref={!readOnly ? setNodeRef : undefined}
             style={style}
-            {...listeners}
-            {...attributes}
+            {...(!readOnly ? listeners : {})}
+            {...(!readOnly ? attributes : {})}
             className={isDragging ? "opacity-50" : ""}
         >
-            <CourseCard course={course} />
+            <CourseCard course={course} readOnly={readOnly} />
         </div>
     );
 }
@@ -359,17 +394,20 @@ function DraggableCourse({ course }: DraggableCourseProps) {
 interface CourseCardProps {
     course: Course;
     isDragging?: boolean;
+    readOnly?: boolean;
 }
 
-function CourseCard({ course, isDragging = false }: CourseCardProps) {
+function CourseCard({ course, isDragging = false, readOnly = false }: CourseCardProps) {
     return (
         <div
             className={`
-        p-3 rounded-lg border cursor-grab active:cursor-grabbing
+        p-3 rounded-lg border ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
         transition-all duration-200
         ${isDragging
                     ? "bg-white dark:bg-zinc-800 border-blue-400 dark:border-blue-600 shadow-lg scale-105"
-                    : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md"
+                    : readOnly
+                        ? "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
+                        : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md"
                 }
       `}
         >

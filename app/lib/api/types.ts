@@ -94,7 +94,10 @@ export interface CreateProgramRequest {
 
 export interface CreateClassRequest {
     classCode: string;
-    programId: string;
+    programCode: string;
+    programName: string;
+    orientationCode: string;
+    orientationName: string;
     startYear: number;
 }
 

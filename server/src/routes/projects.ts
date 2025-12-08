@@ -157,7 +157,7 @@ router.post('/:id/programs', async (req: AuthRequest<{}, {}, CreateProgramReques
 // Add a class to a project
 router.post('/:id/classes', async (req: AuthRequest<{}, {}, CreateClassRequest>, res: Response) => {
     try {
-        const { classCode, programId, startYear } = req.body;
+        const { classCode, programCode, programName, orientationCode, orientationName, startYear } = req.body;
 
         // Verify project ownership
         const project = await db.query.projects.findFirst({
@@ -171,11 +171,32 @@ router.post('/:id/classes', async (req: AuthRequest<{}, {}, CreateClassRequest>,
             return res.status(404).json({ error: 'Project not found' });
         }
 
+        // Check if program with this code and orientation already exists
+        let program = await db.query.projectPrograms.findFirst({
+            where: and(
+                eq(projectPrograms.projectId, req.params.id),
+                eq(projectPrograms.programCode, programCode),
+                eq(projectPrograms.orientationCode, orientationCode)
+            ),
+        });
+
+        // If not, create it
+        if (!program) {
+            const [newProgram] = await db.insert(projectPrograms).values({
+                projectId: req.params.id,
+                programCode,
+                programName,
+                orientationCode,
+                orientationName,
+            }).returning();
+            program = newProgram;
+        }
+
         const graduationYear = startYear + 3;
 
         const [newClass] = await db.insert(projectClasses).values({
             projectId: req.params.id,
-            programId,
+            programId: program.id,
             classCode,
             startYear,
             graduationYear,

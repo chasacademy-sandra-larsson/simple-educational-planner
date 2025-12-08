@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api, ApiError } from '@/app/lib/api';
 import type { ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoomRequest } from '@/app/lib/api/types';
+import AddClassForm from '@/app/components/add-class-form';
+import ClassCoursePlanner from '@/app/components/class-course-planner';
 
 type Tab = 'classes' | 'teachers' | 'rooms';
 
@@ -30,6 +32,12 @@ export default function ProjectDetailPage() {
     const [newRoom, setNewRoom] = useState<CreateRoomRequest>({ roomNumber: '', roomType: '', capacity: undefined, notes: '' });
     const [creatingRoom, setCreatingRoom] = useState(false);
     const [roomError, setRoomError] = useState('');
+
+    // Class dialog state
+    const [showClassDialog, setShowClassDialog] = useState(false);
+
+    // Expanded class for course planning
+    const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!api.auth.isAuthenticated()) {
@@ -239,31 +247,116 @@ export default function ProjectDetailPage() {
                         {/* Classes Tab */}
                         {activeTab === 'classes' && (
                             <div>
+                                {/* Add Class Form */}
+                                <div className="mb-6">
+                                    {!showClassDialog ? (
+                                        <button
+                                            onClick={() => setShowClassDialog(true)}
+                                            className="w-full p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
+                                        >
+                                            <div className="flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                <span className="font-medium">Add Class</span>
+                                            </div>
+                                        </button>
+                                    ) : (
+                                        <AddClassForm
+                                            projectId={projectId}
+                                            onCancel={() => setShowClassDialog(false)}
+                                            onSuccess={() => {
+                                                setShowClassDialog(false);
+                                                fetchProject();
+                                            }}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Classes List */}
                                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
                                     Classes
                                 </h3>
                                 {project.classes && project.classes.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {project.classes.map((cls) => (
-                                            <div
-                                                key={cls.id}
-                                                className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600"
-                                            >
-                                                <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                                                    {cls.classCode}
+                                    <div className="space-y-4">
+                                        {project.classes.map((cls) => {
+                                            const isExpanded = expandedClassId === cls.id;
+                                            return (
+                                                <div key={cls.id} className="border border-zinc-200 dark:border-zinc-600 rounded-lg overflow-hidden">
+                                                    {/* Class Card Header - Clickable */}
+                                                    <div
+                                                        onClick={() => setExpandedClassId(isExpanded ? null : cls.id)}
+                                                        className={`p-4 cursor-pointer transition-all ${isExpanded
+                                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-b border-zinc-200 dark:border-zinc-600'
+                                                            : 'bg-zinc-50 dark:bg-zinc-700/50 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                                                            }`}
+                                                    >
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                                                        {cls.classCode}
+                                                                    </div>
+                                                                    {cls.curricula && cls.curricula.length > 0 && cls.curricula[0].courses && (
+                                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${cls.curricula[0].isValid
+                                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                                                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                                                            }`}>
+                                                                            {Array.isArray(cls.curricula[0].courses) ? cls.curricula[0].courses.length : 0} courses
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                                                                    {cls.program.programName}
+                                                                    {cls.program.orientationName && cls.program.orientationName !== cls.program.programName && (
+                                                                        <span className="text-xs"> • {cls.program.orientationName}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">
+                                                                    {cls.startYear} - {cls.graduationYear}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setExpandedClassId(isExpanded ? null : cls.id);
+                                                                }}
+                                                            >
+                                                                <svg
+                                                                    className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                                                    fill="none"
+                                                                    viewBox="0 0 24 24"
+                                                                    stroke="currentColor"
+                                                                >
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Course Planner - Expandable */}
+                                                    {isExpanded && (
+                                                        <div className="p-6 bg-white dark:bg-zinc-800">
+                                                            <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                                                                Course Planning for {cls.classCode}
+                                                            </h4>
+                                                            <ClassCoursePlanner
+                                                                classId={cls.id}
+                                                                programCode={cls.program.programCode}
+                                                                orientationCode={cls.program.orientationCode}
+                                                                onSaveSuccess={() => fetchProject()}
+                                                                hasCurriculum={cls.curricula && cls.curricula.length > 0 && cls.curricula[0].courses && Array.isArray(cls.curricula[0].courses) && cls.curricula[0].courses.length > 0}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                                                    {cls.program.programName}
-                                                </div>
-                                                <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">
-                                                    {cls.startYear} - {cls.graduationYear}
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 text-zinc-500 dark:text-zinc-500">
-                                        No classes yet. Classes will be linked to programs.
+                                        No classes yet. Click "Add Class" above to create your first class.
                                     </div>
                                 )}
                             </div>
