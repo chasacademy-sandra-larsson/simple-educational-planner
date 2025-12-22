@@ -10,6 +10,7 @@ export interface Course {
   name: string;
   points: number;
   category?: string; // FOUNDATIONAL_SUBJECTS, PROGRAMME_SPECIFIC_SUBJECTS, or ORIENTATION
+  subjectName?: string; // Name of the subject this course belongs to
 }
 
 export interface Orientation {
@@ -178,6 +179,80 @@ export async function getOrientations(programCode: string): Promise<Orientation[
   }
 }
 
+export async function getProgramSpecializationSubjects(programCode: string): Promise<Course[]> {
+  try {
+    const response = await fetch(`${BASE_URL}/programs/${programCode}`, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch program structure: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const courses: Course[] = [];
+
+    // Debug: Log the structure to see what we're working with
+    console.log("Program data structure for specialization:", {
+      hasProgram: !!data.program,
+      keys: data.program ? Object.keys(data.program) : [],
+      fullData: data.program,
+    });
+
+    // Try multiple possible paths for program specialization subjects
+    const possiblePaths = [
+      data.program?.programSpecialization?.subjects,
+      data.program?.specializationSubjects,
+      data.program?.programStructure?.specialization?.subjects,
+      data.program?.specialization?.subjects,
+      data.program?.programmeSpecialization?.subjects,
+      // Also check if there's a direct "specialization" or "programfördjupning" field
+      data.program?.programfördjupning?.subjects,
+      data.program?.programfordjupning?.subjects,
+    ];
+
+    for (const subjects of possiblePaths) {
+      if (subjects && Array.isArray(subjects)) {
+        console.log("Found specialization subjects at path:", subjects);
+        for (const subject of subjects) {
+          if (subject.courses && Array.isArray(subject.courses)) {
+            for (const course of subject.courses) {
+              const courseName = course.name?.startsWith('Nivå ')
+                ? `${subject.name} ${course.name.replace('Nivå ', '')}`
+                : course.name || course.courseName || 'Okänd kurs';
+
+              courses.push({
+                courseCode: course.code || course.courseCode,
+                name: courseName,
+                points: parseInt(course.points || course.scope || 0) || 0,
+                category: "ORIENTATION",
+                subjectName: subject.name || subject.subjectName || 'Okänt ämne',
+              });
+            }
+          }
+        }
+        if (courses.length > 0) {
+          console.log(`Found ${courses.length} specialization courses`);
+          break; // Stop after finding the first valid path
+        }
+      }
+    }
+
+    // If still no courses found, log the entire structure for debugging
+    if (courses.length === 0) {
+      console.warn("No specialization courses found. Full program structure:", JSON.stringify(data.program, null, 2));
+    }
+
+    return courses;
+
+  } catch (error) {
+    console.error("Error fetching program specialization subjects:", error);
+    return [];
+  }
+}
+
 export async function getCoursesByOrientation(programCode: string, orientationCode: string): Promise<Course[]> {
   try {
     const response = await fetch(`${BASE_URL}/programs/${programCode}`, {
@@ -208,6 +283,7 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
               name: courseName,
               points: parseInt(course.points) || 0,
               category: "FOUNDATIONAL_SUBJECTS",
+              subjectName: subject.name,
             });
           }
         }
@@ -229,6 +305,7 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
               name: courseName,
               points: parseInt(course.points) || 0,
               category: "PROGRAMME_SPECIFIC_SUBJECTS",
+              subjectName: subject.name,
             });
           }
         }
@@ -253,6 +330,7 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
                 name: courseName,
                 points: parseInt(course.points) || 0,
                 category: "ORIENTATION",
+                subjectName: subject.name, // Store subject name for grouping
               });
             }
           }

@@ -7,7 +7,8 @@ import type { Project } from '@/app/lib/api/types';
 
 export default function DashboardPage() {
     const router = useRouter();
-    const user = api.auth.getCurrentUser();
+    const [mounted, setMounted] = useState(false);
+    const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
 
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
@@ -18,10 +19,12 @@ export default function DashboardPage() {
     const [createError, setCreateError] = useState('');
 
     useEffect(() => {
-        if (!api.auth.isAuthenticated()) {
-            router.push('/auth/login');
-            return;
-        }
+        // For design/development: just read the user from localStorage on the client
+        // without enforcing a redirect. This keeps things simple while iterating.
+        setMounted(true);
+        const currentUser = api.auth.getCurrentUser();
+        setUser(currentUser);
+
         fetchProjects();
     }, [router]);
 
@@ -39,6 +42,24 @@ export default function DashboardPage() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteProject = async (projectId: string) => {
+        if (!window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            setError('');
+            await api.projects.delete(projectId);
+            setProjects(prev => prev.filter(p => p.id !== projectId));
+        } catch (err) {
+            if (err instanceof ApiError) {
+                setError(err.message);
+            } else {
+                setError('Failed to delete project');
+            }
         }
     };
 
@@ -76,7 +97,7 @@ export default function DashboardPage() {
         });
     };
 
-    if (!user) {
+    if (!mounted || !user) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
@@ -254,12 +275,25 @@ export default function DashboardPage() {
                                 className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200 cursor-pointer group"
                             >
                                 <div className="flex items-start justify-between mb-3">
-                                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                        {project.name}
-                                    </h3>
-                                    <svg className="w-5 h-5 text-zinc-400 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                    <div className="flex-1 pr-2">
+                                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                            {project.name}
+                                        </h3>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteProject(project.id);
+                                            }}
+                                            className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-900/20 transition-colors"
+                                        >
+                                            Delete
+                                        </button>
+                                        <svg className="w-5 h-5 text-zinc-400 group-hover:text-blue-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
                                 </div>
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4 line-clamp-2">
                                     {project.description || 'No description provided'}
