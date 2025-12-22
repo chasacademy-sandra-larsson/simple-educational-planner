@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { api, ApiError } from '@/app/lib/api';
 import type { ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoomRequest } from '@/app/lib/api/types';
 import AddClassForm from '@/app/components/add-class-form';
-import ClassCoursePlanner from '@/app/components/class-course-planner';
+import ComprehensiveCoursePlanner from '@/app/components/comprehensive-course-planner';
 
 type Tab = 'classes' | 'teachers' | 'rooms';
 
@@ -40,10 +40,8 @@ export default function ProjectDetailPage() {
     const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!api.auth.isAuthenticated()) {
-            router.push('/auth/login');
-            return;
-        }
+        // For design/development: skip auth redirect so you can freely open project pages
+        // and just load data if a projectId is present.
         if (projectId) {
             fetchProject();
             if (activeTab === 'teachers') {
@@ -339,9 +337,9 @@ export default function ProjectDetailPage() {
                                                     {isExpanded && (
                                                         <div className="p-6 bg-white dark:bg-zinc-800">
                                                             <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                                                                Course Planning for {cls.classCode}
+                                                                Kursplanering för {cls.classCode}
                                                             </h4>
-                                                            <ClassCoursePlanner
+                                                            <ComprehensiveCoursePlanner
                                                                 classId={cls.id}
                                                                 programCode={cls.program.programCode}
                                                                 orientationCode={cls.program.orientationCode}
