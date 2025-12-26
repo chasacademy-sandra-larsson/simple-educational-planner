@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { getCoursesByOrientation, getProgramSpecializationSubjects, Course } from '../lib/syllabus-api';
+import { api, ApiError, type CourseAssignment } from '../lib/api';
 
 interface ComprehensiveCoursePlannerProps {
     classId: string;
@@ -171,16 +172,15 @@ export default function ComprehensiveCoursePlanner({
         setError('');
 
         try {
-            const token = localStorage.getItem('auth_token');
-            const courseAssignments = selectedCourses
+            const courseAssignments: CourseAssignment[] = selectedCourses
                 .filter(c => c.term && c.term !== 'unassigned')
                 .map(course => {
                     // Map term/year to year (1-3)
-                    let year: number;
+                    let year: 1 | 2 | 3;
                     if (course.term?.startsWith('year')) {
                         year = course.term === 'year1' ? 1 : course.term === 'year2' ? 2 : 3;
                     } else {
-                        const termToYear: Record<TermId, number> = {
+                        const termToYear: Record<TermId, 1 | 2 | 3> = {
                             term1: 1,
                             term2: 1,
                             term3: 2,
@@ -188,6 +188,9 @@ export default function ComprehensiveCoursePlanner({
                             term5: 3,
                             term6: 3,
                             unassigned: 1, // fallback
+                            year1: 1,
+                            year2: 2,
+                            year3: 3,
                         };
                         year = termToYear[course.term!] || 1;
                     }
@@ -195,28 +198,22 @@ export default function ComprehensiveCoursePlanner({
                         courseCode: course.courseCode,
                         courseName: course.courseName,
                         points: course.points,
-                        category: course.category,
+                        category: course.category as CourseAssignment['category'], // Type assertion needed because CourseWithTerm.category is string
                         year: year,
                     };
                 });
 
-            const response = await fetch(`http://localhost:3001/api/projects/classes/${classId}/curriculum`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ courses: courseAssignments }),
+            await api.projects.updateCurriculum(classId, {
+                courses: courseAssignments,
             });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Kunde inte spara kursplan');
-            }
 
             onSaveSuccess?.();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Kunde inte spara kursplan');
+            if (err instanceof ApiError) {
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Kunde inte spara kursplan');
+            }
         } finally {
             setSaving(false);
         }
@@ -1000,11 +997,7 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
     };
 
     const handleTermChange = (term: TermId) => {
-        if (gymnasiearbete) {
-            handleAddGymnasiearbete(term);
-        } else {
-            handleAddGymnasiearbete(term);
-        }
+        handleAddGymnasiearbete(term);
     };
 
     return (
@@ -1350,16 +1343,29 @@ function DistributeTermsStep({
             'term5': 'year3',
             'term6': 'year3',
         };
-        const yearId = termToYear[termId];
         
-        // Count courses assigned to this specific term OR to the year that contains this term
-        return selectedCourses
-            .filter(c => {
-                if (c.term === termId) return true;
-                if (c.term === yearId) return true;
-                return false;
-            })
-            .reduce((sum, c) => sum + c.points, 0);
+        // Handle different termId types
+        if (termId === 'unassigned') {
+            // Count courses that are unassigned (term is 'unassigned' or undefined)
+            return selectedCourses
+                .filter(c => c.term === 'unassigned' || c.term === undefined)
+                .reduce((sum, c) => sum + c.points, 0);
+        } else if (termId.startsWith('year')) {
+            // If termId is a year, only match courses directly assigned to that year
+            return selectedCourses
+                .filter(c => c.term === termId)
+                .reduce((sum, c) => sum + c.points, 0);
+        } else {
+            // If termId is a term, match courses assigned to this term OR to the year that contains it
+            const yearId = termToYear[termId];
+            return selectedCourses
+                .filter(c => {
+                    if (c.term === termId) return true;
+                    if (yearId && c.term === yearId) return true;
+                    return false;
+                })
+                .reduce((sum, c) => sum + c.points, 0);
+        }
     };
 
     const getCoursesByTerm = (termId: TermId) => {
@@ -1372,14 +1378,23 @@ function DistributeTermsStep({
             'term5': 'year3',
             'term6': 'year3',
         };
-        const yearId = termToYear[termId];
         
-        // Get courses assigned to this specific term OR to the year that contains this term
-        return selectedCourses.filter(c => {
-            if (c.term === termId) return true;
-            if (c.term === yearId) return true;
-            return false;
-        });
+        // Handle different termId types
+        if (termId === 'unassigned') {
+            // Get courses that are unassigned (term is 'unassigned' or undefined)
+            return selectedCourses.filter(c => c.term === 'unassigned' || c.term === undefined);
+        } else if (termId.startsWith('year')) {
+            // If termId is a year, only match courses directly assigned to that year
+            return selectedCourses.filter(c => c.term === termId);
+        } else {
+            // If termId is a term, match courses assigned to this term OR to the year that contains it
+            const yearId = termToYear[termId];
+            return selectedCourses.filter(c => {
+                if (c.term === termId) return true;
+                if (yearId && c.term === yearId) return true;
+                return false;
+            });
+        }
     };
 
     const handleDragEnd = (event: DragEndEvent) => {

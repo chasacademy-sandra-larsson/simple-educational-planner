@@ -5,6 +5,7 @@ import ProgramSelector from './program-selector';
 import OrientationSelector from './orientation-selector';
 import CourseSummary from './course-summary';
 import { getPrograms, getOrientations, Program, Orientation } from '../lib/syllabus-api';
+import { api, ApiError } from '../lib/api';
 
 interface AddClassFormProps {
     projectId: string;
@@ -89,31 +90,22 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
         setError('');
 
         try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch(`http://localhost:3001/api/projects/${projectId}/classes`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    classCode,
-                    programCode: selectedProgramCode,
-                    programName: programData.name,
-                    orientationCode: selectedOrientationCode || selectedProgramCode,
-                    orientationName: orientationData?.name || programData.name,
-                    startYear,
-                }),
+            await api.projects.addClass(projectId, {
+                classCode,
+                programCode: selectedProgramCode,
+                programName: programData.name,
+                orientationCode: selectedOrientationCode || selectedProgramCode,
+                orientationName: orientationData?.name || programData.name,
+                startYear,
             });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to create class');
-            }
 
             onSuccess();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create class');
+            if (err instanceof ApiError) {
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Failed to create class');
+            }
         } finally {
             setLoading(false);
         }

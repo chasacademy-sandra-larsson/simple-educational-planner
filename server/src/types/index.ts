@@ -4,7 +4,7 @@ export interface CourseAssignment {
     courseCode: string;
     courseName: string;
     points: number;
-    category: 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE';
+    category: 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE' | 'GYMNASIEARBETE';
     year: 1 | 2 | 3;
 }
 

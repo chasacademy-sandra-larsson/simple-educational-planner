@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import CoursePlanner from './course-planner';
+import { api, ApiError } from '../lib/api';
 
 interface ClassCoursePlannerProps {
     classId: string;
@@ -32,28 +33,20 @@ export default function ClassCoursePlanner({ classId, programCode, orientationCo
         setSuccess(false);
 
         try {
-            const token = localStorage.getItem('auth_token');
-
-            const response = await fetch(`http://localhost:3001/api/projects/classes/${classId}/curriculum`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-                body: JSON.stringify({ courses: courseAssignments }),
+            await api.projects.updateCurriculum(classId, {
+                courses: courseAssignments,
             });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to save courses');
-            }
 
             setSuccess(true);
             setIsEditing(false); // Exit edit mode after successful save
             setTimeout(() => setSuccess(false), 3000);
             onSaveSuccess?.();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to save courses');
+            if (err instanceof ApiError) {
+                setError(err.message);
+            } else {
+                setError(err instanceof Error ? err.message : 'Failed to save courses');
+            }
         } finally {
             setSaving(false);
         }
