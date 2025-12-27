@@ -7,6 +7,7 @@ export interface CourseAssignment {
     points: number;
     category: 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE' | 'GYMNASIEARBETE';
     year: 1 | 2 | 3;
+    terms: ("term1" | "term2" | "term3" | "term4" | "term5" | "term6")[]; // Array of terms this course spans over
 }
 
 export interface User {
@@ -29,21 +30,14 @@ export interface Project {
     updatedAt: string;
 }
 
-export interface ProjectProgram {
+export interface ProjectClass {
     id: string;
     projectId: string;
+    classCode: string;
     programCode: string;
     programName: string;
     orientationCode: string;
     orientationName: string;
-    createdAt: string;
-}
-
-export interface ProjectClass {
-    id: string;
-    projectId: string;
-    programId: string;
-    classCode: string;
     startYear: number;
     graduationYear: number;
     isActive: number;
@@ -61,9 +55,7 @@ export interface ClassCurriculum {
 }
 
 export interface ProjectWithDetails extends Project {
-    programs: ProjectProgram[];
     classes: (ProjectClass & {
-        program: ProjectProgram;
         curricula: ClassCurriculum[];
     })[];
 }
@@ -83,13 +75,6 @@ export interface LoginRequest {
 export interface CreateProjectRequest {
     name: string;
     description?: string;
-}
-
-export interface CreateProgramRequest {
-    programCode: string;
-    programName: string;
-    orientationCode: string;
-    orientationName: string;
 }
 
 export interface CreateClassRequest {

@@ -30,7 +30,8 @@ interface CourseWithTerm {
     courseName: string;
     points: number;
     category: string;
-    term?: TermId;
+    term?: TermId; // Kept for backward compatibility and UI state
+    terms?: TermId[]; // Array of terms - preferred way to represent courses spanning multiple terms
     level?: string; // e.g., "1a", "1b", "1c" for Math
 }
 
@@ -111,7 +112,177 @@ export default function ComprehensiveCoursePlanner({
                     category: 'INDIVIDUAL_CHOICE',
                 });
                 
-                setSelectedCourses(autoSelectedCourses);
+                // Auto-select default specialization courses for testing (400p)
+                // Exact course codes that should be pre-selected
+                const defaultSpecializationTargets = [
+                    { code: 'WEBB2000X', name: 'Webbutveckling 2', points: 100 },
+                    { code: 'WEBS1000X', name: 'Webbserverprogrammering 1', points: 100 },
+                    { code: 'PROG2000X', name: 'Programmering 2', points: 100 },
+                    { code: 'TILL1000X', name: 'Tillämpad programmering 1', points: 100 },
+                ];
+                
+                // Find default specialization courses by course code
+                const defaultSpecializationFullCourses: Course[] = [];
+                const defaultSpecializationCourses: CourseWithTerm[] = [];
+                
+                defaultSpecializationTargets.forEach(target => {
+                    // Try to find course by exact course code
+                    let foundCourse = allCourses.find(course => course.courseCode === target.code);
+                    
+                    if (foundCourse) {
+                        // Course found - use it
+                        defaultSpecializationFullCourses.push(foundCourse);
+                        defaultSpecializationCourses.push({
+                            courseCode: foundCourse.courseCode,
+                            courseName: foundCourse.name,
+                            points: foundCourse.points,
+                            category: 'ORIENTATION',
+                        });
+                        console.log(`✅ Found course: ${foundCourse.courseCode} - ${foundCourse.name} (${foundCourse.points}p)`);
+                    } else {
+                        // Course not found by code - create a Course object anyway so it can be selected
+                        // This ensures the course is available even if API doesn't return it
+                        const courseToAdd: Course = {
+                            courseCode: target.code,
+                            name: target.name,
+                            points: target.points,
+                            category: 'ORIENTATION',
+                            subjectName: 'Programmering', // Default subject name
+                        };
+                        defaultSpecializationFullCourses.push(courseToAdd);
+                        defaultSpecializationCourses.push({
+                            courseCode: target.code,
+                            courseName: target.name,
+                            points: target.points,
+                            category: 'ORIENTATION',
+                        });
+                        console.log(`⚠️ Course ${target.code} not found in API, but adding it anyway: ${target.name} (${target.points}p)`);
+                    }
+                });
+                
+                console.log('=== DEFAULT SPECIALIZATION COURSES ===');
+                console.log('Target courses:', defaultSpecializationTargets.map(t => `${t.code} - ${t.name}`));
+                console.log('Found courses:', defaultSpecializationCourses.length);
+                defaultSpecializationCourses.forEach(c => {
+                    console.log(`  ✓ ${c.courseName} (${c.courseCode}) - ${c.points}p`);
+                });
+                if (defaultSpecializationCourses.length < defaultSpecializationTargets.length) {
+                    console.warn(`⚠️ Only found ${defaultSpecializationCourses.length} out of ${defaultSpecializationTargets.length} target courses`);
+                    const foundCodes = defaultSpecializationCourses.map(c => c.courseCode);
+                    const missingTargets = defaultSpecializationTargets.filter(t => !foundCodes.includes(t.code));
+                    console.warn('Missing courses:', missingTargets.map(t => `${t.code} - ${t.name}`));
+                    console.warn('All available ORIENTATION courses:', allCourses.filter(c => c.category === 'ORIENTATION').map(c => `${c.courseCode} - ${c.name}`));
+                }
+                
+                // Add default specialization courses to specializationSubjects if they're not already there
+                // This ensures they show up in the SpecializationStep UI
+                const updatedSpecialization = [...specialization];
+                defaultSpecializationFullCourses.forEach(fullCourse => {
+                    if (!updatedSpecialization.find(s => s.courseCode === fullCourse.courseCode)) {
+                        updatedSpecialization.push(fullCourse);
+                    }
+                });
+                setSpecializationSubjects(updatedSpecialization);
+                
+                // Add default specialization courses to auto-selected courses (avoid duplicates)
+                defaultSpecializationCourses.forEach(course => {
+                    const existingIndex = autoSelectedCourses.findIndex(c => c.courseCode === course.courseCode);
+                    if (existingIndex === -1) {
+                        // Course not found, add it
+                        autoSelectedCourses.push(course);
+                    } else {
+                        // Course already exists, update it to ensure it has ORIENTATION category
+                        autoSelectedCourses[existingIndex] = {
+                            ...autoSelectedCourses[existingIndex],
+                            category: 'ORIENTATION',
+                        };
+                    }
+                });
+                
+                console.log('Total selected courses:', autoSelectedCourses.length);
+                console.log('Selected ORIENTATION courses:', autoSelectedCourses.filter(c => c.category === 'ORIENTATION').map(c => `${c.courseName} (${c.courseCode})`));
+                
+                // Distribute courses evenly across terms (default distribution)
+                // Exclude INDIVIDUAL_CHOICE and GYMNASIEARBETE from automatic distribution
+                const coursesToDistribute = autoSelectedCourses.filter(c => 
+                    c.courseCode !== 'INDIVIDUAL_CHOICE' && 
+                    c.courseCode !== 'GYMNASIEARBETE'
+                );
+                
+                // Sort courses by points (largest first) for better distribution
+                const sortedCourses = [...coursesToDistribute].sort((a, b) => b.points - a.points);
+                
+                // Initialize term point counters
+                const terms: TermId[] = ['term1', 'term2', 'term3', 'term4', 'term5', 'term6'];
+                const termPoints: Record<TermId, number> = {
+                    term1: 0,
+                    term2: 0,
+                    term3: 0,
+                    term4: 0,
+                    term5: 0,
+                    term6: 0,
+                    year1: 0,
+                    year2: 0,
+                    year3: 0,
+                    unassigned: 0,
+                };
+                
+                // Distribute courses to terms by finding the term with least points
+                const distributedCourses = sortedCourses.map(course => {
+                    // Find term with minimum points
+                    const termWithMinPoints = terms.reduce((minTerm, term) => 
+                        termPoints[term] < termPoints[minTerm] ? term : minTerm
+                    );
+                    
+                    // Update term points counter
+                    termPoints[termWithMinPoints] += course.points;
+                    
+                    return {
+                        ...course,
+                        term: termWithMinPoints, // Keep for backward compatibility
+                        terms: [termWithMinPoints], // Also set terms array
+                    };
+                });
+                
+                // Add back INDIVIDUAL_CHOICE and GYMNASIEARBETE
+                // INDIVIDUAL_CHOICE: distribute evenly (can be split across terms)
+                // GYMNASIEARBETE: assign to term6 by default (user can change in gymnasiearbete step)
+                const individualChoice = autoSelectedCourses.find(c => c.courseCode === 'INDIVIDUAL_CHOICE');
+                const gymnasiearbete = autoSelectedCourses.find(c => c.courseCode === 'GYMNASIEARBETE');
+                
+                const finalCourses: CourseWithTerm[] = [...distributedCourses];
+                
+                // INDIVIDUAL_CHOICE: distribute to the term with least points (usually term6 for balance)
+                if (individualChoice) {
+                    const termWithMinPoints = terms.reduce((minTerm, term) => 
+                        termPoints[term] < termPoints[minTerm] ? term : minTerm
+                    );
+                    finalCourses.push({ 
+                        ...individualChoice, 
+                        term: termWithMinPoints, // Keep for backward compatibility
+                        terms: [termWithMinPoints], // Also set terms array
+                    });
+                    termPoints[termWithMinPoints] += individualChoice.points; // Update counter
+                }
+                
+                // GYMNASIEARBETE: assign to term6 by default (standard placement)
+                // Category should be PROGRAMME_SPECIFIC_SUBJECTS (not GYMNASIEARBETE)
+                if (gymnasiearbete) {
+                    finalCourses.push({ 
+                        ...gymnasiearbete, 
+                        term: 'term6' as TermId, // Keep for backward compatibility
+                        terms: ['term6'], // Also set terms array
+                        category: 'PROGRAMME_SPECIFIC_SUBJECTS',
+                    });
+                }
+                
+                console.log('Distributed courses across terms:', terms.map(term => ({
+                    term,
+                    points: termPoints[term],
+                    courses: distributedCourses.filter(c => c.term === term).length
+                })));
+                
+                setSelectedCourses(finalCourses); // Create new array to trigger re-render
             } catch (err) {
                 setError('Kunde inte ladda kurser');
                 console.error(err);
@@ -122,14 +293,36 @@ export default function ComprehensiveCoursePlanner({
 
         fetchCourses();
     }, [programCode, orientationCode]);
+    
+    // Debug: Log selected courses when they change
+    useEffect(() => {
+        const targetCourseCodes = ['WEBB2000X', 'WEBS1000X', 'PROG2000X', 'TILL1000X'];
+        const foundTargetCourses = selectedCourses.filter(c => targetCourseCodes.includes(c.courseCode));
+        if (foundTargetCourses.length > 0) {
+            console.log('✅ Target specialization courses ARE in selectedCourses:', foundTargetCourses.map(c => `${c.courseName} (${c.courseCode})`));
+        } else {
+            console.log('❌ Target specialization courses NOT found in selectedCourses. Current ORIENTATION courses:', 
+                selectedCourses.filter(c => c.category === 'ORIENTATION').map(c => `${c.courseName} (${c.courseCode})`));
+        }
+    }, [selectedCourses]);
 
     const handleTermChange = (courseCode: string, term: TermId | 'unassigned') => {
         setSelectedCourses((prev) =>
-            prev.map((course) =>
-                course.courseCode === courseCode 
-                    ? { ...course, term: term === 'unassigned' ? undefined : term } 
-                    : course
-            )
+            prev.map((course) => {
+                if (course.courseCode === courseCode) {
+                    const newTerm = term === 'unassigned' ? undefined : term;
+                    // Convert single term to terms array
+                    const newTerms = newTerm && newTerm.startsWith('term') 
+                        ? [newTerm as "term1" | "term2" | "term3" | "term4" | "term5" | "term6"]
+                        : undefined;
+                    return { 
+                        ...course, 
+                        term: newTerm,
+                        terms: newTerms, // Also update terms array
+                    };
+                }
+                return course;
+            })
         );
     };
 
@@ -173,33 +366,56 @@ export default function ComprehensiveCoursePlanner({
 
         try {
             const courseAssignments: CourseAssignment[] = selectedCourses
-                .filter(c => c.term && c.term !== 'unassigned')
-                .map(course => {
-                    // Map term/year to year (1-3)
-                    let year: 1 | 2 | 3;
-                    if (course.term?.startsWith('year')) {
-                        year = course.term === 'year1' ? 1 : course.term === 'year2' ? 2 : 3;
-                    } else {
-                        const termToYear: Record<TermId, 1 | 2 | 3> = {
-                            term1: 1,
-                            term2: 1,
-                            term3: 2,
-                            term4: 2,
-                            term5: 3,
-                            term6: 3,
-                            unassigned: 1, // fallback
-                            year1: 1,
-                            year2: 2,
-                            year3: 3,
-                        };
-                        year = termToYear[course.term!] || 1;
+                .filter(c => {
+                    // Filter out unassigned courses
+                    if (c.term === 'unassigned' || (!c.term && (!c.terms || c.terms.length === 0))) {
+                        return false;
                     }
+                    return true;
+                })
+                .map(course => {
+                    // Get terms array - prefer course.terms, fallback to course.term converted to array
+                    let terms: ("term1" | "term2" | "term3" | "term4" | "term5" | "term6")[] = [];
+                    
+                    if (course.terms && course.terms.length > 0) {
+                        // Use terms array directly (filter out year/unassigned values)
+                        terms = course.terms.filter((t): t is "term1" | "term2" | "term3" | "term4" | "term5" | "term6" => 
+                            t.startsWith('term') && ['term1', 'term2', 'term3', 'term4', 'term5', 'term6'].includes(t)
+                        ) as ("term1" | "term2" | "term3" | "term4" | "term5" | "term6")[];
+                    } else if (course.term && course.term.startsWith('term')) {
+                        // Convert single term to array
+                        terms = [course.term as "term1" | "term2" | "term3" | "term4" | "term5" | "term6"];
+                    } else if (course.term?.startsWith('year')) {
+                        // Convert year to terms array
+                        if (course.term === 'year1') {
+                            terms = ['term1', 'term2'];
+                        } else if (course.term === 'year2') {
+                            terms = ['term3', 'term4'];
+                        } else if (course.term === 'year3') {
+                            terms = ['term5', 'term6'];
+                        }
+                    }
+
+                    // Calculate year from terms (use first term's year as primary year)
+                    let year: 1 | 2 | 3 = 1;
+                    if (terms.length > 0) {
+                        const firstTerm = terms[0];
+                        if (firstTerm === 'term1' || firstTerm === 'term2') {
+                            year = 1;
+                        } else if (firstTerm === 'term3' || firstTerm === 'term4') {
+                            year = 2;
+                        } else if (firstTerm === 'term5' || firstTerm === 'term6') {
+                            year = 3;
+                        }
+                    }
+
                     return {
                         courseCode: course.courseCode,
                         courseName: course.courseName,
                         points: course.points,
-                        category: course.category as CourseAssignment['category'], // Type assertion needed because CourseWithTerm.category is string
+                        category: course.category as CourseAssignment['category'],
                         year: year,
+                        terms: terms,
                     };
                 });
 
@@ -225,7 +441,14 @@ export default function ComprehensiveCoursePlanner({
 
     const getPointsByTerm = (termId: TermId): number => {
         return selectedCourses
-            .filter(c => c.term === termId)
+            .filter(c => {
+                // Check if course is in this term using terms array or fallback to term
+                if (c.terms && c.terms.length > 0) {
+                    return c.terms.includes(termId as any);
+                }
+                // Fallback to single term (backward compatibility)
+                return c.term === termId;
+            })
             .reduce((sum, course) => sum + course.points, 0);
     };
 
@@ -743,6 +966,14 @@ interface SpecializationStepProps {
 
 function SpecializationStep({ specializationSubjects, selectedCourses, onCoursesChange, currentPoints }: SpecializationStepProps) {
     console.log("SpecializationStep - received subjects:", specializationSubjects.length, specializationSubjects);
+    console.log("SpecializationStep - selectedCourses:", selectedCourses.length);
+    const selectedOrientationCourses = selectedCourses.filter(c => c.category === 'ORIENTATION');
+    console.log("SpecializationStep - selected ORIENTATION courses:", selectedOrientationCourses.map(c => `${c.courseName} (${c.courseCode})`));
+    
+    // Target course codes that should be selected
+    const targetCourseCodes = ['WEBB2000X', 'WEBS1000X', 'PROG2000X', 'TILL1000X'];
+    const targetSelected = selectedCourses.filter(c => targetCourseCodes.includes(c.courseCode));
+    console.log("SpecializationStep - target courses selected:", targetSelected.length, targetSelected.map(c => `${c.courseName} (${c.courseCode})`));
 
     // Group courses by subject
     const coursesBySubject = specializationSubjects.reduce((acc, course) => {
@@ -969,6 +1200,9 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
 
     const handleAddGymnasiearbete = (term: TermId = 'term6') => {
         const exists = selectedCourses.find(c => c.courseCode === 'GYMNASIEARBETE');
+        const terms = term.startsWith('term') 
+            ? [term as "term1" | "term2" | "term3" | "term4" | "term5" | "term6"]
+            : undefined;
         if (!exists) {
             onCoursesChange([
                 ...selectedCourses,
@@ -976,8 +1210,9 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
                     courseCode: 'GYMNASIEARBETE',
                     courseName: 'Gymnasiearbete',
                     points: 100,
-                    category: 'GYMNASIEARBETE',
+                    category: 'PROGRAMME_SPECIFIC_SUBJECTS',
                     term: term,
+                    terms: terms, // Also set terms array
                 },
             ]);
         } else {
@@ -985,7 +1220,7 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
             onCoursesChange(
                 selectedCourses.map(c =>
                     c.courseCode === 'GYMNASIEARBETE'
-                        ? { ...c, term: term }
+                        ? { ...c, term: term, terms: terms, category: 'PROGRAMME_SPECIFIC_SUBJECTS' }
                         : c
                 )
             );
@@ -1351,15 +1586,30 @@ function DistributeTermsStep({
                 .filter(c => c.term === 'unassigned' || c.term === undefined)
                 .reduce((sum, c) => sum + c.points, 0);
         } else if (termId.startsWith('year')) {
-            // If termId is a year, only match courses directly assigned to that year
+            // If termId is a year, match courses assigned to that year OR courses with terms that span that year
+            const yearTerms = termId === 'year1' ? ['term1', 'term2'] : 
+                            termId === 'year2' ? ['term3', 'term4'] : 
+                            ['term5', 'term6'];
             return selectedCourses
-                .filter(c => c.term === termId)
+                .filter(c => {
+                    // Check terms array first
+                    if (c.terms && c.terms.length > 0) {
+                        return c.terms.some(t => yearTerms.includes(t as any));
+                    }
+                    // Fallback to term (backward compatibility)
+                    return c.term === termId;
+                })
                 .reduce((sum, c) => sum + c.points, 0);
         } else {
             // If termId is a term, match courses assigned to this term OR to the year that contains it
             const yearId = termToYear[termId];
             return selectedCourses
                 .filter(c => {
+                    // Check terms array first
+                    if (c.terms && c.terms.length > 0) {
+                        return c.terms.includes(termId as any);
+                    }
+                    // Fallback to single term (backward compatibility)
                     if (c.term === termId) return true;
                     if (yearId && c.term === yearId) return true;
                     return false;
@@ -1381,15 +1631,33 @@ function DistributeTermsStep({
         
         // Handle different termId types
         if (termId === 'unassigned') {
-            // Get courses that are unassigned (term is 'unassigned' or undefined)
-            return selectedCourses.filter(c => c.term === 'unassigned' || c.term === undefined);
+            // Get courses that are unassigned (no terms array or empty, and term is 'unassigned' or undefined)
+            return selectedCourses.filter(c => {
+                if (c.terms && c.terms.length > 0) return false;
+                return c.term === 'unassigned' || c.term === undefined;
+            });
         } else if (termId.startsWith('year')) {
-            // If termId is a year, only match courses directly assigned to that year
-            return selectedCourses.filter(c => c.term === termId);
+            // If termId is a year, match courses assigned to that year OR courses with terms that span that year
+            const yearTerms = termId === 'year1' ? ['term1', 'term2'] : 
+                            termId === 'year2' ? ['term3', 'term4'] : 
+                            ['term5', 'term6'];
+            return selectedCourses.filter(c => {
+                // Check terms array first
+                if (c.terms && c.terms.length > 0) {
+                    return c.terms.some(t => yearTerms.includes(t as any));
+                }
+                // Fallback to term (backward compatibility)
+                return c.term === termId;
+            });
         } else {
             // If termId is a term, match courses assigned to this term OR to the year that contains it
             const yearId = termToYear[termId];
             return selectedCourses.filter(c => {
+                // Check terms array first
+                if (c.terms && c.terms.length > 0) {
+                    return c.terms.includes(termId as any);
+                }
+                // Fallback to single term (backward compatibility)
                 if (c.term === termId) return true;
                 if (yearId && c.term === yearId) return true;
                 return false;
@@ -1447,7 +1715,7 @@ function DistributeTermsStep({
         if (isInSourceTerm && targetTerm !== sourceTerm) {
             // If this is a grouped Swedish course, update all courses in the group
             if (isGrouped) {
-                groupedCourseCodes.forEach(code => {
+                groupedCourseCodes.forEach((code: string) => {
                     onTermChange(code, targetTerm);
                 });
             } else {
@@ -1628,12 +1896,12 @@ interface ValidateStepProps {
 }
 
 function ValidateStep({ selectedCourses, totalPoints, pointsByTerm, isValid }: ValidateStepProps) {
+    // Note: GYMNASIEARBETE is now counted as PROGRAMME_SPECIFIC_SUBJECTS (category changed)
     const pointsByCategory = {
         'FOUNDATIONAL_SUBJECTS': selectedCourses.filter(c => c.category === 'FOUNDATIONAL_SUBJECTS').reduce((sum, c) => sum + c.points, 0),
         'PROGRAMME_SPECIFIC_SUBJECTS': selectedCourses.filter(c => c.category === 'PROGRAMME_SPECIFIC_SUBJECTS').reduce((sum, c) => sum + c.points, 0),
         'ORIENTATION': selectedCourses.filter(c => c.category === 'ORIENTATION').reduce((sum, c) => sum + c.points, 0),
         'INDIVIDUAL_CHOICE': selectedCourses.filter(c => c.category === 'INDIVIDUAL_CHOICE').reduce((sum, c) => sum + c.points, 0),
-        'GYMNASIEARBETE': selectedCourses.filter(c => c.category === 'GYMNASIEARBETE').reduce((sum, c) => sum + c.points, 0),
     };
 
     const allCoursesAssigned = selectedCourses.every(c => c.term && c.term !== 'unassigned');

@@ -7,10 +7,8 @@ import {
     Project,
     ProjectWithDetails,
     CreateProjectRequest,
-    CreateProgramRequest,
     CreateClassRequest,
     UpdateCurriculumRequest,
-    ProjectProgram,
     ProjectClass,
     ClassCurriculum,
     Teacher,
@@ -140,13 +138,6 @@ export const projectsApi = {
     async delete(id: string): Promise<{ message: string }> {
         return fetchWithAuth<{ message: string }>(`/api/projects/${id}`, {
             method: 'DELETE',
-        });
-    },
-
-    async addProgram(projectId: string, data: CreateProgramRequest): Promise<ProjectProgram> {
-        return fetchWithAuth<ProjectProgram>(`/api/projects/${projectId}/programs`, {
-            method: 'POST',
-            body: JSON.stringify(data),
         });
     },
 

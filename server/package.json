@@ -4,6 +4,7 @@
     "description": "Express backend with Drizzle ORM for educational planning",
     "main": "dist/index.js",
     "scripts": {
+        "db:seed": "tsx src/db/seed.ts",
         "dev": "tsx watch src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
@@ -12,6 +13,8 @@
         "db:push": "drizzle-kit push:pg",
         "db:studio": "drizzle-kit studio",
         "db:view": "tsx src/db/view-data.ts",
+        "db:delete-seed": "tsx src/db/delete-seed-classes.ts",
+        "db:delete-classes": "tsx src/db/delete-classes.ts",
         "erd": "tsx src/db/dbml.ts",
         "erd:watch": "nodemon --watch src/db/schema.ts --exec \"npm run erd\""
     },

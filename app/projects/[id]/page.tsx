@@ -26,6 +26,18 @@ export default function ProjectDetailPage() {
     const [newTeacher, setNewTeacher] = useState<CreateTeacherRequest>({ name: '', email: '', subject: '', notes: '' });
     const [creatingTeacher, setCreatingTeacher] = useState(false);
     const [teacherError, setTeacherError] = useState('');
+    
+    // Teacher capacity calculation state
+    const [teacherCapacity, setTeacherCapacity] = useState<number>(600); // Default 600 points per year
+    
+    // Teacher assignment view state
+    const [assignmentViewAcademicYear, setAssignmentViewAcademicYear] = useState<string | null>(null);
+    const [teacherAssignments, setTeacherAssignments] = useState<Array<{
+        id: string;
+        name: string;
+        capacity: number;
+        courses: string[]; // course codes
+    }>>([]);
 
     // Room form state
     const [showRoomForm, setShowRoomForm] = useState(false);
@@ -305,9 +317,9 @@ export default function ProjectDetailPage() {
                                                                     )}
                                                                 </div>
                                                                 <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                                                                    {cls.program.programName}
-                                                                    {cls.program.orientationName && cls.program.orientationName !== cls.program.programName && (
-                                                                        <span className="text-xs"> • {cls.program.orientationName}</span>
+                                                                    {cls.programName}
+                                                                    {cls.orientationName && cls.orientationName !== cls.programName && (
+                                                                        <span className="text-xs"> • {cls.orientationName}</span>
                                                                     )}
                                                                 </div>
                                                                 <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">
@@ -341,8 +353,8 @@ export default function ProjectDetailPage() {
                                                             </h4>
                                                             <ComprehensiveCoursePlanner
                                                                 classId={cls.id}
-                                                                programCode={cls.program.programCode}
-                                                                orientationCode={cls.program.orientationCode}
+                                                                programCode={cls.programCode}
+                                                                orientationCode={cls.orientationCode}
                                                                 onSaveSuccess={() => fetchProject()}
                                                                 hasCurriculum={cls.curricula && cls.curricula.length > 0 && cls.curricula[0].courses && Array.isArray(cls.curricula[0].courses) && cls.curricula[0].courses.length > 0}
                                                             />
@@ -363,22 +375,735 @@ export default function ProjectDetailPage() {
                         {/* Teachers Tab */}
                         {activeTab === 'teachers' && (
                             <div>
-                                {/* Create Teacher Form */}
-                                <div className="mb-6">
-                                    {!showTeacherForm ? (
-                                        <button
-                                            onClick={() => setShowTeacherForm(true)}
-                                            className="w-full p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
+                                {/* Teacher Capacity Settings */}
+                                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                                        Tjänstegrad och lärarebehov
+                                    </h3>
+                                    
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                            Tjänstegrad (genomsnittspoäng per lärare / per år)
+                                        </label>
+                                        <select
+                                            value={teacherCapacity}
+                                            onChange={(e) => setTeacherCapacity(Number(e.target.value))}
+                                            className="w-full max-w-xs px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
                                         >
-                                            <div className="flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                </svg>
-                                                <span className="font-medium">Add Teacher</span>
+                                            <option value={400}>400 p/år</option>
+                                            <option value={450}>450 p/år</option>
+                                            <option value={500}>500 p/år</option>
+                                            <option value={550}>550 p/år</option>
+                                            <option value={600}>600 p/år</option>
+                                            <option value={650}>650 p/år</option>
+                                            <option value={700}>700 p/år</option>
+                                            <option value={750}>750 p/år</option>
+                                            <option value={800}>800 p/år</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Calculate total points and required teachers per academic year */}
+                                    {(() => {
+                                        // Helper function to format academic year
+                                        const formatAcademicYear = (startYear: number, year: number): string => {
+                                            const academicStartYear = startYear + (year - 1);
+                                            const academicEndYear = academicStartYear + 1;
+                                            return `${academicStartYear}/${academicEndYear}`;
+                                        };
+                                        
+                                        // Calculate points per academic year
+                                        const pointsByAcademicYear = new Map<string, number>();
+                                        
+                                        project.classes?.forEach(cls => {
+                                            if (cls.curricula && cls.curricula.length > 0) {
+                                                const curriculum = cls.curricula[0];
+                                                if (curriculum.courses && Array.isArray(curriculum.courses)) {
+                                                    curriculum.courses.forEach(course => {
+                                                        const academicYear = formatAcademicYear(cls.startYear, course.year);
+                                                        const currentPoints = pointsByAcademicYear.get(academicYear) || 0;
+                                                        pointsByAcademicYear.set(academicYear, currentPoints + (course.points || 0));
+                                                    });
+                                                }
+                                            }
+                                        });
+                                        
+                                        // Calculate teachers needed per academic year
+                                        const teachersByAcademicYear = Array.from(pointsByAcademicYear.entries())
+                                            .map(([academicYear, points]) => ({
+                                                academicYear,
+                                                points,
+                                                teachersNeeded: teacherCapacity > 0 ? Math.ceil(points / teacherCapacity) : 0,
+                                            }))
+                                            .sort((a, b) => {
+                                                const yearA = parseInt(a.academicYear.split('/')[0]);
+                                                const yearB = parseInt(b.academicYear.split('/')[0]);
+                                                return yearA - yearB;
+                                            });
+                                        
+                                        // Calculate total points (for display)
+                                        const totalPoints = Array.from(pointsByAcademicYear.values()).reduce((sum, points) => sum + points, 0);
+
+                                        // Calculate points per class
+                                        const pointsPerClass = project.classes?.map(cls => {
+                                            if (cls.curricula && cls.curricula.length > 0) {
+                                                const curriculum = cls.curricula[0];
+                                                if (curriculum.courses && Array.isArray(curriculum.courses)) {
+                                                    const classPoints = curriculum.courses.reduce((sum, course) => {
+                                                        return sum + (course.points || 0);
+                                                    }, 0);
+                                                    return { classCode: cls.classCode, points: classPoints };
+                                                }
+                                            }
+                                            return { classCode: cls.classCode, points: 0 };
+                                        }) || [];
+
+                                        return (
+                                            <div className="space-y-3">
+                                                <div className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                        <div>
+                                                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Totala poäng</div>
+                                                            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                                                                {totalPoints.toLocaleString('sv-SE')}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Tjänstegrad</div>
+                                                            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                                                                {teacherCapacity} p/år
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                </div>
+
+                                                {pointsPerClass.length > 0 && (
+                                                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                        <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-3">
+                                                            Poäng per klass:
+                                                        </h4>
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                                            {pointsPerClass.map(({ classCode, points }) => (
+                                                                <div key={classCode} className="text-sm">
+                                                                    <span className="font-medium text-zinc-900 dark:text-zinc-100">{classCode}:</span>{' '}
+                                                                    <span className="text-zinc-600 dark:text-zinc-400">{points} p</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Extract and display subjects needed */}
+                                                {(() => {
+                                                    // Helper function to format academic year
+                                                    const formatAcademicYear = (startYear: number, year: number): string => {
+                                                        const academicStartYear = startYear + (year - 1);
+                                                        const academicEndYear = academicStartYear + 1;
+                                                        return `${academicStartYear}/${academicEndYear}`;
+                                                    };
+                                                    
+                                                    // Calculate points per academic year for teachers calculation
+                                                    const pointsByAcademicYear = new Map<string, number>();
+                                                    
+                                                    project.classes?.forEach(cls => {
+                                                        if (cls.curricula && cls.curricula.length > 0) {
+                                                            const curriculum = cls.curricula[0];
+                                                            if (curriculum.courses && Array.isArray(curriculum.courses)) {
+                                                                curriculum.courses.forEach(course => {
+                                                                    const academicYear = formatAcademicYear(cls.startYear, course.year);
+                                                                    const currentPoints = pointsByAcademicYear.get(academicYear) || 0;
+                                                                    pointsByAcademicYear.set(academicYear, currentPoints + (course.points || 0));
+                                                                });
+                                                            }
+                                                        }
+                                                    });
+                                                    
+                                                    // Calculate teachers needed per academic year
+                                                    const teachersByAcademicYear = Array.from(pointsByAcademicYear.entries())
+                                                        .map(([academicYear, points]) => ({
+                                                            academicYear,
+                                                            points,
+                                                            teachersNeeded: teacherCapacity > 0 ? Math.ceil(points / teacherCapacity) : 0,
+                                                        }))
+                                                        .sort((a, b) => {
+                                                            const yearA = parseInt(a.academicYear.split('/')[0]);
+                                                            const yearB = parseInt(b.academicYear.split('/')[0]);
+                                                            return yearA - yearB;
+                                                        });
+                                                    
+                                                    // Extract subjects from all courses
+                                                    // Store courses with year and class startYear for sorting
+                                                    const subjectMap = new Map<string, { points: number; courses: Array<{ code: string; name: string; year: number; classStartYear: number }> }>();
+                                                    
+                                                    // Helper function to extract subject from course code or name
+                                                    const extractSubject = (courseCode: string, courseName: string): string => {
+                                                        // Map of common course code patterns to subject names
+                                                        const codeToSubject: Record<string, string> = {
+                                                            'MAT': 'Matematik',
+                                                            'SVE': 'Svenska',
+                                                            'ENG': 'Engelska',
+                                                            'FYS': 'Fysik',
+                                                            'KEM': 'Kemi',
+                                                            'BIO': 'Biologi',
+                                                            'HIS': 'Historia',
+                                                            'SAM': 'Samhällskunskap',
+                                                            'GEO': 'Geografi',
+                                                            'REL': 'Religionskunskap',
+                                                            'IDH': 'Idrott och hälsa',
+                                                            'SO': 'SO-ämnen',
+                                                            'NO': 'NO-ämnen',
+                                                            'BIL': 'Bild',
+                                                            'MUS': 'Musik',
+                                                            'TEK': 'Teknik',
+                                                            'SLO': 'Slöjd',
+                                                            'SPR': 'Modern språk',
+                                                            'GYM': 'Gymnasiearbete',
+                                                        };
+                                                        
+                                                        // Try to extract from courseCode first
+                                                        if (courseCode) {
+                                                            // Match patterns like MATMAT01a, SVESVE01, etc.
+                                                            const codeMatch = courseCode.match(/^([A-Z]{2,4})/);
+                                                            if (codeMatch) {
+                                                                const code = codeMatch[1];
+                                                                if (codeToSubject[code]) {
+                                                                    return codeToSubject[code];
+                                                                }
+                                                                // Check if it's a doubled code (like MATMAT -> MAT)
+                                                                if (code.length === 6 && code.substring(0, 3) === code.substring(3, 6)) {
+                                                                    const baseCode = code.substring(0, 3);
+                                                                    if (codeToSubject[baseCode]) {
+                                                                        return codeToSubject[baseCode];
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                        
+                                                        // Extract from courseName
+                                                        if (courseName) {
+                                                            // Remove common suffixes and patterns
+                                                            let cleanName = courseName
+                                                                .replace(/\s*\d+[a-z]?\s*$/, '') // Remove "1a", "2b", etc. at end
+                                                                .replace(/\s+\(.*?\)$/, '') // Remove text in parentheses
+                                                                .trim();
+                                                            
+                                                            // Map common name patterns
+                                                            const namePatterns: Array<[RegExp, string]> = [
+                                                                [/^Matematik/i, 'Matematik'],
+                                                                [/^Svenska/i, 'Svenska'],
+                                                                [/^Engelska/i, 'Engelska'],
+                                                                [/^Fysik/i, 'Fysik'],
+                                                                [/^Kemi/i, 'Kemi'],
+                                                                [/^Biologi/i, 'Biologi'],
+                                                                [/^Historia/i, 'Historia'],
+                                                                [/^Samhällskunskap/i, 'Samhällskunskap'],
+                                                                [/^Geografi/i, 'Geografi'],
+                                                                [/^Religionskunskap/i, 'Religionskunskap'],
+                                                                [/^Idrott/i, 'Idrott och hälsa'],
+                                                                [/^Gymnasiearbete/i, 'Gymnasiearbete'],
+                                                                [/^Bild/i, 'Bild'],
+                                                                [/^Musik/i, 'Musik'],
+                                                                [/^Teknik/i, 'Teknik'],
+                                                            ];
+                                                            
+                                                            for (const [pattern, subject] of namePatterns) {
+                                                                if (pattern.test(cleanName)) {
+                                                                    return subject;
+                                                                }
+                                                            }
+                                                            
+                                                            // If no pattern matches, use first word(s) before any numbers
+                                                            const nameMatch = cleanName.match(/^([^0-9]+?)(?:\s+(som|för|och|i).*)?$/i);
+                                                            if (nameMatch) {
+                                                                return nameMatch[1].trim();
+                                                            }
+                                                            
+                                                            return cleanName;
+                                                        }
+                                                        
+                                                        return courseCode || 'Okänt ämne';
+                                                    };
+                                                    
+                                                    project.classes?.forEach(cls => {
+                                                        if (cls.curricula && cls.curricula.length > 0) {
+                                                            const curriculum = cls.curricula[0];
+                                                            if (curriculum.courses && Array.isArray(curriculum.courses)) {
+                                                                curriculum.courses.forEach(course => {
+                                                                    const subject = extractSubject(course.courseCode, course.courseName);
+                                                                    
+                                                                    // Add to map
+                                                                    if (subjectMap.has(subject)) {
+                                                                        const existing = subjectMap.get(subject)!;
+                                                                        existing.points += course.points || 0;
+                                                                        // Check if course already exists (by code and year, since same course can be in different years)
+                                                                        const courseExists = existing.courses.some(c => c.code === course.courseCode && c.year === course.year && c.classStartYear === cls.startYear);
+                                                                        if (!courseExists) {
+                                                                            existing.courses.push({
+                                                                                code: course.courseCode,
+                                                                                name: course.courseName,
+                                                                                year: course.year,
+                                                                                classStartYear: cls.startYear,
+                                                                            });
+                                                                        }
+                                                                    } else {
+                                                                        subjectMap.set(subject, {
+                                                                            points: course.points || 0,
+                                                                            courses: [{
+                                                                                code: course.courseCode,
+                                                                                name: course.courseName,
+                                                                                year: course.year,
+                                                                                classStartYear: cls.startYear,
+                                                                            }],
+                                                                        });
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    });
+                                                    
+                                                    // Helper function to get sort key for academic year (already defined above)
+                                                    const getAcademicYearSortKey = (startYear: number, year: number): number => {
+                                                        return (startYear + (year - 1)) * 1000 + year;
+                                                    };
+                                                    
+                                                    // Group courses by academic year first, then by subject
+                                                    const coursesByAcademicYear = new Map<string, Map<string, Array<{ code: string; name: string; year: number; classStartYear: number; points: number }>>>();
+                                                    
+                                                    // Extract all courses with their subjects and academic years
+                                                    const allCoursesWithSubjects: Array<{
+                                                        code: string;
+                                                        name: string;
+                                                        year: number;
+                                                        classStartYear: number;
+                                                        subject: string;
+                                                        points: number;
+                                                        academicYear: string;
+                                                        academicYearSortKey: number;
+                                                    }> = [];
+                                                    
+                                                    project.classes?.forEach(cls => {
+                                                        if (cls.curricula && cls.curricula.length > 0) {
+                                                            const curriculum = cls.curricula[0];
+                                                            if (curriculum.courses && Array.isArray(curriculum.courses)) {
+                                                                curriculum.courses.forEach(course => {
+                                                                    const subject = extractSubject(course.courseCode, course.courseName);
+                                                                    const academicYear = formatAcademicYear(cls.startYear, course.year);
+                                                                    const academicYearSortKey = getAcademicYearSortKey(cls.startYear, course.year);
+                                                                    
+                                                                    allCoursesWithSubjects.push({
+                                                                        code: course.courseCode,
+                                                                        name: course.courseName,
+                                                                        year: course.year,
+                                                                        classStartYear: cls.startYear,
+                                                                        subject,
+                                                                        points: course.points || 0,
+                                                                        academicYear,
+                                                                        academicYearSortKey,
+                                                                    });
+                                                                });
+                                                            }
+                                                        }
+                                                    });
+                                                    
+                                                    // Group by academic year, then by subject
+                                                    allCoursesWithSubjects.forEach(course => {
+                                                        if (!coursesByAcademicYear.has(course.academicYear)) {
+                                                            coursesByAcademicYear.set(course.academicYear, new Map());
+                                                        }
+                                                        const subjectsMap = coursesByAcademicYear.get(course.academicYear)!;
+                                                        if (!subjectsMap.has(course.subject)) {
+                                                            subjectsMap.set(course.subject, []);
+                                                        }
+                                                        const coursesList = subjectsMap.get(course.subject)!;
+                                                        // Check if this course code already exists in this subject for this academic year
+                                                        const alreadyExists = coursesList.some((c: { code: string }) => c.code === course.code);
+                                                        if (!alreadyExists) {
+                                                            coursesList.push({
+                                                                code: course.code,
+                                                                name: course.name,
+                                                                year: course.year,
+                                                                classStartYear: course.classStartYear,
+                                                                points: course.points,
+                                                            });
+                                                        }
+                                                    });
+                                                    
+                                                    // Sort academic years
+                                                    const sortedAcademicYears = Array.from(coursesByAcademicYear.keys()).sort((a, b) => {
+                                                        const yearA = parseInt(a.split('/')[0]);
+                                                        const yearB = parseInt(b.split('/')[0]);
+                                                        return yearA - yearB;
+                                                    });
+                                                    
+                                                    // If we're in assignment view for a specific academic year, show assignment interface
+                                                    if (assignmentViewAcademicYear && sortedAcademicYears.includes(assignmentViewAcademicYear)) {
+                                                        const selectedYearSubjectsMap = coursesByAcademicYear.get(assignmentViewAcademicYear)!;
+                                                        const selectedYearSubjects = Array.from(selectedYearSubjectsMap.entries())
+                                                            .map(([subject, courses]) => ({
+                                                                subject,
+                                                                courses,
+                                                                totalPoints: courses.reduce((sum, c) => sum + c.points, 0),
+                                                                courseCount: courses.length,
+                                                            }))
+                                                            .sort((a, b) => b.totalPoints - a.totalPoints);
+                                                        
+                                                        // Get all courses for this academic year, removing duplicates by course code
+                                                        const allCoursesForYearMap = new Map<string, { code: string; name: string; year: number; classStartYear: number; points: number }>();
+                                                        selectedYearSubjectsMap.forEach(subjectCourses => {
+                                                            subjectCourses.forEach(course => {
+                                                                // Use course code as key to avoid duplicates
+                                                                if (!allCoursesForYearMap.has(course.code)) {
+                                                                    allCoursesForYearMap.set(course.code, course);
+                                                                }
+                                                            });
+                                                        });
+                                                        const allCoursesForYear = Array.from(allCoursesForYearMap.values()).sort((a, b) => {
+                                                            // Sort by name first
+                                                            const nameCompare = a.name.localeCompare(b.name, 'sv');
+                                                            if (nameCompare !== 0) return nameCompare;
+                                                            // If names are equal, sort by points
+                                                            return b.points - a.points;
+                                                        });
+                                                        
+                                                        return (
+                                                            <div className="space-y-6">
+                                                                <div className="flex items-center justify-between mb-4">
+                                                                    <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                                                        Tjänstefördelning för läsår {assignmentViewAcademicYear}
+                                                                    </h4>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setAssignmentViewAcademicYear(null);
+                                                                            setTeacherAssignments([]);
+                                                                        }}
+                                                                        className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+                                                                    >
+                                                                        Tillbaka
+                                                                    </button>
+                                                                </div>
+                                                                
+                                                                {/* Teacher assignments list */}
+                                                                <div className="space-y-4">
+                                                                    {teacherAssignments.map((assignment, index) => {
+                                                                        // Calculate total points for assigned courses
+                                                                        const assignedCoursesPoints = assignment.courses.reduce((sum, code) => {
+                                                                            const course = allCoursesForYear.find(c => c.code === code);
+                                                                            return sum + (course?.points || 0);
+                                                                        }, 0);
+                                                                        
+                                                                        // Calculate difference from capacity
+                                                                        const pointsDifference = assignedCoursesPoints - assignment.capacity;
+                                                                        const isExactMatch = pointsDifference === 0;
+                                                                        const isOverCapacity = pointsDifference > 0;
+                                                                        const isUnderCapacity = pointsDifference < 0;
+                                                                        
+                                                                        return (
+                                                                        <div key={assignment.id} className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                                            <div className="mb-3">
+                                                                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                                                    Lärares namn (riktigt eller potentiellt)
+                                                                                </label>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={assignment.name}
+                                                                                    onChange={(e) => {
+                                                                                        setTeacherAssignments(prev => prev.map(a => 
+                                                                                            a.id === assignment.id 
+                                                                                                ? { ...a, name: e.target.value }
+                                                                                                : a
+                                                                                        ));
+                                                                                    }}
+                                                                                    className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                                                                    placeholder="Lärarens namn"
+                                                                                />
+                                                                            </div>
+                                                                            
+                                                                            <div className="flex items-center justify-between mb-3">
+                                                                                <h5 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                                                                    Lärare {index + 1}
+                                                                                </h5>
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setTeacherAssignments(prev => prev.filter(a => a.id !== assignment.id));
+                                                                                    }}
+                                                                                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                                                                                >
+                                                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                                    </svg>
+                                                                                </button>
+                                                                            </div>
+                                                                            
+                                                                            {/* Points feedback */}
+                                                                            <div className={`mb-3 p-3 rounded-lg border-2 ${
+                                                                                isExactMatch 
+                                                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
+                                                                                    : isOverCapacity 
+                                                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                                                                                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                                                                            }`}>
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div>
+                                                                                        <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                                                                            Tjänstegrad: {assignment.capacity} poäng
+                                                                                        </div>
+                                                                                        <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                                                                                            Tilldelade kurser: {assignedCoursesPoints} poäng
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className={`text-lg font-bold ${
+                                                                                        isExactMatch 
+                                                                                            ? 'text-green-600 dark:text-green-400' 
+                                                                                            : isOverCapacity 
+                                                                                                ? 'text-red-600 dark:text-red-400'
+                                                                                                : 'text-yellow-600 dark:text-yellow-400'
+                                                                                    }`}>
+                                                                                        {isExactMatch ? (
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                                </svg>
+                                                                                                Uppfyllt
+                                                                                            </div>
+                                                                                        ) : isOverCapacity ? (
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                                                                </svg>
+                                                                                                +{Math.abs(pointsDifference)} p för mycket
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                                                                </svg>
+                                                                                                {Math.abs(pointsDifference)} p saknas
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                                                                <div>
+                                                                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                                                        Tjänstegrad (poäng/år)
+                                                                                    </label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        value={assignment.capacity}
+                                                                                        onChange={(e) => {
+                                                                                            setTeacherAssignments(prev => prev.map(a => 
+                                                                                                a.id === assignment.id 
+                                                                                                    ? { ...a, capacity: parseInt(e.target.value) || 0 }
+                                                                                                    : a
+                                                                                            ));
+                                                                                        }}
+                                                                                        className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                                                                        min="0"
+                                                                                        placeholder="600"
+                                                                                    />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                                                        Kurser ({assignment.courses.length})
+                                                                                    </label>
+                                                                                    <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                                                                                        {assignment.courses.length > 0 
+                                                                                            ? assignment.courses.map(code => {
+                                                                                                const course = allCoursesForYear.find(c => c.code === code);
+                                                                                                return course?.name || code;
+                                                                                            }).join(', ')
+                                                                                            : 'Inga kurser valda'
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            
+                                                                            <div>
+                                                                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                                                    Välj kurser för {assignment.name || 'läraren'}:
+                                                                                </label>
+                                                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 border border-zinc-200 dark:border-zinc-700 rounded">
+                                                                                    {allCoursesForYear.map((course) => (
+                                                                                        <label key={course.code} className="flex items-center space-x-2 p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 rounded cursor-pointer">
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={assignment.courses.includes(course.code)}
+                                                                                                onChange={(e) => {
+                                                                                                    setTeacherAssignments(prev => prev.map(a => 
+                                                                                                        a.id === assignment.id 
+                                                                                                            ? { 
+                                                                                                                ...a, 
+                                                                                                                courses: e.target.checked
+                                                                                                                    ? [...a.courses, course.code]
+                                                                                                                    : a.courses.filter(c => c !== course.code)
+                                                                                                            }
+                                                                                                            : a
+                                                                                                    ));
+                                                                                                }}
+                                                                                                className="rounded border-zinc-300 dark:border-zinc-600"
+                                                                                            />
+                                                                                            <span className="text-sm text-zinc-900 dark:text-zinc-100">
+                                                                                                {course.name} ({course.points} p)
+                                                                                            </span>
+                                                                                        </label>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                                
+                                                                {/* Add new teacher button */}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newId = `temp-${Date.now()}`;
+                                                                        setTeacherAssignments(prev => [...prev, {
+                                                                            id: newId,
+                                                                            name: '',
+                                                                            capacity: teacherCapacity,
+                                                                            courses: [],
+                                                                        }]);
+                                                                    }}
+                                                                    className="w-full p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                                    </svg>
+                                                                    Lägg till lärare
+                                                                </button>
+                                                                
+                                                                {/* Save button */}
+                                                                {teacherAssignments.length > 0 && (
+                                                                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-600">
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                // TODO: Save teacher assignments to backend
+                                                                                console.log('Saving assignments for', assignmentViewAcademicYear, teacherAssignments);
+                                                                                // For now, just go back
+                                                                                setAssignmentViewAcademicYear(null);
+                                                                                setTeacherAssignments([]);
+                                                                            }}
+                                                                            className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                                                                        >
+                                                                            Spara tjänstefördelning
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    
+                                                    // Normal view - show academic years with subjects
+                                                    if (sortedAcademicYears.length > 0) {
+                                                        return (
+                                                            <div className="space-y-6">
+                                                                <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                                                    Ämnen som behöver anställas per läsår:
+                                                                </h4>
+                                                                {sortedAcademicYears.map((academicYear, yearIndex) => {
+                                                                    const subjectsMap = coursesByAcademicYear.get(academicYear)!;
+                                                                    const subjects = Array.from(subjectsMap.entries())
+                                                                        .map(([subject, courses]) => {
+                                                                            const totalPoints = courses.reduce((sum, c) => sum + c.points, 0);
+                                                                            return {
+                                                                                subject,
+                                                                                courses,
+                                                                                totalPoints,
+                                                                                courseCount: courses.length,
+                                                                            };
+                                                                        })
+                                                                        .sort((a, b) => b.totalPoints - a.totalPoints); // Sort subjects by points
+                                                                    
+                                                                    // Find teachers needed for this academic year
+                                                                    const teachersForYear = teachersByAcademicYear.find(t => t.academicYear === academicYear);
+                                                                    
+                                                                    return (
+                                                                        <div key={academicYear} className="p-5 bg-white dark:bg-zinc-800 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 shadow-sm">
+                                                                            <div className="mb-4 pb-3 border-b-2 border-zinc-300 dark:border-zinc-600">
+                                                                                <h5 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                                                                                    Läsår {academicYear}
+                                                                                </h5>
+                                                                                <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                                                                                    {subjects.reduce((sum, s) => sum + s.courseCount, 0)} kurser över {subjects.length} ämnen
+                                                                                </div>
+                                                                            </div>
+                                                                            
+                                                                            {/* Teachers needed for this academic year */}
+                                                                            {teachersForYear && (
+                                                                                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                                                                                    <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                                                                                        Lärare som behöver för läsår {academicYear}
+                                                                                    </div>
+                                                                                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                                                                                        {teachersForYear.teachersNeeded} lärare
+                                                                                    </div>
+                                                                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                                                        {teachersForYear.points.toLocaleString('sv-SE')} poäng
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                            
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                                                {subjects.map(({ subject, courses, totalPoints, courseCount }) => (
+                                                                                    <div key={subject} className="p-3 bg-zinc-50 dark:bg-zinc-700/50 rounded border border-zinc-200 dark:border-zinc-600">
+                                                                                        <div className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                                                                                            {subject}
+                                                                                        </div>
+                                                                                        <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
+                                                                                            {totalPoints} poäng • {courseCount} kurs{courseCount !== 1 ? 'er' : ''}
+                                                                                        </div>
+                                                                                        <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                                                                                            {courses.map((course) => (
+                                                                                                <li key={`${course.code}-${course.year}-${course.classStartYear}`} className="truncate">
+                                                                                                    • {course.name}
+                                                                                                </li>
+                                                                                            ))}
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                            
+                                                                            {/* Create teacher assignment button - at the end of the card */}
+                                                                            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        setAssignmentViewAcademicYear(academicYear);
+                                                                                        setTeacherAssignments([]);
+                                                                                    }}
+                                                                                    className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                                                                >
+                                                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                                                    </svg>
+                                                                                    Skapa tjänstefördelning
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+
+                                                {totalPoints === 0 && (
+                                                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-yellow-800 dark:text-yellow-200">
+                                                        Inga kurser planerade ännu. Planera kurser för klasserna för att se lärarebehovet.
+                                                    </div>
+                                                )}
                                             </div>
-                                        </button>
-                                    ) : (
-                                        <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Create Teacher Form - Only show when form is open */}
+                                {showTeacherForm && (
+                                <div className="mb-6">
+                                    <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
                                             <div className="flex justify-between items-center mb-4">
                                                 <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Add New Teacher</h4>
                                                 <button
@@ -474,9 +1199,9 @@ export default function ProjectDetailPage() {
                                                     </button>
                                                 </div>
                                             </form>
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
+                                )}
 
                                 {/* Teachers List */}
                                 {teachers.length > 0 ? (
