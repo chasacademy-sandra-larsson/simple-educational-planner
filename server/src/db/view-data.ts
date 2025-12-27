@@ -1,5 +1,5 @@
 import { db } from './index';
-import { classCurricula, projectClasses, projects, projectPrograms } from './schema';
+import { classCurricula, projectClasses, projects } from './schema';
 import { eq } from 'drizzle-orm';
 
 async function viewDatabase() {
@@ -11,7 +11,6 @@ async function viewDatabase() {
             with: {
                 classes: {
                     with: {
-                        program: true,
                         curricula: true,
                     },
                 },
@@ -32,8 +31,8 @@ async function viewDatabase() {
                     console.log(`   📚 Klass: ${classItem.classCode}`);
                     console.log(`      Startår: ${classItem.startYear}`);
                     console.log(`      Examensår: ${classItem.graduationYear}`);
-                    console.log(`      Program: ${classItem.program?.programName} (${classItem.program?.programCode})`);
-                    console.log(`      Inriktning: ${classItem.program?.orientationName} (${classItem.program?.orientationCode})`);
+                    console.log(`      Program: ${classItem.programName} (${classItem.programCode})`);
+                    console.log(`      Inriktning: ${classItem.orientationName} (${classItem.orientationCode})`);
 
                     if (classItem.curricula && classItem.curricula.length > 0) {
                         for (const curriculum of classItem.curricula) {

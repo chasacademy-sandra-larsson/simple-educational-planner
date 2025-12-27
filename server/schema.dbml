@@ -11,21 +11,14 @@ table class_curricula {
 table project_classes {
   id uuid [pk, not null, default: `gen_random_uuid()`]
   project_id uuid [not null]
-  program_id uuid [not null]
   class_code text [not null]
-  start_year integer [not null]
-  graduation_year integer [not null]
-  is_active integer [not null, default: 1]
-  created_at timestamp [not null, default: `now()`]
-}
-
-table project_programs {
-  id uuid [pk, not null, default: `gen_random_uuid()`]
-  project_id uuid [not null]
   program_code text [not null]
   program_name text [not null]
   orientation_code text [not null]
   orientation_name text [not null]
+  start_year integer [not null]
+  graduation_year integer [not null]
+  is_active integer [not null, default: 1]
   created_at timestamp [not null, default: `now()`]
 }
 
@@ -69,10 +62,6 @@ table users {
 ref: class_curricula.class_id > project_classes.id
 
 ref: project_classes.project_id > projects.id
-
-ref: project_classes.program_id > project_programs.id
-
-ref: project_programs.project_id > projects.id
 
 ref: projects.user_id > users.id
 

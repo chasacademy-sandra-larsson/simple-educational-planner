@@ -1,9 +1,9 @@
 import { Router, Response } from 'express';
 import { db } from '../db';
-import { projects, projectPrograms, projectClasses, classCurricula } from '../db/schema';
+import { projects, projectClasses, classCurricula } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { CreateProjectRequest, CreateProgramRequest, CreateClassRequest, UpdateCurriculumRequest } from '../types';
+import { CreateProjectRequest, CreateClassRequest, UpdateCurriculumRequest } from '../types';
 
 const router = Router();
 
@@ -34,10 +34,8 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                 eq(projects.userId, req.userId!)
             ),
             with: {
-                programs: true,
                 classes: {
                     with: {
-                        program: true,
                         curricula: true,
                     },
                 },
@@ -122,38 +120,6 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     }
 });
 
-// Add a program to a project
-router.post('/:id/programs', async (req: AuthRequest<{}, {}, CreateProgramRequest>, res: Response) => {
-    try {
-        const { programCode, programName, orientationCode, orientationName } = req.body;
-
-        // Verify project ownership
-        const project = await db.query.projects.findFirst({
-            where: and(
-                eq(projects.id, req.params.id),
-                eq(projects.userId, req.userId!)
-            ),
-        });
-
-        if (!project) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-
-        const [newProgram] = await db.insert(projectPrograms).values({
-            projectId: req.params.id,
-            programCode,
-            programName,
-            orientationCode,
-            orientationName,
-        }).returning();
-
-        res.status(201).json(newProgram);
-    } catch (error) {
-        console.error('Add program error:', error);
-        res.status(500).json({ error: 'Failed to add program' });
-    }
-});
-
 // Add a class to a project
 router.post('/:id/classes', async (req: AuthRequest<{}, {}, CreateClassRequest>, res: Response) => {
     try {
@@ -171,33 +137,15 @@ router.post('/:id/classes', async (req: AuthRequest<{}, {}, CreateClassRequest>,
             return res.status(404).json({ error: 'Project not found' });
         }
 
-        // Check if program with this code and orientation already exists
-        let program = await db.query.projectPrograms.findFirst({
-            where: and(
-                eq(projectPrograms.projectId, req.params.id),
-                eq(projectPrograms.programCode, programCode),
-                eq(projectPrograms.orientationCode, orientationCode)
-            ),
-        });
-
-        // If not, create it
-        if (!program) {
-            const [newProgram] = await db.insert(projectPrograms).values({
-                projectId: req.params.id,
-                programCode,
-                programName,
-                orientationCode,
-                orientationName,
-            }).returning();
-            program = newProgram;
-        }
-
         const graduationYear = startYear + 3;
 
         const [newClass] = await db.insert(projectClasses).values({
             projectId: req.params.id,
-            programId: program.id,
             classCode,
+            programCode,
+            programName,
+            orientationCode,
+            orientationName,
             startYear,
             graduationYear,
         }).returning();
@@ -206,6 +154,35 @@ router.post('/:id/classes', async (req: AuthRequest<{}, {}, CreateClassRequest>,
     } catch (error) {
         console.error('Add class error:', error);
         res.status(500).json({ error: 'Failed to add class' });
+    }
+});
+
+// Delete a class
+router.delete('/classes/:classId', async (req: AuthRequest, res: Response) => {
+    try {
+        // Get class with project info to verify ownership
+        const classToDelete = await db.query.projectClasses.findFirst({
+            where: eq(projectClasses.id, req.params.classId),
+            with: {
+                project: true,
+            },
+        });
+
+        if (!classToDelete) {
+            return res.status(404).json({ error: 'Class not found' });
+        }
+
+        // Verify project ownership
+        if (classToDelete.project.userId !== req.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        await db.delete(projectClasses).where(eq(projectClasses.id, req.params.classId));
+
+        res.json({ message: 'Class deleted successfully' });
+    } catch (error) {
+        console.error('Delete class error:', error);
+        res.status(500).json({ error: 'Failed to delete class' });
     }
 });
 

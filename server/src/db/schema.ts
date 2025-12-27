@@ -20,23 +20,15 @@ export const projects = pgTable('projects', {
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Programs in a project
-export const projectPrograms = pgTable('project_programs', {
+// Classes in a project (now includes program information directly)
+export const projectClasses = pgTable('project_classes', {
     id: uuid('id').primaryKey().defaultRandom(),
     projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+    classCode: text('class_code').notNull(), // e.g., "TE26", "EK25"
     programCode: text('program_code').notNull(), // e.g., "TE"
     programName: text('program_name').notNull(), // e.g., "Teknikprogrammet"
     orientationCode: text('orientation_code').notNull(), // e.g., "TEKTEK"
     orientationName: text('orientation_name').notNull(), // e.g., "Teknik"
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
-// Classes in a project
-export const projectClasses = pgTable('project_classes', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
-    programId: uuid('program_id').references(() => projectPrograms.id, { onDelete: 'cascade' }).notNull(),
-    classCode: text('class_code').notNull(), // e.g., "TE26", "EK25"
     startYear: integer('start_year').notNull(), // e.g., 2026
     graduationYear: integer('graduation_year').notNull(), // e.g., 2029
     isActive: integer('is_active').notNull().default(1), // 1 = active, 0 = inactive
@@ -86,28 +78,15 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
         fields: [projects.userId],
         references: [users.id],
     }),
-    programs: many(projectPrograms),
     classes: many(projectClasses),
     teachers: many(teachers),
     rooms: many(rooms),
-}));
-
-export const projectProgramsRelations = relations(projectPrograms, ({ one, many }) => ({
-    project: one(projects, {
-        fields: [projectPrograms.projectId],
-        references: [projects.id],
-    }),
-    classes: many(projectClasses),
 }));
 
 export const projectClassesRelations = relations(projectClasses, ({ one, many }) => ({
     project: one(projects, {
         fields: [projectClasses.projectId],
         references: [projects.id],
-    }),
-    program: one(projectPrograms, {
-        fields: [projectClasses.programId],
-        references: [projectPrograms.id],
     }),
     curricula: many(classCurricula),
 }));
