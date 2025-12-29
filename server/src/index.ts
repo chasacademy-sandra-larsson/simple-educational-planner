@@ -25,12 +25,14 @@ import authRoutes from './routes/auth';
 import projectRoutes from './routes/projects';
 import teacherRoutes from './routes/teachers';
 import roomRoutes from './routes/rooms';
+import serviceDistributionRoutes from './routes/service-distributions';
 
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api', teacherRoutes);
 app.use('/api', roomRoutes);
+app.use('/api', serviceDistributionRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: any) => {

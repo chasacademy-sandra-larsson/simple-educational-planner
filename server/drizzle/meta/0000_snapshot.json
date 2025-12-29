@@ -1,11 +1,11 @@
 {
-  "id": "068fb223-75d1-4287-87fd-c8336ec8a8a7",
+  "id": "92e79c4b-3e5d-4faa-a582-8dc2cf9f0e17",
   "prevId": "00000000-0000-0000-0000-000000000000",
-  "version": "5",
-  "dialect": "pg",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "class_curricula": {
-      "name": "class_curricula",
+    "public.course_instances": {
+      "name": "course_instances",
       "schema": "",
       "columns": {
         "id": {
@@ -21,25 +21,59 @@
           "primaryKey": false,
           "notNull": true
         },
-        "courses": {
-          "name": "courses",
+        "teacher_id": {
+          "name": "teacher_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "course_code": {
+          "name": "course_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "course_name": {
+          "name": "course_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "terms": {
+          "name": "terms",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
-        "total_points": {
-          "name": "total_points",
+        "lesson_duration": {
+          "name": "lesson_duration",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "is_valid": {
-          "name": "is_valid",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -58,9 +92,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "class_curricula_class_id_project_classes_id_fk": {
-          "name": "class_curricula_class_id_project_classes_id_fk",
-          "tableFrom": "class_curricula",
+        "course_instances_class_id_project_classes_id_fk": {
+          "name": "course_instances_class_id_project_classes_id_fk",
+          "tableFrom": "course_instances",
           "tableTo": "project_classes",
           "columnsFrom": [
             "class_id"
@@ -70,12 +104,50 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "course_instances_teacher_id_teachers_id_fk": {
+          "name": "course_instances_teacher_id_teachers_id_fk",
+          "tableFrom": "course_instances",
+          "tableTo": "teachers",
+          "columnsFrom": [
+            "teacher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "course_instances_room_id_rooms_id_fk": {
+          "name": "course_instances_room_id_rooms_id_fk",
+          "tableFrom": "course_instances",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "unique_course_per_class": {
+          "name": "unique_course_per_class",
+          "nullsNotDistinct": false,
+          "columns": [
+            "class_id",
+            "course_code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "project_classes": {
+    "public.project_classes": {
       "name": "project_classes",
       "schema": "",
       "columns": {
@@ -92,91 +164,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "program_id": {
-          "name": "program_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "class_code": {
           "name": "class_code",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "start_year": {
-          "name": "start_year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "graduation_year": {
-          "name": "graduation_year",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "project_classes_project_id_projects_id_fk": {
-          "name": "project_classes_project_id_projects_id_fk",
-          "tableFrom": "project_classes",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "project_classes_program_id_project_programs_id_fk": {
-          "name": "project_classes_program_id_project_programs_id_fk",
-          "tableFrom": "project_classes",
-          "tableTo": "project_programs",
-          "columnsFrom": [
-            "program_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "project_programs": {
-      "name": "project_programs",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -204,6 +194,39 @@
           "primaryKey": false,
           "notNull": true
         },
+        "start_year": {
+          "name": "start_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "graduation_year": {
+          "name": "graduation_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "total_points": {
+          "name": "total_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_valid": {
+          "name": "is_valid",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -214,9 +237,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "project_programs_project_id_projects_id_fk": {
-          "name": "project_programs_project_id_projects_id_fk",
-          "tableFrom": "project_programs",
+        "project_classes_project_id_projects_id_fk": {
+          "name": "project_classes_project_id_projects_id_fk",
+          "tableFrom": "project_classes",
           "tableTo": "projects",
           "columnsFrom": [
             "project_id"
@@ -229,9 +252,21 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {
+        "unique_class_code_per_project": {
+          "name": "unique_class_code_per_project",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "class_code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "projects": {
+    "public.projects": {
       "name": "projects",
       "schema": "",
       "columns": {
@@ -257,6 +292,60 @@
         "description": {
           "name": "description",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "earliest_lesson_start": {
+          "name": "earliest_lesson_start",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latest_lesson_end": {
+          "name": "latest_lesson_end",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "default_lesson_duration": {
+          "name": "default_lesson_duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mentor_time_per_week": {
+          "name": "mentor_time_per_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lunch_duration": {
+          "name": "lunch_duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "earliest_lunch_time": {
+          "name": "earliest_lunch_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "latest_lunch_time": {
+          "name": "latest_lunch_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shortest_break_between_lessons": {
+          "name": "shortest_break_between_lessons",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "longest_break_between_lessons": {
+          "name": "longest_break_between_lessons",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -292,9 +381,346 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "users": {
+    "public.rooms": {
+      "name": "rooms",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_number": {
+          "name": "room_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_type": {
+          "name": "room_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allowed_subjects": {
+          "name": "allowed_subjects",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "rooms_project_id_projects_id_fk": {
+          "name": "rooms_project_id_projects_id_fk",
+          "tableFrom": "rooms",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_room_number_per_project": {
+          "name": "unique_room_number_per_project",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "room_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.service_distribution_courses": {
+      "name": "service_distribution_courses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "service_distribution_id": {
+          "name": "service_distribution_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "course_instance_id": {
+          "name": "course_instance_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "service_distribution_courses_service_distribution_id_teacher_service_distributions_id_fk": {
+          "name": "service_distribution_courses_service_distribution_id_teacher_service_distributions_id_fk",
+          "tableFrom": "service_distribution_courses",
+          "tableTo": "teacher_service_distributions",
+          "columnsFrom": [
+            "service_distribution_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "service_distribution_courses_course_instance_id_course_instances_id_fk": {
+          "name": "service_distribution_courses_course_instance_id_course_instances_id_fk",
+          "tableFrom": "service_distribution_courses",
+          "tableTo": "course_instances",
+          "columnsFrom": [
+            "course_instance_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_course_instance_per_distribution": {
+          "name": "unique_course_instance_per_distribution",
+          "nullsNotDistinct": false,
+          "columns": [
+            "service_distribution_id",
+            "course_instance_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teacher_service_distributions": {
+      "name": "teacher_service_distributions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "teacher_id": {
+          "name": "teacher_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "academic_year": {
+          "name": "academic_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_points": {
+          "name": "service_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assigned_points": {
+          "name": "assigned_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "teacher_service_distributions_teacher_id_teachers_id_fk": {
+          "name": "teacher_service_distributions_teacher_id_teachers_id_fk",
+          "tableFrom": "teacher_service_distributions",
+          "tableTo": "teachers",
+          "columnsFrom": [
+            "teacher_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "teacher_service_distributions_project_id_projects_id_fk": {
+          "name": "teacher_service_distributions_project_id_projects_id_fk",
+          "tableFrom": "teacher_service_distributions",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "unique_distribution_per_teacher_per_year": {
+          "name": "unique_distribution_per_teacher_per_year",
+          "nullsNotDistinct": false,
+          "columns": [
+            "teacher_id",
+            "project_id",
+            "academic_year"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teachers": {
+      "name": "teachers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "teachers_project_id_projects_id_fk": {
+          "name": "teachers_project_id_projects_id_fk",
+          "tableFrom": "teachers",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
       "name": "users",
       "schema": "",
       "columns": {
@@ -342,11 +768,18 @@
             "email"
           ]
         }
-      }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {},
   "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

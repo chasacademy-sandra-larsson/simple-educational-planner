@@ -218,12 +218,37 @@ export const roomsApi = {
     },
 };
 
+// Service Distributions API
+export const serviceDistributionsApi = {
+    async createForAllTeachers(projectId: string, academicYear: string, servicePoints: number = 600): Promise<{ distributions: any[], message: string }> {
+        return fetchWithAuth<{ distributions: any[], message: string }>(`/api/projects/${projectId}/service-distributions`, {
+            method: 'POST',
+            body: JSON.stringify({ academicYear, servicePoints }),
+        });
+    },
+
+    async update(projectId: string, distributionId: string, courseInstanceIds: string[]): Promise<any> {
+        return fetchWithAuth<any>(`/api/projects/${projectId}/service-distributions/${distributionId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ courseInstanceIds }),
+        });
+    },
+
+    async getAll(projectId: string, academicYear?: string): Promise<any[]> {
+        const url = academicYear 
+            ? `/api/projects/${projectId}/service-distributions?academicYear=${academicYear}`
+            : `/api/projects/${projectId}/service-distributions`;
+        return fetchWithAuth<any[]>(url);
+    },
+};
+
 // Export everything as a single API object
 export const api = {
     auth: authApi,
     projects: projectsApi,
     teachers: teachersApi,
     rooms: roomsApi,
+    serviceDistributions: serviceDistributionsApi,
 };
 
 export { ApiError };

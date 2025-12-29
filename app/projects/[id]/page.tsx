@@ -6,8 +6,9 @@ import { api, ApiError } from '@/app/lib/api';
 import type { ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoomRequest } from '@/app/lib/api/types';
 import AddClassForm from '@/app/components/add-class-form';
 import ComprehensiveCoursePlanner from '@/app/components/comprehensive-course-planner';
+import TimeSettingsForm from '@/app/components/time-settings-form';
 
-type Tab = 'classes' | 'teachers' | 'rooms';
+type Tab = 'classes' | 'teachers' | 'rooms' | 'settings';
 
 export default function ProjectDetailPage() {
     const router = useRouter();
@@ -34,10 +35,12 @@ export default function ProjectDetailPage() {
     const [assignmentViewAcademicYear, setAssignmentViewAcademicYear] = useState<string | null>(null);
     const [teacherAssignments, setTeacherAssignments] = useState<Array<{
         id: string;
+        teacherId?: string; // Real teacher ID if exists
         name: string;
         capacity: number;
         courses: string[]; // course codes
     }>>([]);
+    const [courseInstancesMap, setCourseInstancesMap] = useState<Map<string, string>>(new Map()); // course code -> course instance id
 
     // Room form state
     const [showRoomForm, setShowRoomForm] = useState(false);
@@ -78,6 +81,16 @@ export default function ProjectDetailPage() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleProjectUpdate = (updatedProject: Project) => {
+        // Update the project state while preserving the classes relationship
+        if (project) {
+            setProject({
+                ...updatedProject,
+                classes: project.classes,
+            } as ProjectWithDetails);
         }
     };
 
@@ -249,6 +262,15 @@ export default function ProjectDetailPage() {
                             >
                                 Rooms ({rooms.length})
                             </button>
+                            <button
+                                onClick={() => setActiveTab('settings')}
+                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'settings'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
+                                    }`}
+                            >
+                                Inställningar
+                            </button>
                         </nav>
                     </div>
 
@@ -307,12 +329,12 @@ export default function ProjectDetailPage() {
                                                                     <div className="font-medium text-zinc-900 dark:text-zinc-100">
                                                                         {cls.classCode}
                                                                     </div>
-                                                                    {cls.curricula && cls.curricula.length > 0 && cls.curricula[0].courses && (
-                                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${cls.curricula[0].isValid
+                                                                    {cls.curriculum && cls.curriculum.courses && (
+                                                                        <span className={`text-xs px-2 py-0.5 rounded-full ${cls.curriculum.isValid
                                                                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                                                                             : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                                                             }`}>
-                                                                            {Array.isArray(cls.curricula[0].courses) ? cls.curricula[0].courses.length : 0} courses
+                                                                            {Array.isArray(cls.curriculum.courses) ? cls.curriculum.courses.length : 0} courses
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -356,7 +378,7 @@ export default function ProjectDetailPage() {
                                                                 programCode={cls.programCode}
                                                                 orientationCode={cls.orientationCode}
                                                                 onSaveSuccess={() => fetchProject()}
-                                                                hasCurriculum={cls.curricula && cls.curricula.length > 0 && cls.curricula[0].courses && Array.isArray(cls.curricula[0].courses) && cls.curricula[0].courses.length > 0}
+                                                                hasCurriculum={cls.curriculum && cls.curriculum.courses && Array.isArray(cls.curriculum.courses) && cls.curriculum.courses.length > 0}
                                                             />
                                                         </div>
                                                     )}
@@ -415,8 +437,8 @@ export default function ProjectDetailPage() {
                                         const pointsByAcademicYear = new Map<string, number>();
                                         
                                         project.classes?.forEach(cls => {
-                                            if (cls.curricula && cls.curricula.length > 0) {
-                                                const curriculum = cls.curricula[0];
+                                            if (cls.curriculum) {
+                                                const curriculum = cls.curriculum;
                                                 if (curriculum.courses && Array.isArray(curriculum.courses)) {
                                                     curriculum.courses.forEach(course => {
                                                         const academicYear = formatAcademicYear(cls.startYear, course.year);
@@ -445,8 +467,8 @@ export default function ProjectDetailPage() {
 
                                         // Calculate points per class
                                         const pointsPerClass = project.classes?.map(cls => {
-                                            if (cls.curricula && cls.curricula.length > 0) {
-                                                const curriculum = cls.curricula[0];
+                                            if (cls.curriculum) {
+                                                const curriculum = cls.curriculum;
                                                 if (curriculum.courses && Array.isArray(curriculum.courses)) {
                                                     const classPoints = curriculum.courses.reduce((sum, course) => {
                                                         return sum + (course.points || 0);
@@ -506,15 +528,12 @@ export default function ProjectDetailPage() {
                                                     const pointsByAcademicYear = new Map<string, number>();
                                                     
                                                     project.classes?.forEach(cls => {
-                                                        if (cls.curricula && cls.curricula.length > 0) {
-                                                            const curriculum = cls.curricula[0];
-                                                            if (curriculum.courses && Array.isArray(curriculum.courses)) {
-                                                                curriculum.courses.forEach(course => {
-                                                                    const academicYear = formatAcademicYear(cls.startYear, course.year);
-                                                                    const currentPoints = pointsByAcademicYear.get(academicYear) || 0;
-                                                                    pointsByAcademicYear.set(academicYear, currentPoints + (course.points || 0));
-                                                                });
-                                                            }
+                                                        if (cls.curriculum && cls.curriculum.courses && Array.isArray(cls.curriculum.courses)) {
+                                                            cls.curriculum.courses.forEach(course => {
+                                                                const academicYear = formatAcademicYear(cls.startYear, course.year);
+                                                                const currentPoints = pointsByAcademicYear.get(academicYear) || 0;
+                                                                pointsByAcademicYear.set(academicYear, currentPoints + (course.points || 0));
+                                                            });
                                                         }
                                                     });
                                                     
@@ -625,39 +644,36 @@ export default function ProjectDetailPage() {
                                                     };
                                                     
                                                     project.classes?.forEach(cls => {
-                                                        if (cls.curricula && cls.curricula.length > 0) {
-                                                            const curriculum = cls.curricula[0];
-                                                            if (curriculum.courses && Array.isArray(curriculum.courses)) {
-                                                                curriculum.courses.forEach(course => {
-                                                                    const subject = extractSubject(course.courseCode, course.courseName);
-                                                                    
-                                                                    // Add to map
-                                                                    if (subjectMap.has(subject)) {
-                                                                        const existing = subjectMap.get(subject)!;
-                                                                        existing.points += course.points || 0;
-                                                                        // Check if course already exists (by code and year, since same course can be in different years)
-                                                                        const courseExists = existing.courses.some(c => c.code === course.courseCode && c.year === course.year && c.classStartYear === cls.startYear);
-                                                                        if (!courseExists) {
-                                                                            existing.courses.push({
-                                                                                code: course.courseCode,
-                                                                                name: course.courseName,
-                                                                                year: course.year,
-                                                                                classStartYear: cls.startYear,
-                                                                            });
-                                                                        }
-                                                                    } else {
-                                                                        subjectMap.set(subject, {
-                                                                            points: course.points || 0,
-                                                                            courses: [{
-                                                                                code: course.courseCode,
-                                                                                name: course.courseName,
-                                                                                year: course.year,
-                                                                                classStartYear: cls.startYear,
-                                                                            }],
+                                                        if (cls.curriculum && cls.curriculum.courses && Array.isArray(cls.curriculum.courses)) {
+                                                            cls.curriculum.courses.forEach(course => {
+                                                                const subject = extractSubject(course.courseCode, course.courseName);
+                                                                
+                                                                // Add to map
+                                                                if (subjectMap.has(subject)) {
+                                                                    const existing = subjectMap.get(subject)!;
+                                                                    existing.points += course.points || 0;
+                                                                    // Check if course already exists (by code and year, since same course can be in different years)
+                                                                    const courseExists = existing.courses.some(c => c.code === course.courseCode && c.year === course.year && c.classStartYear === cls.startYear);
+                                                                    if (!courseExists) {
+                                                                        existing.courses.push({
+                                                                            code: course.courseCode,
+                                                                            name: course.courseName,
+                                                                            year: course.year,
+                                                                            classStartYear: cls.startYear,
                                                                         });
                                                                     }
-                                                                });
-                                                            }
+                                                                } else {
+                                                                    subjectMap.set(subject, {
+                                                                        points: course.points || 0,
+                                                                        courses: [{
+                                                                            code: course.courseCode,
+                                                                            name: course.courseName,
+                                                                            year: course.year,
+                                                                            classStartYear: cls.startYear,
+                                                                        }],
+                                                                    });
+                                                                }
+                                                            });
                                                         }
                                                     });
                                                     
@@ -682,26 +698,23 @@ export default function ProjectDetailPage() {
                                                     }> = [];
                                                     
                                                     project.classes?.forEach(cls => {
-                                                        if (cls.curricula && cls.curricula.length > 0) {
-                                                            const curriculum = cls.curricula[0];
-                                                            if (curriculum.courses && Array.isArray(curriculum.courses)) {
-                                                                curriculum.courses.forEach(course => {
-                                                                    const subject = extractSubject(course.courseCode, course.courseName);
-                                                                    const academicYear = formatAcademicYear(cls.startYear, course.year);
-                                                                    const academicYearSortKey = getAcademicYearSortKey(cls.startYear, course.year);
-                                                                    
-                                                                    allCoursesWithSubjects.push({
-                                                                        code: course.courseCode,
-                                                                        name: course.courseName,
-                                                                        year: course.year,
-                                                                        classStartYear: cls.startYear,
-                                                                        subject,
-                                                                        points: course.points || 0,
-                                                                        academicYear,
-                                                                        academicYearSortKey,
-                                                                    });
+                                                        if (cls.curriculum && cls.curriculum.courses && Array.isArray(cls.curriculum.courses)) {
+                                                            cls.curriculum.courses.forEach(course => {
+                                                                const subject = extractSubject(course.courseCode, course.courseName);
+                                                                const academicYear = formatAcademicYear(cls.startYear, course.year);
+                                                                const academicYearSortKey = getAcademicYearSortKey(cls.startYear, course.year);
+                                                                
+                                                                allCoursesWithSubjects.push({
+                                                                    code: course.courseCode,
+                                                                    name: course.courseName,
+                                                                    year: course.year,
+                                                                    classStartYear: cls.startYear,
+                                                                    subject,
+                                                                    points: course.points || 0,
+                                                                    academicYear,
+                                                                    academicYearSortKey,
                                                                 });
-                                                            }
+                                                            });
                                                         }
                                                     });
                                                     
@@ -771,7 +784,7 @@ export default function ProjectDetailPage() {
                                                                     <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                                                                         Tjänstefördelning för läsår {assignmentViewAcademicYear}
                                                                     </h4>
-                                                                    <button
+                                        <button
                                                                         onClick={() => {
                                                                             setAssignmentViewAcademicYear(null);
                                                                             setTeacherAssignments([]);
@@ -969,9 +982,9 @@ export default function ProjectDetailPage() {
                                                                     }}
                                                                     className="w-full p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
                                                                 >
-                                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                                    </svg>
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
                                                                     Lägg till lärare
                                                                 </button>
                                                                 
@@ -980,17 +993,88 @@ export default function ProjectDetailPage() {
                                                                     <div className="pt-4 border-t border-zinc-200 dark:border-zinc-600">
                                                                         <button
                                                                             onClick={async () => {
-                                                                                // TODO: Save teacher assignments to backend
-                                                                                console.log('Saving assignments for', assignmentViewAcademicYear, teacherAssignments);
-                                                                                // For now, just go back
-                                                                                setAssignmentViewAcademicYear(null);
-                                                                                setTeacherAssignments([]);
+                                                                                try {
+                                                                                    // For each teacher assignment, update the service distribution
+                                                                                    for (const assignment of teacherAssignments) {
+                                                                                        if (!assignment.teacherId || assignment.id.startsWith('temp-')) {
+                                                                                            // Need to find or create teacher
+                                                                                            const teacher = teachers.find(t => t.name === assignment.name);
+                                                                                            if (!teacher) {
+                                                                                                console.warn(`Teacher not found: ${assignment.name}`);
+                                                                                                continue;
+                                                                                            }
+                                                                                            assignment.teacherId = teacher.id;
+                                                                                            
+                                                                                            // Find or create distribution
+                                                                                            const distributions = await api.serviceDistributions.getAll(projectId, assignmentViewAcademicYear!);
+                                                                                            let distribution = distributions.find(d => d.teacherId === teacher.id);
+                                                                                            
+                                                                                            if (!distribution) {
+                                                                                                // Create distribution
+                                                                                                const result = await api.serviceDistributions.createForAllTeachers(
+                                                                                                    projectId,
+                                                                                                    assignmentViewAcademicYear!,
+                                                                                                    assignment.capacity
+                                                                                                );
+                                                                                                distribution = result.distributions.find(d => d.teacherId === teacher.id);
+                                                                                            }
+                                                                                            
+                                                                                            if (!distribution) {
+                                                                                                console.error(`Could not create distribution for teacher ${teacher.name}`);
+                                                                                                continue;
+                                                                                            }
+                                                                                            
+                                                                                            assignment.id = distribution.id;
+                                                                                        }
+                                                                                        
+                                                                                        // Find course instance IDs for the selected courses
+                                                                                        // Map course codes to course instance IDs from project data
+                                                                                        const courseInstanceIds: string[] = [];
+                                                                                        
+                                                                                        // Helper function to format academic year (defined earlier in the component)
+                                                                                        const formatAcademicYear = (startYear: number, year: number): string => {
+                                                                                            const academicStartYear = startYear + (year - 1);
+                                                                                            const academicEndYear = academicStartYear + 1;
+                                                                                            return `${academicStartYear}/${academicEndYear}`;
+                                                                                        };
+                                                                                        
+                                                                                        if (project && project.classes) {
+                                                                                            project.classes.forEach(cls => {
+                                                                                                if (cls.curriculum && cls.curriculum.courses) {
+                                                                                                    cls.curriculum.courses.forEach((course: any) => {
+                                                                                                        // Check if this course matches the academic year and is selected
+                                                                                                        const courseAcademicYear = formatAcademicYear(cls.startYear, course.year);
+                                                                                                        if (courseAcademicYear === assignmentViewAcademicYear && 
+                                                                                                            assignment.courses.includes(course.courseCode) &&
+                                                                                                            course.id) {
+                                                                                                            courseInstanceIds.push(course.id);
+                                                                                                        }
+                                                                                                    });
+                                                                                                }
+                                                                                            });
+                                                                                        }
+                                                                                        
+                                                                                        // Update distribution
+                                                                                        await api.serviceDistributions.update(
+                                                                                            projectId,
+                                                                                            assignment.id,
+                                                                                            courseInstanceIds
+                                                                                        );
+                                                                                    }
+                                                                                    
+                                                                                    alert('Tjänstefördelning sparad!');
+                                                                                    setAssignmentViewAcademicYear(null);
+                                                                                    setTeacherAssignments([]);
+                                                                                } catch (err) {
+                                                                                    console.error('Failed to save service distributions:', err);
+                                                                                    alert('Kunde inte spara tjänstefördelning. Se konsolen för detaljer.');
+                                                                                }
                                                                             }}
                                                                             className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
                                                                         >
                                                                             Spara tjänstefördelning
                                                                         </button>
-                                                                    </div>
+                                            </div>
                                                                 )}
                                                             </div>
                                                         );
@@ -1069,9 +1153,48 @@ export default function ProjectDetailPage() {
                                                                             {/* Create teacher assignment button - at the end of the card */}
                                                                             <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
                                                                                 <button
-                                                                                    onClick={() => {
-                                                                                        setAssignmentViewAcademicYear(academicYear);
-                                                                                        setTeacherAssignments([]);
+                                                                                    onClick={async () => {
+                                                                                        try {
+                                                                                            // Check if there are any teachers
+                                                                                            if (teachers.length === 0) {
+                                                                                                alert('Du måste skapa lärare först innan du kan skapa tjänstefördelning.');
+                                                                                                return;
+                                                                                            }
+                                                                                            
+                                                                                            // Create service distributions for all teachers
+                                                                                            const result = await api.serviceDistributions.createForAllTeachers(
+                                                                                                projectId,
+                                                                                                academicYear,
+                                                                                                teacherCapacity
+                                                                                            );
+                                                                                            
+                                                                                            console.log('Service distributions created:', result);
+                                                                                            
+                                                                                            // Load existing teachers into assignments
+                                                                                            const distributions = await api.serviceDistributions.getAll(projectId, academicYear);
+                                                                                            console.log('Loaded distributions:', distributions);
+                                                                                            
+                                                                                            const assignments = teachers.map(teacher => {
+                                                                                                const distribution = distributions.find(d => d.teacherId === teacher.id);
+                                                                                                return {
+                                                                                                    id: distribution?.id || `temp-${teacher.id}`,
+                                                                                                    teacherId: teacher.id,
+                                                                                                    name: teacher.name,
+                                                                                                    capacity: distribution?.servicePoints || teacherCapacity,
+                                                                                                    courses: [], // Will be loaded from distribution if exists
+                                                                                                };
+                                                                                            });
+                                                                                            
+                                                                                            console.log('Created assignments:', assignments);
+                                                                                            setTeacherAssignments(assignments);
+                                                                                            setAssignmentViewAcademicYear(academicYear);
+                                                                                        } catch (err: any) {
+                                                                                            console.error('Failed to create service distributions:', err);
+                                                                                            const errorMessage = err instanceof ApiError 
+                                                                                                ? err.message 
+                                                                                                : err?.message || 'Okänt fel';
+                                                                                            alert(`Kunde inte skapa tjänstefördelning: ${errorMessage}`);
+                                                                                        }
                                                                                     }}
                                                                                     className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                                                                 >
@@ -1079,7 +1202,7 @@ export default function ProjectDetailPage() {
                                                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                                                                     </svg>
                                                                                     Skapa tjänstefördelning
-                                                                                </button>
+                                        </button>
                                                                             </div>
                                                                         </div>
                                                                     );
@@ -1100,12 +1223,24 @@ export default function ProjectDetailPage() {
                                     })()}
                                 </div>
 
-                                {/* Create Teacher Form - Only show when form is open */}
-                                {showTeacherForm && (
+                                {/* Create Teacher Form */}
                                 <div className="mb-6">
-                                    <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
+                                    {!showTeacherForm ? (
+                                        <button
+                                            onClick={() => setShowTeacherForm(true)}
+                                            className="w-full p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
+                                        >
+                                            <div className="flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                <span className="font-medium">Lägg till lärare</span>
+                                            </div>
+                                        </button>
+                                    ) : (
+                                        <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
                                             <div className="flex justify-between items-center mb-4">
-                                                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Add New Teacher</h4>
+                                                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Lägg till lärare</h4>
                                                 <button
                                                     onClick={() => {
                                                         setShowTeacherForm(false);
@@ -1188,20 +1323,20 @@ export default function ProjectDetailPage() {
                                                         }}
                                                         className="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700"
                                                     >
-                                                        Cancel
+                                                        Avbryt
                                                     </button>
                                                     <button
                                                         type="submit"
                                                         disabled={creatingTeacher}
                                                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded"
                                                     >
-                                                        {creatingTeacher ? 'Adding...' : 'Add Teacher'}
+                                                        {creatingTeacher ? 'Lägger till...' : 'Lägg till lärare'}
                                                     </button>
                                                 </div>
                                             </form>
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
-                                )}
 
                                 {/* Teachers List */}
                                 {teachers.length > 0 ? (
@@ -1234,7 +1369,7 @@ export default function ProjectDetailPage() {
                                     </div>
                                 ) : (
                                     <div className="text-center py-12 text-zinc-500 dark:text-zinc-500">
-                                        No teachers added yet
+                                        Inga lärare tillagda ännu. Klicka på "Lägg till lärare" ovan för att börja.
                                     </div>
                                 )}
                             </div>
@@ -1349,7 +1484,7 @@ export default function ProjectDetailPage() {
                                                         }}
                                                         className="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700"
                                                     >
-                                                        Cancel
+                                                        Avbryt
                                                     </button>
                                                     <button
                                                         type="submit"
@@ -1400,6 +1535,16 @@ export default function ProjectDetailPage() {
                                         No rooms added yet
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* Settings Tab */}
+                        {activeTab === 'settings' && project && (
+                            <div className="space-y-6">
+                                <TimeSettingsForm 
+                                    project={project} 
+                                    onUpdate={handleProjectUpdate}
+                                />
                             </div>
                         )}
                     </div>

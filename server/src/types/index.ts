@@ -12,6 +12,16 @@ export interface CourseAssignment {
 export interface CreateProjectRequest {
     name: string;
     description?: string;
+    // Time settings (all optional)
+    earliestLessonStart?: string; // TIME format: "HH:MM:SS"
+    latestLessonEnd?: string; // TIME format: "HH:MM:SS"
+    defaultLessonDuration?: number; // minutes
+    mentorTimePerWeek?: number; // minutes
+    lunchDuration?: number; // minutes
+    earliestLunchTime?: string; // TIME format: "HH:MM:SS"
+    latestLunchTime?: string; // TIME format: "HH:MM:SS"
+    shortestBreakBetweenLessons?: number; // minutes
+    longestBreakBetweenLessons?: number; // minutes
 }
 
 export interface CreateClassRequest {

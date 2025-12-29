@@ -14,11 +14,13 @@ router.post('/register', async (req: Request<{}, {}, RegisterRequest>, res: Resp
         const { email, name, password } = req.body;
 
         // Check if user exists
-        const existingUser = await db.query.users.findFirst({
-            where: eq(users.email, email),
-        });
+        const existingUsers = await db.select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
 
-        if (existingUser) {
+        if (existingUsers.length > 0) {
+            console.log('User already exists:', existingUsers[0].email);
             return res.status(400).json({ error: 'User already exists' });
         }
 
@@ -26,11 +28,30 @@ router.post('/register', async (req: Request<{}, {}, RegisterRequest>, res: Resp
         const passwordHash = await bcrypt.hash(password, 10);
 
         // Create user
-        const [newUser] = await db.insert(users).values({
-            email,
-            name,
-            passwordHash,
-        }).returning();
+        let newUser;
+        try {
+            console.log('Attempting to insert user:', email);
+            [newUser] = await db.insert(users).values({
+                email,
+                name,
+                passwordHash,
+            }).returning();
+            console.log('User created successfully:', newUser?.id, newUser?.email);
+        } catch (insertError: any) {
+            console.error('Insert error:', insertError);
+            // Handle unique constraint violation (email already exists)
+            if (insertError?.code === '23505' || insertError?.message?.includes('unique') || insertError?.message?.includes('duplicate')) {
+                console.error('User already exists (unique constraint):', email);
+                return res.status(400).json({ error: 'User already exists' });
+            }
+            throw insertError;
+        }
+
+        // Verify user was actually created
+        if (!newUser) {
+            console.error('User creation returned no user object!');
+            return res.status(500).json({ error: 'Failed to create user' });
+        }
 
         // Generate token
         const token = jwt.sign(
@@ -61,9 +82,12 @@ router.post('/login', async (req: Request<{}, {}, LoginRequest>, res: Response) 
         const { email, password } = req.body;
 
         // Find user
-        const user = await db.query.users.findFirst({
-            where: eq(users.email, email),
-        });
+        const userResults = await db.select()
+            .from(users)
+            .where(eq(users.email, email))
+            .limit(1);
+
+        const user = userResults[0];
 
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });

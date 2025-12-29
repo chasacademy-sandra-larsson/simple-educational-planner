@@ -266,7 +266,7 @@ export default function ComprehensiveCoursePlanner({
                 }
                 
                 // GYMNASIEARBETE: assign to term6 by default (standard placement)
-                // Category should be PROGRAMME_SPECIFIC_SUBJECTS (not GYMNASIEARBETE)
+                // Category should be PROGRAMME_SPECIFIC_SUBJECTS (programgemensamma ämnen)
                 if (gymnasiearbete) {
                     finalCourses.push({ 
                         ...gymnasiearbete, 
@@ -307,18 +307,36 @@ export default function ComprehensiveCoursePlanner({
     }, [selectedCourses]);
 
     const handleTermChange = (courseCode: string, term: TermId | 'unassigned') => {
+        // Legacy function for single term selection - converts to terms array
+        if (term === 'unassigned') {
+            handleTermsChange(courseCode, []);
+        } else if (term.startsWith('term')) {
+            handleTermsChange(courseCode, [term as TermId]);
+        } else if (term.startsWith('year')) {
+            // Convert year to terms
+            const yearTerms: TermId[] = term === 'year1' ? ['term1', 'term2'] : 
+                            term === 'year2' ? ['term3', 'term4'] : 
+                            ['term5', 'term6'];
+            handleTermsChange(courseCode, yearTerms);
+        } else {
+            handleTermsChange(courseCode, []);
+        }
+    };
+
+    const handleTermsChange = (courseCode: string, terms: TermId[]) => {
         setSelectedCourses((prev) =>
             prev.map((course) => {
                 if (course.courseCode === courseCode) {
-                    const newTerm = term === 'unassigned' ? undefined : term;
-                    // Convert single term to terms array
-                    const newTerms = newTerm && newTerm.startsWith('term') 
-                        ? [newTerm as "term1" | "term2" | "term3" | "term4" | "term5" | "term6"]
-                        : undefined;
+                    // Filter out non-term values (year, unassigned) and keep only term1-term6
+                    const termIds = terms.filter(t => t.startsWith('term')) as ("term1" | "term2" | "term3" | "term4" | "term5" | "term6")[];
+                    
+                    // For backward compatibility, set term to first term if exists, or undefined
+                    const firstTerm = termIds.length > 0 ? termIds[0] : undefined;
+                    
                     return { 
                         ...course, 
-                        term: newTerm,
-                        terms: newTerms, // Also update terms array
+                        term: firstTerm, // Keep for backward compatibility
+                        terms: termIds.length > 0 ? termIds : undefined,
                     };
                 }
                 return course;
@@ -554,6 +572,7 @@ export default function ComprehensiveCoursePlanner({
                     <DistributeTermsStep
                         selectedCourses={selectedCourses}
                         onTermChange={handleTermChange}
+                        onTermsChange={handleTermsChange}
                         numTerms={numTerms}
                     />
                 )}
@@ -872,6 +891,21 @@ interface ProgramSubjectsStepProps {
 
 function ProgramSubjectsStep({ courses, selectedCourses, onCoursesChange }: ProgramSubjectsStepProps) {
     const programCourses = courses.filter(c => c.category === 'PROGRAMME_SPECIFIC_SUBJECTS');
+    
+    // Add Gymnasiearbete to the list of program courses (it's part of programgemensamma ämnen)
+    // Gymnasiearbete should always be shown here, even if not in the API response
+    const gymnasiearbeteCourse: Course = {
+        courseCode: 'GYMNASIEARBETE',
+        name: 'Gymnasiearbete',
+        points: 100,
+        category: 'PROGRAMME_SPECIFIC_SUBJECTS',
+    };
+    
+    // Combine API courses with Gymnasiearbete, avoiding duplicates (if API already includes it)
+    const allProgramCourses = [
+        ...programCourses,
+        ...(programCourses.some(c => c.courseCode === 'GYMNASIEARBETE') ? [] : [gymnasiearbeteCourse])
+    ];
 
     const toggleCourse = (course: Course) => {
         const exists = selectedCourses.find(c => c.courseCode === course.courseCode);
@@ -906,7 +940,7 @@ function ProgramSubjectsStep({ courses, selectedCourses, onCoursesChange }: Prog
             </div>
 
             <div className="space-y-3">
-                {programCourses.map((course) => {
+                {allProgramCourses.map((course) => {
                     const isSelected = selectedCourses.some(c => c.courseCode === course.courseCode);
                     return (
                         <div
@@ -1321,7 +1355,7 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
             {gymnasiearbete && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="text-sm text-blue-900 dark:text-blue-100">
@@ -1337,7 +1371,8 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
 
 interface DistributeTermsStepProps {
     selectedCourses: CourseWithTerm[];
-    onTermChange: (courseCode: string, term: TermId | 'unassigned') => void;
+    onTermChange: (courseCode: string, term: TermId | 'unassigned') => void; // Legacy support
+    onTermsChange?: (courseCode: string, terms: TermId[]) => void; // New multi-term support
     numTerms: number;
 }
 
@@ -1555,8 +1590,18 @@ function DroppableTerm({
 function DistributeTermsStep({
     selectedCourses,
     onTermChange,
+    onTermsChange,
     numTerms,
 }: DistributeTermsStepProps) {
+    // Use onTermsChange if available, otherwise fallback to onTermChange
+    const handleTermsChangeInternal = onTermsChange || ((courseCode: string, terms: TermId[]) => {
+        // Fallback: convert terms array to single term for legacy onTermChange
+        if (terms.length > 0) {
+            onTermChange(courseCode, terms[0]);
+        } else {
+            onTermChange(courseCode, 'unassigned');
+        }
+    });
     const terms: TermId[] = ['term1', 'term2', 'term3', 'term4', 'term5', 'term6'].slice(0, numTerms) as TermId[];
     const years: TermId[] = ['year1', 'year2', 'year3'];
     
@@ -1732,7 +1777,7 @@ function DistributeTermsStep({
                         Fördela kurser över terminer
                     </h4>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                        Välj termin för varje kurs med dropdown-menyn eller dra och släpp kurser mellan terminer i höger kolumn. Försök få jämn fördelning (cirka 400-450 poäng per termin).
+                        Välj terminer för varje kurs med checkboxes (en kurs kan gå över flera terminer) eller dra och släpp kurser mellan terminer i höger kolumn. Försök få jämn fördelning (cirka 400-450 poäng per termin).
                     </p>
                 </div>
 
@@ -1750,106 +1795,157 @@ function DistributeTermsStep({
                                         // Grouped Swedish course
                                         const swedishCourses = courseOrGroup;
                                         const representative = swedishCourses[0];
-                                        const currentTerm = representative.term || 'unassigned';
+                                        const selectedTerms = representative.terms && representative.terms.length > 0 
+                                            ? representative.terms 
+                                            : (representative.term && representative.term.startsWith('term') ? [representative.term] : []);
                                         const displayName = swedishCourses.map(c => c.courseName).join(' / ');
                                         const displayCodes = swedishCourses.map(c => c.courseCode).join(', ');
+
+                                        const handleTermToggle = (termId: TermId) => {
+                                            const termValue = termId as "term1" | "term2" | "term3" | "term4" | "term5" | "term6";
+                                            const isSelected = selectedTerms.includes(termValue);
+                                            let newTerms: TermId[];
+                                            if (isSelected) {
+                                                // Remove term
+                                                newTerms = selectedTerms.filter(t => t !== termValue);
+                                            } else {
+                                                // Add term
+                                                newTerms = [...selectedTerms, termValue];
+                                            }
+                                            // Update all courses in the group
+                                            swedishCourses.forEach(c => {
+                                                handleTermsChangeInternal(c.courseCode, newTerms);
+                                            });
+                                        };
 
                                         return (
                                             <div
                                                 key={`swedish-group-${representative.courseCode}`}
-                                                className="p-4 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-4"
+                                                className="p-4 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
                                             >
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                                                        {displayName}
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                                            {displayName}
+                                                        </div>
+                                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            {displayCodes}
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2 inline-block">
+                                                            {representative.points} poäng
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                                        {displayCodes}
+                                                    <div className="shrink-0">
+                                                        <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                            Välj terminer:
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {terms.map(termId => {
+                                                                const isSelected = selectedTerms.includes(termId as any);
+                                                                return (
+                                                                    <label
+                                                                        key={termId}
+                                                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
+                                                                            isSelected
+                                                                                ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-900 dark:text-blue-100'
+                                                                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-500'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={isSelected}
+                                                                            onChange={() => handleTermToggle(termId)}
+                                                                            className="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
+                                                                        />
+                                                                        <span className="text-xs font-medium">
+                                                                            {TERM_LABELS[termId]}
+                                                                        </span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {selectedTerms.length === 0 && (
+                                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                                                                Ingen termin vald
+                                                            </p>
+                                                        )}
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                                                        {representative.points} poäng
-                                                    </span>
-                                                    <select
-                                                        value={currentTerm}
-                                                        onChange={(e) => {
-                                                            const selectedValue = e.target.value as TermId | 'unassigned';
-                                                            // Update all courses in the group
-                                                            swedishCourses.forEach(c => {
-                                                                onTermChange(c.courseCode, selectedValue);
-                                                            });
-                                                        }}
-                                                        className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                    >
-                                                        <optgroup label="Ej tilldelad">
-                                                            <option value="unassigned">Ej tilldelad</option>
-                                                        </optgroup>
-                                                        <optgroup label="År">
-                                                            {years.map(yearId => (
-                                                                <option key={yearId} value={yearId}>
-                                                                    {TERM_LABELS[yearId]}
-                                                                </option>
-                                                            ))}
-                                                        </optgroup>
-                                                        <optgroup label="Terminer">
-                                                            {terms.map(termId => (
-                                                                <option key={termId} value={termId}>
-                                                                    {TERM_LABELS[termId]}
-                                                                </option>
-                                                            ))}
-                                                        </optgroup>
-                                                    </select>
                                                 </div>
                                             </div>
                                         );
                                     } else {
                                         // Single course
                                         const course = courseOrGroup;
-                                        const currentTerm = course.term || 'unassigned';
+                                        const selectedTerms = course.terms && course.terms.length > 0 
+                                            ? course.terms 
+                                            : (course.term && course.term.startsWith('term') ? [course.term] : []);
+                                        
+                                        const handleTermToggle = (termId: TermId) => {
+                                            const termValue = termId as "term1" | "term2" | "term3" | "term4" | "term5" | "term6";
+                                            const isSelected = selectedTerms.includes(termValue);
+                                            let newTerms: TermId[];
+                                            if (isSelected) {
+                                                // Remove term
+                                                newTerms = selectedTerms.filter(t => t !== termValue);
+                                            } else {
+                                                // Add term
+                                                newTerms = [...selectedTerms, termValue];
+                                            }
+                                            handleTermsChangeInternal(course.courseCode, newTerms);
+                                        };
+
                                         return (
                                             <div
                                                 key={course.courseCode}
-                                                className="p-4 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-4"
+                                                className="p-4 rounded-lg border bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
                                             >
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                                                        {course.courseName}
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                                            {course.courseName}
+                                                        </div>
+                                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            {course.courseCode}
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2 inline-block">
+                                                            {course.points} poäng
+                                                        </span>
                                                     </div>
-                                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                                        {course.courseCode}
+                                                    <div className="shrink-0">
+                                                        <div className="text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                                            Välj terminer:
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {terms.map(termId => {
+                                                                const isSelected = selectedTerms.includes(termId as any);
+                                                                return (
+                                                                    <label
+                                                                        key={termId}
+                                                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
+                                                                            isSelected
+                                                                                ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-900 dark:text-blue-100'
+                                                                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-500'
+                                                                        }`}
+                                                                    >
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={isSelected}
+                                                                            onChange={() => handleTermToggle(termId)}
+                                                                            className="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
+                                                                        />
+                                                                        <span className="text-xs font-medium">
+                                                                            {TERM_LABELS[termId]}
+                                                                        </span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        {selectedTerms.length === 0 && (
+                                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                                                                Ingen termin vald
+                                                            </p>
+                                                        )}
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                                                        {course.points} poäng
-                                                    </span>
-                                                    <select
-                                                        value={currentTerm}
-                                                        onChange={(e) => {
-                                                            const selectedValue = e.target.value as TermId | 'unassigned';
-                                                            onTermChange(course.courseCode, selectedValue);
-                                                        }}
-                                                        className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                    >
-                                                        <optgroup label="Ej tilldelad">
-                                                            <option value="unassigned">Ej tilldelad</option>
-                                                        </optgroup>
-                                                        <optgroup label="År">
-                                                            {years.map(yearId => (
-                                                                <option key={yearId} value={yearId}>
-                                                                    {TERM_LABELS[yearId]}
-                                                                </option>
-                                                            ))}
-                                                        </optgroup>
-                                                        <optgroup label="Terminer">
-                                                            {terms.map(termId => (
-                                                                <option key={termId} value={termId}>
-                                                                    {TERM_LABELS[termId]}
-                                                                </option>
-                                                            ))}
-                                                        </optgroup>
-                                                    </select>
                                                 </div>
                                             </div>
                                         );
@@ -1896,7 +1992,7 @@ interface ValidateStepProps {
 }
 
 function ValidateStep({ selectedCourses, totalPoints, pointsByTerm, isValid }: ValidateStepProps) {
-    // Note: GYMNASIEARBETE is now counted as PROGRAMME_SPECIFIC_SUBJECTS (category changed)
+    // Note: GYMNASIEARBETE is counted as PROGRAMME_SPECIFIC_SUBJECTS (programgemensamma ämnen)
     const pointsByCategory = {
         'FOUNDATIONAL_SUBJECTS': selectedCourses.filter(c => c.category === 'FOUNDATIONAL_SUBJECTS').reduce((sum, c) => sum + c.points, 0),
         'PROGRAMME_SPECIFIC_SUBJECTS': selectedCourses.filter(c => c.category === 'PROGRAMME_SPECIFIC_SUBJECTS').reduce((sum, c) => sum + c.points, 0),

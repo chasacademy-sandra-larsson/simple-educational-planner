@@ -1,21 +1,19 @@
 import { db } from './index';
-import { classCurricula, projectClasses, projects } from './schema';
+import { projectClasses, projects } from './schema';
 import { eq } from 'drizzle-orm';
 
 async function viewDatabase() {
     try {
         console.log('\n=== DATABASINNEHÅLL ===\n');
 
-        // Get all projects
-        const allProjects = await db.query.projects.findMany({
-            with: {
-                classes: {
-                    with: {
-                        curricula: true,
-                    },
-                },
-            },
-        });
+        // Get all projects (without relations API to avoid schema issues)
+        const allProjects = await db.select({
+            id: projects.id,
+            name: projects.name,
+            description: projects.description,
+            createdAt: projects.createdAt,
+            updatedAt: projects.updatedAt,
+        }).from(projects);
 
         console.log(`Totalt antal projekt: ${allProjects.length}\n`);
 
@@ -24,48 +22,30 @@ async function viewDatabase() {
             console.log(`   ID: ${project.id}`);
             console.log(`   Skapad: ${project.createdAt}`);
             console.log(`   Uppdaterad: ${project.updatedAt}`);
-            console.log(`   Antal klasser: ${project.classes?.length || 0}\n`);
 
-            if (project.classes && project.classes.length > 0) {
-                for (const classItem of project.classes) {
+            // Get classes for this project
+            const classes = await db.select()
+                .from(projectClasses)
+                .where(eq(projectClasses.projectId, project.id));
+
+            console.log(`   Antal klasser: ${classes.length}\n`);
+
+            if (classes.length > 0) {
+                for (const classItem of classes) {
                     console.log(`   📚 Klass: ${classItem.classCode}`);
                     console.log(`      Startår: ${classItem.startYear}`);
                     console.log(`      Examensår: ${classItem.graduationYear}`);
                     console.log(`      Program: ${classItem.programName} (${classItem.programCode})`);
                     console.log(`      Inriktning: ${classItem.orientationName} (${classItem.orientationCode})`);
-
-                    if (classItem.curricula && classItem.curricula.length > 0) {
-                        for (const curriculum of classItem.curricula) {
-                            console.log(`\n      📋 Kursplan:`);
-                            console.log(`         Totalt poäng: ${curriculum.totalPoints}`);
-                            console.log(`         Giltig: ${curriculum.isValid ? 'Ja' : 'Nej'}`);
-                            console.log(`         Antal kurser: ${Array.isArray(curriculum.courses) ? curriculum.courses.length : 0}`);
-                            console.log(`         Skapad: ${curriculum.createdAt}`);
-                            console.log(`         Uppdaterad: ${curriculum.updatedAt}`);
-
-                            if (Array.isArray(curriculum.courses) && curriculum.courses.length > 0) {
-                                console.log(`\n         Kurser:`);
-                                curriculum.courses.forEach((course: any, index: number) => {
-                                    console.log(`            ${index + 1}. ${course.courseName || course.courseCode}`);
-                                    console.log(`               Kurskod: ${course.courseCode}`);
-                                    console.log(`               Poäng: ${course.points}`);
-                                    console.log(`               Kategori: ${course.category}`);
-                                    console.log(`               År: ${course.year || 'Ej angivet'}`);
-                                });
-                            }
-                        }
-                    } else {
-                        console.log(`      (Ingen kursplan sparad än)`);
-                    }
+                    console.log(`\n      📋 Kursplan:`);
+                    console.log(`         Totalt poäng: ${classItem.totalPoints}`);
+                    console.log(`         Giltig: ${classItem.isValid ? 'Ja' : 'Nej'}`);
+                    console.log(`         Skapad: ${classItem.createdAt}`);
                     console.log('');
                 }
             }
             console.log('─'.repeat(60) + '\n');
         }
-
-        // Get all curricula directly
-        const allCurricula = await db.query.classCurricula.findMany();
-        console.log(`\nTotalt antal kursplaner: ${allCurricula.length}\n`);
 
     } catch (error) {
         console.error('Fel vid läsning av databas:', error);
@@ -76,5 +56,3 @@ async function viewDatabase() {
 }
 
 viewDatabase();
-
-

@@ -26,6 +26,16 @@ export interface Project {
     userId: string;
     name: string;
     description?: string;
+    // Time settings
+    earliestLessonStart?: string; // TIME format: "HH:MM:SS"
+    latestLessonEnd?: string; // TIME format: "HH:MM:SS"
+    defaultLessonDuration?: number; // minutes
+    mentorTimePerWeek?: number; // minutes
+    lunchDuration?: number; // minutes
+    earliestLunchTime?: string; // TIME format: "HH:MM:SS"
+    latestLunchTime?: string; // TIME format: "HH:MM:SS"
+    shortestBreakBetweenLessons?: number; // minutes
+    longestBreakBetweenLessons?: number; // minutes
     createdAt: string;
     updatedAt: string;
 }
@@ -50,13 +60,15 @@ export interface ClassCurriculum {
     courses: CourseAssignment[];
     totalPoints: number;
     isValid: number;
-    createdAt: string;
-    updatedAt: string;
+    status: 'draft' | 'approved' | 'archived';
+    version: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface ProjectWithDetails extends Project {
     classes: (ProjectClass & {
-        curricula: ClassCurriculum[];
+        curriculum?: ClassCurriculum;
     })[];
 }
 
@@ -75,6 +87,16 @@ export interface LoginRequest {
 export interface CreateProjectRequest {
     name: string;
     description?: string;
+    // Time settings (all optional)
+    earliestLessonStart?: string; // TIME format: "HH:MM:SS"
+    latestLessonEnd?: string; // TIME format: "HH:MM:SS"
+    defaultLessonDuration?: number; // minutes
+    mentorTimePerWeek?: number; // minutes
+    lunchDuration?: number; // minutes
+    earliestLunchTime?: string; // TIME format: "HH:MM:SS"
+    latestLunchTime?: string; // TIME format: "HH:MM:SS"
+    shortestBreakBetweenLessons?: number; // minutes
+    longestBreakBetweenLessons?: number; // minutes
 }
 
 export interface CreateClassRequest {
