@@ -7,15 +7,16 @@ import type { ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoo
 import AddClassForm from '@/app/components/add-class-form';
 import ComprehensiveCoursePlanner from '@/app/components/comprehensive-course-planner';
 import TimeSettingsForm from '@/app/components/time-settings-form';
+import ProjectSummary from '@/app/components/project-summary';
 
-type Tab = 'classes' | 'teachers' | 'rooms' | 'settings';
+type Tab = 'summary' | 'classes' | 'teachers' | 'rooms' | 'settings';
 
 export default function ProjectDetailPage() {
     const router = useRouter();
     const params = useParams();
     const projectId = params.id as string;
 
-    const [activeTab, setActiveTab] = useState<Tab>('classes');
+    const [activeTab, setActiveTab] = useState<Tab>('summary');
     const [project, setProject] = useState<ProjectWithDetails | null>(null);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
@@ -59,9 +60,10 @@ export default function ProjectDetailPage() {
         // and just load data if a projectId is present.
         if (projectId) {
             fetchProject();
-            if (activeTab === 'teachers') {
+            if (activeTab === 'teachers' || activeTab === 'summary') {
                 fetchTeachers();
-            } else if (activeTab === 'rooms') {
+            }
+            if (activeTab === 'rooms' || activeTab === 'summary') {
                 fetchRooms();
             }
         }
@@ -236,6 +238,15 @@ export default function ProjectDetailPage() {
                     <div className="border-b border-zinc-200 dark:border-zinc-700">
                         <nav className="flex -mb-px">
                             <button
+                                onClick={() => setActiveTab('summary')}
+                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
+                                    }`}
+                            >
+                                Översikt
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('classes')}
                                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'classes'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -276,6 +287,15 @@ export default function ProjectDetailPage() {
 
                     {/* Tab Content */}
                     <div className="p-6">
+                        {/* Summary Tab */}
+                        {activeTab === 'summary' && project && (
+                            <ProjectSummary
+                                project={project}
+                                teachers={teachers}
+                                rooms={rooms}
+                            />
+                        )}
+
                         {/* Classes Tab */}
                         {activeTab === 'classes' && (
                             <div>

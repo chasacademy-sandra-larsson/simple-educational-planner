@@ -11,7 +11,7 @@ const sql = postgres(connectionString, { max: 1, prepare: false });
 
 async function resetDatabase() {
     try {
-        console.log('🗑️  Dropping all tables...');
+        console.log('🗑️  Resetting database...\n');
 
         // Get all table names in the public schema
         const tables = await sql`
@@ -25,7 +25,7 @@ async function resetDatabase() {
             return;
         }
 
-        console.log(`\n📋 Found ${tables.length} tables to drop:`);
+        console.log(`📋 Found ${tables.length} tables to drop:`);
         tables.forEach(t => console.log(`   - ${t.tablename}`));
 
         // Drop all tables with CASCADE to handle foreign key constraints
@@ -42,6 +42,7 @@ async function resetDatabase() {
         console.log('📝 Next steps:');
         console.log('   1. Run: npm run db:generate');
         console.log('   2. Run: npm run db:migrate');
+        console.log('   3. (Optional) Run: npm run db:seed');
 
     } catch (error) {
         console.error('❌ Error resetting database:', error);
@@ -52,4 +53,3 @@ async function resetDatabase() {
 }
 
 resetDatabase();
-
