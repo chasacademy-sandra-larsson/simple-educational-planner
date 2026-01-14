@@ -154,6 +154,7 @@ async function seedDatabase() {
             { courseCode: 'ENGENG05', courseName: 'Engelska 5', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
             { courseCode: 'IDHIDH01', courseName: 'Idrott och hälsa 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             // Programgemensamma ämnen
             { courseCode: 'FYSFYS01', courseName: 'Fysik 1', points: 150, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'FYSFYS02', courseName: 'Fysik 2', points: 150, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
@@ -163,9 +164,11 @@ async function seedDatabase() {
             { courseCode: 'TEKTEK01', courseName: 'Teknik 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'TEKTEK02', courseName: 'Teknik 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
             { courseCode: 'GYMNASIEARBETE', courseName: 'Gymnasiearbete', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
-            // Inriktningsämnen
-            { courseCode: 'TEKTEK03', courseName: 'Teknik 3', points: 200, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'TEKTEK04', courseName: 'Teknik 4', points: 200, category: 'ORIENTATION', year: 3 },
+            // Inriktningsämnen (default specialization courses that are auto-selected in planning)
+            { courseCode: 'WEBB2000X', courseName: 'Webbutveckling 2', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'WEBS1000X', courseName: 'Webbserverprogrammering 1', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'PROG2000X', courseName: 'Programmering 2', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'TILL1000X', courseName: 'Tillämpad programmering 1', points: 100, category: 'ORIENTATION', year: 3 },
             // Individuellt val
             { courseCode: 'INDIVIDUAL_CHOICE', courseName: 'Individuellt val', points: 200, category: 'INDIVIDUAL_CHOICE', year: 2 },
         ];
@@ -181,6 +184,7 @@ async function seedDatabase() {
             { courseCode: 'ENGENG05', courseName: 'Engelska 5', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
             { courseCode: 'IDHIDH01', courseName: 'Idrott och hälsa 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             // Programgemensamma ämnen
             { courseCode: 'HISHIS01', courseName: 'Historia 1a1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'HISHIS02', courseName: 'Historia 1a2', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
@@ -190,6 +194,9 @@ async function seedDatabase() {
             { courseCode: 'GEOGEO01', courseName: 'Geografi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'PSYPSY01', courseName: 'Psykologi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
             { courseCode: 'GYMNASIEARBETE', courseName: 'Gymnasiearbete', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
+            { courseCode: 'HISHIS04', courseName: 'Historia 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
+            { courseCode: 'GEOGEO02', courseName: 'Geografi 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'SAMSAM04', courseName: 'Samhällskunskap 4', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
             // Inriktningsämnen
             { courseCode: 'SAMSAM03', courseName: 'Samhällskunskap 3', points: 200, category: 'ORIENTATION', year: 3 },
             { courseCode: 'PSYPSY02', courseName: 'Psykologi 2', points: 200, category: 'ORIENTATION', year: 3 },
@@ -208,6 +215,7 @@ async function seedDatabase() {
             { courseCode: 'ENGENG05', courseName: 'Engelska 5', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
             { courseCode: 'IDHIDH01', courseName: 'Idrott och hälsa 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             // Programgemensamma ämnen
             { courseCode: 'BILBIL01', courseName: 'Bild 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'BILBIL02', courseName: 'Bild 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
@@ -253,19 +261,35 @@ async function seedDatabase() {
 
             // Create course instances
             await db.insert(courseInstances).values(
-                coursesToUse.map(course => ({
-                    curriculumId: curriculum.id,
-                    classId: cls.id,
-                    courseCode: course.courseCode,
-                    courseName: course.courseName,
-                    points: course.points,
-                    category: course.category as any,
-                    year: course.year,
-                    terms: ['term1', 'term2'] as any, // Default terms
-                    teacherId: null,
-                    roomId: null,
-                    lessonDuration: null,
-                }))
+                coursesToUse.map(course => {
+                    // Set appropriate terms based on year and course type
+                    let terms: string[];
+                    if (course.courseCode === 'GYMNASIEARBETE') {
+                        // Gymnasiearbete should be in term 6 (year 3, second term)
+                        terms = ['term6'];
+                    } else if (course.year === 1) {
+                        terms = ['term1', 'term2'];
+                    } else if (course.year === 2) {
+                        terms = ['term3', 'term4'];
+                    } else {
+                        // Year 3 courses default to term 5 and 6, but gymnasiearbete is handled above
+                        terms = ['term5', 'term6'];
+                    }
+                    
+                    return {
+                        curriculumId: curriculum.id,
+                        classId: cls.id,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        points: course.points,
+                        category: course.category as any,
+                        year: course.year,
+                        terms: terms as any,
+                        teacherId: null,
+                        roomId: null,
+                        lessonDuration: null,
+                    };
+                })
             );
 
             console.log(`✅ Created curriculum for ${cls.classCode} (${coursesToUse.length} courses, ${totalPoints} points)`);

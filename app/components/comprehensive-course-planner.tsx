@@ -306,6 +306,46 @@ export default function ComprehensiveCoursePlanner({
         }
     }, [selectedCourses]);
 
+    // Automatically add gymnasiearbete when entering the program-subjects step if it's not already there
+    useEffect(() => {
+        if (currentStep === 'program-subjects') {
+            setSelectedCourses(prev => {
+                const gymnasiearbeteExists = prev.some(c => c.courseCode === 'GYMNASIEARBETE');
+                if (!gymnasiearbeteExists) {
+                    // Automatically add gymnasiearbete (will be placed in gymnasiearbete step)
+                    return [
+                        ...prev,
+                        {
+                            courseCode: 'GYMNASIEARBETE',
+                            courseName: 'Gymnasiearbete',
+                            points: 100,
+                            category: 'PROGRAMME_SPECIFIC_SUBJECTS',
+                        },
+                    ];
+                }
+                return prev;
+            });
+        }
+    }, [currentStep]);
+
+    // Automatically set term for gymnasiearbete when entering the gymnasiearbete step if it doesn't have a term
+    useEffect(() => {
+        if (currentStep === 'gymnasiearbete') {
+            setSelectedCourses(prev => {
+                const gymnasiearbete = prev.find(c => c.courseCode === 'GYMNASIEARBETE');
+                if (gymnasiearbete && !gymnasiearbete.term) {
+                    // Automatically set default term6 if not already set
+                    return prev.map(c =>
+                        c.courseCode === 'GYMNASIEARBETE'
+                            ? { ...c, term: 'term6', terms: ['term6'] }
+                            : c
+                    );
+                }
+                return prev;
+            });
+        }
+    }, [currentStep]);
+
     const handleTermChange = (courseCode: string, term: TermId | 'unassigned') => {
         // Legacy function for single term selection - converts to terms array
         if (term === 'unassigned') {
@@ -908,6 +948,11 @@ function ProgramSubjectsStep({ courses, selectedCourses, onCoursesChange }: Prog
     ];
 
     const toggleCourse = (course: Course) => {
+        // Gymnasiearbete cannot be deselected - it's mandatory
+        if (course.courseCode === 'GYMNASIEARBETE') {
+            return;
+        }
+        
         const exists = selectedCourses.find(c => c.courseCode === course.courseCode);
         if (exists) {
             onCoursesChange(selectedCourses.filter(c => c.courseCode !== course.courseCode));
@@ -942,15 +987,16 @@ function ProgramSubjectsStep({ courses, selectedCourses, onCoursesChange }: Prog
             <div className="space-y-3">
                 {allProgramCourses.map((course) => {
                     const isSelected = selectedCourses.some(c => c.courseCode === course.courseCode);
+                    const isGymnasiearbete = course.courseCode === 'GYMNASIEARBETE';
                     return (
                         <div
                             key={course.courseCode}
-                            className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                            className={`p-4 rounded-lg border transition-all ${
                                 isSelected
                                     ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
                                     : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300'
-                            }`}
-                            onClick={() => toggleCourse(course)}
+                            } ${isGymnasiearbete ? '' : 'cursor-pointer'}`}
+                            onClick={() => !isGymnasiearbete && toggleCourse(course)}
                         >
                             <div className="flex justify-between items-center">
                                 <div>
