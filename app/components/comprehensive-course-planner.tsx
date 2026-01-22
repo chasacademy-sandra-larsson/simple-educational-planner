@@ -13,14 +13,12 @@ interface ComprehensiveCoursePlannerProps {
     hasCurriculum?: boolean;
 }
 
-type PlanningStep = 
-    | 'settings' 
-    | 'common-subjects' 
-    | 'program-subjects' 
-    | 'specialization' 
-    | 'individual-choice' 
-    | 'gymnasiearbete' 
-    | 'distribute-terms' 
+type PlanningStep =
+    | 'settings'
+    | 'common-subjects'
+    | 'program-subjects'
+    | 'specialization'
+    | 'distribute-terms'
     | 'validate';
 
 type TermId = "term1" | "term2" | "term3" | "term4" | "term5" | "term6" | "year1" | "year2" | "year3" | "unassigned";
@@ -104,12 +102,20 @@ export default function ComprehensiveCoursePlanner({
                         category: course.category || '',
                     }));
                 
-                // Auto-add Individual Choice (200 points)
+                // Auto-add Individual Choice (2 × 100 points, term 5 and 6)
                 autoSelectedCourses.push({
-                    courseCode: 'INDIVIDUAL_CHOICE',
-                    courseName: 'Individuellt val',
-                    points: 200,
+                    courseCode: 'INDIVIDUAL_CHOICE_1',
+                    courseName: 'Individuellt val 1',
+                    points: 100,
                     category: 'INDIVIDUAL_CHOICE',
+                    terms: ['term5'],
+                });
+                autoSelectedCourses.push({
+                    courseCode: 'INDIVIDUAL_CHOICE_2',
+                    courseName: 'Individuellt val 2',
+                    points: 100,
+                    category: 'INDIVIDUAL_CHOICE',
+                    terms: ['term6'],
                 });
                 
                 // Auto-select default specialization courses for testing (400p)
@@ -203,9 +209,10 @@ export default function ComprehensiveCoursePlanner({
                 console.log('Selected ORIENTATION courses:', autoSelectedCourses.filter(c => c.category === 'ORIENTATION').map(c => `${c.courseName} (${c.courseCode})`));
                 
                 // Distribute courses evenly across terms (default distribution)
-                // Exclude INDIVIDUAL_CHOICE and GYMNASIEARBETE from automatic distribution
-                const coursesToDistribute = autoSelectedCourses.filter(c => 
-                    c.courseCode !== 'INDIVIDUAL_CHOICE' && 
+                // Exclude INDIVIDUAL_CHOICE_1, INDIVIDUAL_CHOICE_2 and GYMNASIEARBETE from automatic distribution
+                // (they already have their terms pre-assigned)
+                const coursesToDistribute = autoSelectedCourses.filter(c =>
+                    !c.courseCode.startsWith('INDIVIDUAL_CHOICE') &&
                     c.courseCode !== 'GYMNASIEARBETE'
                 );
                 
@@ -244,27 +251,25 @@ export default function ComprehensiveCoursePlanner({
                     };
                 });
                 
-                // Add back INDIVIDUAL_CHOICE and GYMNASIEARBETE
-                // INDIVIDUAL_CHOICE: distribute evenly (can be split across terms)
-                // GYMNASIEARBETE: assign to term6 by default (user can change in gymnasiearbete step)
-                const individualChoice = autoSelectedCourses.find(c => c.courseCode === 'INDIVIDUAL_CHOICE');
+                // Add back INDIVIDUAL_CHOICE courses and GYMNASIEARBETE
+                // INDIVIDUAL_CHOICE_1/2: already have their terms pre-assigned (term5/term6)
+                // GYMNASIEARBETE: assign to term6 by default (user can change in distribute-terms step)
+                const individualChoiceCourses = autoSelectedCourses.filter(c => c.courseCode.startsWith('INDIVIDUAL_CHOICE'));
                 const gymnasiearbete = autoSelectedCourses.find(c => c.courseCode === 'GYMNASIEARBETE');
-                
+
                 const finalCourses: CourseWithTerm[] = [...distributedCourses];
-                
-                // INDIVIDUAL_CHOICE: distribute to the term with least points (usually term6 for balance)
-                if (individualChoice) {
-                    const termWithMinPoints = terms.reduce((minTerm, term) => 
-                        termPoints[term] < termPoints[minTerm] ? term : minTerm
-                    );
-                    finalCourses.push({ 
-                        ...individualChoice, 
-                        term: termWithMinPoints, // Keep for backward compatibility
-                        terms: [termWithMinPoints], // Also set terms array
+
+                // Add individual choice courses with their pre-assigned terms
+                individualChoiceCourses.forEach(ic => {
+                    const term = ic.terms?.[0] as TermId || 'term5';
+                    finalCourses.push({
+                        ...ic,
+                        term: term,
+                        terms: ic.terms || [term],
                     });
-                    termPoints[termWithMinPoints] += individualChoice.points; // Update counter
-                }
-                
+                    termPoints[term] += ic.points;
+                });
+
                 // GYMNASIEARBETE: assign to term6 by default (standard placement)
                 // Category should be PROGRAMME_SPECIFIC_SUBJECTS (programgemensamma ämnen)
                 if (gymnasiearbete) {
@@ -312,7 +317,7 @@ export default function ComprehensiveCoursePlanner({
             setSelectedCourses(prev => {
                 const gymnasiearbeteExists = prev.some(c => c.courseCode === 'GYMNASIEARBETE');
                 if (!gymnasiearbeteExists) {
-                    // Automatically add gymnasiearbete (will be placed in gymnasiearbete step)
+                    // Automatically add gymnasiearbete (will be placed in distribute-terms step)
                     return [
                         ...prev,
                         {
@@ -328,12 +333,12 @@ export default function ComprehensiveCoursePlanner({
         }
     }, [currentStep]);
 
-    // Automatically set term for gymnasiearbete when entering the gymnasiearbete step if it doesn't have a term
+    // Automatically set term for gymnasiearbete when entering the distribute-terms step if it doesn't have a term
     useEffect(() => {
-        if (currentStep === 'gymnasiearbete') {
+        if (currentStep === 'distribute-terms') {
             setSelectedCourses(prev => {
                 const gymnasiearbete = prev.find(c => c.courseCode === 'GYMNASIEARBETE');
-                if (gymnasiearbete && !gymnasiearbete.term) {
+                if (gymnasiearbete && !gymnasiearbete.term && (!gymnasiearbete.terms || gymnasiearbete.terms.length === 0)) {
                     // Automatically set default term6 if not already set
                     return prev.map(c =>
                         c.courseCode === 'GYMNASIEARBETE'
@@ -390,8 +395,6 @@ export default function ComprehensiveCoursePlanner({
             'common-subjects',
             'program-subjects',
             'specialization',
-            'individual-choice',
-            'gymnasiearbete',
             'distribute-terms',
             'validate',
         ];
@@ -407,8 +410,6 @@ export default function ComprehensiveCoursePlanner({
             'common-subjects',
             'program-subjects',
             'specialization',
-            'individual-choice',
-            'gymnasiearbete',
             'distribute-terms',
             'validate',
         ];
@@ -538,7 +539,7 @@ export default function ComprehensiveCoursePlanner({
             <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-4">
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                        Steg {getStepNumber(currentStep)} av 8: {getStepTitle(currentStep)}
+                        Steg {getStepNumber(currentStep)} av 7: {getStepTitle(currentStep)}
                     </h3>
                     <div className="text-sm text-zinc-600 dark:text-zinc-400">
                         Totalt: <span className={`font-bold ${isValidTotal ? 'text-green-600' : 'text-zinc-900 dark:text-zinc-100'}`}>{totalPoints}</span> / 2500 poäng
@@ -547,7 +548,7 @@ export default function ComprehensiveCoursePlanner({
                 <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                     <div
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${((getStepNumber(currentStep) - 1) / 7) * 100}%` }}
+                        style={{ width: `${((getStepNumber(currentStep) - 1) / 6) * 100}%` }}
                     />
                 </div>
             </div>
@@ -592,27 +593,12 @@ export default function ComprehensiveCoursePlanner({
                     />
                 )}
 
-                {currentStep === 'individual-choice' && (
-                    <IndividualChoiceStep
-                        selectedCourses={selectedCourses}
-                        onCoursesChange={setSelectedCourses}
-                        currentPoints={getPointsByCategory('INDIVIDUAL_CHOICE')}
-                    />
-                )}
-
-                {currentStep === 'gymnasiearbete' && (
-                    <GymnasiearbeteStep
-                        selectedCourses={selectedCourses}
-                        onCoursesChange={setSelectedCourses}
-                        numTerms={numTerms}
-                    />
-                )}
-
                 {currentStep === 'distribute-terms' && (
                     <DistributeTermsStep
                         selectedCourses={selectedCourses}
                         onTermChange={handleTermChange}
                         onTermsChange={handleTermsChange}
+                        onCoursesChange={setSelectedCourses}
                         numTerms={numTerms}
                     />
                 )}
@@ -665,10 +651,8 @@ function getStepNumber(step: PlanningStep): number {
         'common-subjects': 2,
         'program-subjects': 3,
         specialization: 4,
-        'individual-choice': 5,
-        gymnasiearbete: 6,
-        'distribute-terms': 7,
-        validate: 8,
+        'distribute-terms': 5,
+        validate: 6,
     };
     return stepMap[step];
 }
@@ -679,8 +663,6 @@ function getStepTitle(step: PlanningStep): string {
         'common-subjects': 'Granska gymnasiegemensamma ämnen',
         'program-subjects': 'Konfigurera programgemensamma ämnen',
         specialization: 'Planera programfördjupning',
-        'individual-choice': 'Lägg till individuellt val',
-        gymnasiearbete: 'Placera gymnasiearbete',
         'distribute-terms': 'Fördela kurser över terminer',
         validate: 'Validera och granska',
     };
@@ -1215,57 +1197,6 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
     );
 }
 
-interface IndividualChoiceStepProps {
-    selectedCourses: CourseWithTerm[];
-    onCoursesChange: (courses: CourseWithTerm[]) => void;
-    currentPoints: number;
-}
-
-function IndividualChoiceStep({ selectedCourses, onCoursesChange, currentPoints }: IndividualChoiceStepProps) {
-    const targetPoints = 200;
-    const isComplete = currentPoints === targetPoints;
-
-    const handleRemoveIndividualChoice = () => {
-        onCoursesChange(selectedCourses.filter(c => c.courseCode !== 'INDIVIDUAL_CHOICE'));
-    };
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <h4 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-                    Individuellt val
-                </h4>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    Individuellt val (200 poäng) är automatiskt inkluderat
-                </p>
-            </div>
-
-            <div className={`p-6 rounded-lg border ${
-                isComplete
-                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                    : 'bg-zinc-50 dark:bg-zinc-700/50 border-zinc-200 dark:border-zinc-700'
-            }`}>
-                <div className="flex justify-between items-center">
-                    <div>
-                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                            Individuellt val
-                        </div>
-                        <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                            200 poäng
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleRemoveIndividualChoice}
-                        className="px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-300 dark:border-red-700 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                        Ta bort
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 interface GymnasiearbeteStepProps {
     selectedCourses: CourseWithTerm[];
     onCoursesChange: (courses: CourseWithTerm[]) => void;
@@ -1419,6 +1350,7 @@ interface DistributeTermsStepProps {
     selectedCourses: CourseWithTerm[];
     onTermChange: (courseCode: string, term: TermId | 'unassigned') => void; // Legacy support
     onTermsChange?: (courseCode: string, terms: TermId[]) => void; // New multi-term support
+    onCoursesChange: (courses: CourseWithTerm[]) => void; // For gymnasiearbete selection
     numTerms: number;
 }
 
@@ -1637,6 +1569,7 @@ function DistributeTermsStep({
     selectedCourses,
     onTermChange,
     onTermsChange,
+    onCoursesChange,
     numTerms,
 }: DistributeTermsStepProps) {
     // Use onTermsChange if available, otherwise fallback to onTermChange
@@ -1815,6 +1748,38 @@ function DistributeTermsStep({
         }
     };
 
+    // Gymnasiearbete handling
+    const gymnasiearbete = selectedCourses.find(c => c.courseCode === 'GYMNASIEARBETE');
+    const gymnasiearbeteAvailableOptions: TermId[] = ['year3', 'term5', 'term6'];
+
+    const handleGymnasiearbeteTermChange = (term: TermId) => {
+        const exists = selectedCourses.find(c => c.courseCode === 'GYMNASIEARBETE');
+        const terms = term.startsWith('term') 
+            ? [term as "term1" | "term2" | "term3" | "term4" | "term5" | "term6"]
+            : undefined;
+        if (!exists) {
+            onCoursesChange([
+                ...selectedCourses,
+                {
+                    courseCode: 'GYMNASIEARBETE',
+                    courseName: 'Gymnasiearbete',
+                    points: 100,
+                    category: 'PROGRAMME_SPECIFIC_SUBJECTS',
+                    term: term,
+                    terms: terms,
+                },
+            ]);
+        } else {
+            onCoursesChange(
+                selectedCourses.map(c =>
+                    c.courseCode === 'GYMNASIEARBETE'
+                        ? { ...c, term: term, terms: terms, category: 'PROGRAMME_SPECIFIC_SUBJECTS' }
+                        : c
+                )
+            );
+        }
+    };
+
     return (
         <DndContext onDragEnd={handleDragEnd}>
             <div className="space-y-6">
@@ -1825,6 +1790,76 @@ function DistributeTermsStep({
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">
                         Välj terminer för varje kurs med checkboxes (en kurs kan gå över flera terminer) eller dra och släpp kurser mellan terminer i höger kolumn. Försök få jämn fördelning (cirka 400-450 poäng per termin).
                     </p>
+                </div>
+
+                {/* Gymnasiearbete selection */}
+                <div className={`p-6 rounded-lg border ${
+                    gymnasiearbete
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                        : 'bg-zinc-50 dark:bg-zinc-700/50 border-zinc-200 dark:border-zinc-700'
+                }`}>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+                                Placera gymnasiearbete (100 poäng):
+                            </label>
+                            <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3">
+                                Välj när gymnasiearbetet ska genomföras. Du kan välja hela år 3, termin 5 eller termin 6.
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                {gymnasiearbeteAvailableOptions.map((termId) => {
+                                    const isSelected = gymnasiearbete?.term === termId;
+                                    const isTerm6 = termId === 'term6';
+                                    return (
+                                        <button
+                                            key={termId}
+                                            type="button"
+                                            onClick={() => handleGymnasiearbeteTermChange(termId)}
+                                            className={`p-4 rounded-lg border-2 transition-all text-left ${
+                                                isSelected
+                                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                                    : isTerm6
+                                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-zinc-900 dark:text-zinc-100 hover:border-blue-400'
+                                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:border-blue-300 dark:hover:border-blue-500'
+                                            }`}
+                                        >
+                                            <div className="font-medium text-sm">
+                                                {TERM_LABELS[termId]}
+                                            </div>
+                                            {isTerm6 && !isSelected && (
+                                                <div className="text-xs mt-1 text-blue-600 dark:text-blue-400">
+                                                    (Rekommenderat)
+                                                </div>
+                                            )}
+                                            {isSelected && (
+                                                <div className="flex items-center gap-1 mt-2">
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span className="text-xs">Vald</span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {gymnasiearbete && (
+                            <div className="pt-4 border-t border-zinc-200 dark:border-zinc-600">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                            Gymnasiearbete
+                                        </div>
+                                        <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                                            100 poäng - {TERM_LABELS[gymnasiearbete.term!]}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -26,6 +26,9 @@ import projectRoutes from './routes/projects';
 import teacherRoutes from './routes/teachers';
 import roomRoutes from './routes/rooms';
 import serviceDistributionRoutes from './routes/service-distributions';
+import termDatesRoutes from './routes/term-dates';
+import scheduleRoutes from './routes/schedule';
+import scheduleGeneratorRoutes from './routes/schedule-generator';
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -33,6 +36,9 @@ app.use('/api/projects', projectRoutes);
 app.use('/api', teacherRoutes);
 app.use('/api', roomRoutes);
 app.use('/api', serviceDistributionRoutes);
+app.use('/api', termDatesRoutes);
+app.use('/api', scheduleRoutes);
+app.use('/api', scheduleGeneratorRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: any) => {

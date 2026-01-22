@@ -209,5 +209,66 @@ router.get('/projects/:projectId/service-distributions', async (req: AuthRequest
     }
 });
 
+// Update teacher assignment for a course instance
+router.put('/projects/:projectId/course-instances/:courseInstanceId/teacher', async (req: AuthRequest, res: Response) => {
+    try {
+        const { teacherId } = req.body; // Can be null to unassign
+        const courseInstanceId = req.params.courseInstanceId;
+        const projectId = req.params.projectId;
+
+        // Verify project ownership
+        const project = await db.select()
+            .from(projects)
+            .where(and(
+                eq(projects.id, projectId),
+                eq(projects.userId, req.userId!)
+            ))
+            .limit(1);
+
+        if (project.length === 0) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Verify course instance exists
+        const [courseInstance] = await db.select()
+            .from(courseInstances)
+            .where(eq(courseInstances.id, courseInstanceId))
+            .limit(1);
+
+        if (!courseInstance) {
+            return res.status(404).json({ error: 'Course instance not found' });
+        }
+
+        // If teacherId is provided, verify teacher belongs to the project
+        if (teacherId) {
+            const [teacher] = await db.select()
+                .from(teachers)
+                .where(and(
+                    eq(teachers.id, teacherId),
+                    eq(teachers.projectId, projectId)
+                ))
+                .limit(1);
+
+            if (!teacher) {
+                return res.status(400).json({ error: 'Teacher not found in this project' });
+            }
+        }
+
+        // Update the course instance
+        const [updated] = await db.update(courseInstances)
+            .set({
+                teacherId: teacherId || null,
+                updatedAt: new Date(),
+            })
+            .where(eq(courseInstances.id, courseInstanceId))
+            .returning();
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Update course instance teacher error:', error);
+        res.status(500).json({ error: 'Failed to update course instance teacher' });
+    }
+});
+
 export default router;
 

@@ -56,3 +56,25 @@ export interface AuthResponse {
         name: string;
     };
 }
+
+export interface CreateTermDatesRequest {
+    academicYear: string; // e.g., "2026/2027"
+    year: 1 | 2 | 3; // Gymnasium year
+    fallTermStart: string; // ISO date: "2026-08-19"
+    fallTermEnd: string;
+    springTermStart: string;
+    springTermEnd: string;
+}
+
+export interface TermDatesResponse {
+    id: string;
+    projectId: string;
+    academicYear: string;
+    year: 1 | 2 | 3;
+    fallTermStart: string;
+    fallTermEnd: string;
+    springTermStart: string;
+    springTermEnd: string;
+    createdAt: string;
+    updatedAt: string;
+}

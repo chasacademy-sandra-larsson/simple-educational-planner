@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { db } from '../db';
-import { projects, projectClasses, courseInstances, classCurricula } from '../db/schema';
+import { projects, projectClasses, courseInstances, classCurricula, teachers } from '../db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { CreateProjectRequest, CreateClassRequest, UpdateCurriculumRequest } from '../types';
@@ -61,6 +61,12 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                 .where(inArray(courseInstances.curriculumId, curriculumIds))
             : [];
 
+        // Get all teachers for this project (for enriching course data)
+        const projectTeachers = await db.select()
+            .from(teachers)
+            .where(eq(teachers.projectId, project.id));
+        const teacherMap = new Map(projectTeachers.map(t => [t.id, t]));
+
         // Group by class and find active curriculum (draft or approved)
         const classesWithCourses = classes.map(cls => {
             // Find active curriculum (prefer approved, fallback to draft)
@@ -80,15 +86,21 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
             const classCourses = instances
                 .filter(ci => ci.curriculumId === activeCurriculum.id)
-                .map(ci => ({
-                    id: ci.id, // Include course instance ID
-                    courseCode: ci.courseCode,
-                    courseName: ci.courseName,
-                    points: ci.points,
-                    category: ci.category,
-                    year: ci.year,
-                    terms: ci.terms,
-                }));
+                .map(ci => {
+                    const teacher = ci.teacherId ? teacherMap.get(ci.teacherId) : null;
+                    return {
+                        id: ci.id, // Include course instance ID
+                        courseCode: ci.courseCode,
+                        courseName: ci.courseName,
+                        points: ci.points,
+                        category: ci.category,
+                        year: ci.year,
+                        terms: ci.terms,
+                        teacherId: ci.teacherId,
+                        teacherName: teacher?.name || null,
+                        roomId: ci.roomId,
+                    };
+                });
             
             return {
                 ...cls,
@@ -400,6 +412,324 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
     } catch (error) {
         console.error('Update curriculum error:', error);
         res.status(500).json({ error: 'Failed to update curriculum' });
+    }
+});
+
+// Helper function to fetch courses from Skolverket API
+async function fetchCoursesFromSkolverket(programCode: string, orientationCode: string): Promise<{
+    courseCode: string;
+    courseName: string;
+    points: number;
+    category: string;
+    year: number;
+    terms: string[];
+}[]> {
+    const BASE_URL = "https://api.skolverket.se/syllabus/v1";
+    
+    try {
+        const response = await fetch(`${BASE_URL}/programs/${programCode}`, {
+            headers: { Accept: "application/json" },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch program structure: ${response.statusText}`);
+        }
+
+        const data: any = await response.json();
+        const courses: {
+            courseCode: string;
+            courseName: string;
+            points: number;
+            category: string;
+            year: number;
+            terms: string[];
+        }[] = [];
+
+        // Helper to add courses from a subject list
+        const addCoursesFromSubjects = (subjects: any[], category: string) => {
+            if (!subjects || !Array.isArray(subjects)) return;
+            
+            for (const subject of subjects) {
+                if (subject.courses && Array.isArray(subject.courses)) {
+                    for (const course of subject.courses) {
+                        const courseName = course.name?.startsWith('Nivå ')
+                            ? `${subject.name} ${course.name.replace('Nivå ', '')}`
+                            : course.name;
+
+                        courses.push({
+                            courseCode: course.code,
+                            courseName: courseName,
+                            points: parseInt(course.points) || 0,
+                            category: category,
+                            year: 1, // Default to year 1, will be distributed later
+                            terms: ['term1', 'term2'], // Default to full year
+                        });
+                    }
+                }
+            }
+        };
+
+        // 1. Add foundational subjects
+        addCoursesFromSubjects(
+            data.program?.foundationSubjects?.subjects,
+            'FOUNDATIONAL_SUBJECTS'
+        );
+
+        // 2. Add programme-specific subjects
+        addCoursesFromSubjects(
+            data.program?.programmeSpecificSubjects?.subjects,
+            'PROGRAMME_SPECIFIC_SUBJECTS'
+        );
+
+        // 3. Add orientation-specific subjects
+        if (data.program?.orientations && Array.isArray(data.program.orientations)) {
+            const orientation = data.program.orientations.find((o: any) => o.code === orientationCode);
+            if (orientation) {
+                addCoursesFromSubjects(orientation.subjects, 'ORIENTATION');
+            }
+        }
+
+        // Add Individual Choice courses (required: 200p)
+        courses.push({
+            courseCode: 'INDIVIDUAL_CHOICE_1',
+            courseName: 'Individuellt val 1',
+            points: 100,
+            category: 'INDIVIDUAL_CHOICE',
+            year: 3,
+            terms: ['term5'],
+        });
+        courses.push({
+            courseCode: 'INDIVIDUAL_CHOICE_2',
+            courseName: 'Individuellt val 2',
+            points: 100,
+            category: 'INDIVIDUAL_CHOICE',
+            year: 3,
+            terms: ['term6'],
+        });
+
+        // Add Gymnasiearbete (required: 100p)
+        courses.push({
+            courseCode: 'GYMNASIEARBETE',
+            courseName: 'Gymnasiearbete',
+            points: 100,
+            category: 'GYMNASIEARBETE',
+            year: 3,
+            terms: ['term5', 'term6'],
+        });
+
+        // Distribute courses across years based on total points
+        // Target: ~833p per year for 2500p total
+        let year1Points = 0, year2Points = 0, year3Points = 0;
+        const targetPerYear = 833;
+
+        // First pass: assign foundation and programme-specific to year 1-2
+        for (const course of courses) {
+            if (course.category === 'FOUNDATIONAL_SUBJECTS' || course.category === 'PROGRAMME_SPECIFIC_SUBJECTS') {
+                if (year1Points + course.points <= targetPerYear + 100) {
+                    course.year = 1;
+                    course.terms = ['term1', 'term2'];
+                    year1Points += course.points;
+                } else if (year2Points + course.points <= targetPerYear + 100) {
+                    course.year = 2;
+                    course.terms = ['term3', 'term4'];
+                    year2Points += course.points;
+                } else {
+                    course.year = 3;
+                    course.terms = ['term5', 'term6'];
+                    year3Points += course.points;
+                }
+            }
+        }
+
+        // Second pass: assign orientation courses to year 2-3
+        for (const course of courses) {
+            if (course.category === 'ORIENTATION') {
+                if (year2Points + course.points <= targetPerYear + 100) {
+                    course.year = 2;
+                    course.terms = ['term3', 'term4'];
+                    year2Points += course.points;
+                } else {
+                    course.year = 3;
+                    course.terms = ['term5', 'term6'];
+                    year3Points += course.points;
+                }
+            }
+        }
+
+        // Calculate current total and add Programfördjupning courses to reach 2500p
+        const currentTotal = courses.reduce((sum, c) => sum + c.points, 0);
+        const REQUIRED_TOTAL = 2500;
+        
+        if (currentTotal < REQUIRED_TOTAL) {
+            const missingPoints = REQUIRED_TOTAL - currentTotal;
+            const numExtraCourses = Math.ceil(missingPoints / 100);
+            
+            for (let i = 0; i < numExtraCourses; i++) {
+                const pointsNeeded = Math.min(100, REQUIRED_TOTAL - courses.reduce((sum, c) => sum + c.points, 0));
+                if (pointsNeeded <= 0) break;
+                
+                courses.push({
+                    courseCode: `PROGRAMFORDJUPNING_${i + 1}`,
+                    courseName: `Programfördjupning ${i + 1}`,
+                    points: pointsNeeded,
+                    category: 'ORIENTATION',
+                    year: i < 2 ? 2 : 3,
+                    terms: i < 2 ? ['term3', 'term4'] : ['term5', 'term6'],
+                });
+            }
+        }
+
+        return courses;
+    } catch (error) {
+        console.error('Error fetching courses from Skolverket:', error);
+        return [];
+    }
+}
+
+// Batch initialize curricula for all classes without curriculum
+router.post('/:id/initialize-curricula', async (req: AuthRequest, res: Response) => {
+    try {
+        const projectId = req.params.id;
+        
+        // Verify project ownership
+        const [project] = await db.select()
+            .from(projects)
+            .where(and(
+                eq(projects.id, projectId),
+                eq(projects.userId, req.userId!)
+            ))
+            .limit(1);
+
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // Get all classes for this project
+        const classes = await db.select()
+            .from(projectClasses)
+            .where(eq(projectClasses.projectId, projectId));
+
+        if (classes.length === 0) {
+            return res.json({ message: 'No classes found in project', initialized: 0 });
+        }
+
+        // Get existing curricula
+        const classIds = classes.map(c => c.id);
+        const existingCurricula = await db.select()
+            .from(classCurricula)
+            .where(inArray(classCurricula.classId, classIds));
+
+        // Find classes without curriculum (or with empty curriculum)
+        const curriculaByClass = new Map(existingCurricula.map(c => [c.classId, c]));
+        
+        // Also check which curricula have course instances
+        const curriculumIds = existingCurricula.map(c => c.id);
+        const existingInstances = curriculumIds.length > 0
+            ? await db.select()
+                .from(courseInstances)
+                .where(inArray(courseInstances.curriculumId, curriculumIds))
+            : [];
+        
+        const instancesByCurriculum = new Map<string, number>();
+        for (const instance of existingInstances) {
+            const count = instancesByCurriculum.get(instance.curriculumId) || 0;
+            instancesByCurriculum.set(instance.curriculumId, count + 1);
+        }
+
+        // Find classes that need initialization (no curriculum, incomplete courses, or not 2500 points)
+        const MIN_COURSES_FOR_COMPLETE = 20;
+        const REQUIRED_TOTAL_POINTS = 2500;
+        const classesNeedingInit = classes.filter(cls => {
+            const curriculum = curriculaByClass.get(cls.id);
+            if (!curriculum) return true;
+            const instanceCount = instancesByCurriculum.get(curriculum.id) || 0;
+            // Re-initialize if fewer than 20 courses OR if total points is not 2500
+            return instanceCount < MIN_COURSES_FOR_COMPLETE || curriculum.totalPoints !== REQUIRED_TOTAL_POINTS;
+        });
+
+        if (classesNeedingInit.length === 0) {
+            return res.json({ message: 'All classes already have curricula', initialized: 0 });
+        }
+
+        const results: { classCode: string; success: boolean; error?: string; courseCount?: number }[] = [];
+
+        for (const cls of classesNeedingInit) {
+            try {
+                // Fetch courses from Skolverket API
+                const courses = await fetchCoursesFromSkolverket(cls.programCode, cls.orientationCode);
+
+                if (courses.length === 0) {
+                    results.push({ classCode: cls.classCode, success: false, error: 'No courses found from Skolverket' });
+                    continue;
+                }
+
+                // Calculate total points
+                const totalPoints = courses.reduce((sum, c) => sum + c.points, 0);
+                const isValid = totalPoints === 2500 ? 1 : 0;
+
+                // Create or update curriculum
+                let curriculum = curriculaByClass.get(cls.id);
+                
+                if (!curriculum) {
+                    // Create new curriculum
+                    const [newCurriculum] = await db.insert(classCurricula).values({
+                        classId: cls.id,
+                        totalPoints,
+                        isValid,
+                        status: 'draft',
+                        version: 1,
+                    }).returning();
+                    curriculum = newCurriculum;
+                } else {
+                    // Update existing curriculum
+                    const [updatedCurriculum] = await db.update(classCurricula)
+                        .set({
+                            totalPoints,
+                            isValid,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(classCurricula.id, curriculum.id))
+                        .returning();
+                    curriculum = updatedCurriculum;
+                }
+
+                // Delete any existing course instances
+                await db.delete(courseInstances)
+                    .where(eq(courseInstances.curriculumId, curriculum.id));
+
+                // Insert course instances
+                await db.insert(courseInstances).values(
+                    courses.map(course => ({
+                        curriculumId: curriculum!.id,
+                        classId: cls.id,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        points: course.points,
+                        category: course.category,
+                        year: course.year,
+                        terms: course.terms,
+                        teacherId: null,
+                        roomId: null,
+                        lessonDuration: null,
+                    }))
+                );
+
+                results.push({ classCode: cls.classCode, success: true, courseCount: courses.length });
+            } catch (error) {
+                console.error(`Error initializing curriculum for class ${cls.classCode}:`, error);
+                results.push({ classCode: cls.classCode, success: false, error: 'Failed to initialize' });
+            }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        res.json({
+            message: `Initialized ${successCount} of ${classesNeedingInit.length} curricula`,
+            initialized: successCount,
+            results,
+        });
+    } catch (error) {
+        console.error('Initialize curricula error:', error);
+        res.status(500).json({ error: 'Failed to initialize curricula' });
     }
 });
 

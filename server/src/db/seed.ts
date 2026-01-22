@@ -31,8 +31,22 @@ async function seedDatabase() {
             console.log('✅ Found existing user:', defaultEmail);
         }
 
-        // Create a new seed project
+        // Delete existing seed project if it exists, then create new
         const projectName = 'Gymnasieskola - Seed Projekt';
+        const existingProjects = await db.select()
+            .from(projects)
+            .where(and(
+                eq(projects.userId, user[0].id),
+                eq(projects.name, projectName)
+            ));
+
+        if (existingProjects.length > 0) {
+            for (const p of existingProjects) {
+                await db.delete(projects).where(eq(projects.id, p.id));
+            }
+            console.log('🗑️  Deleted existing seed project(s)');
+        }
+
         const [project] = await db.insert(projects).values({
             userId: user[0].id,
             name: projectName,
@@ -142,97 +156,192 @@ async function seedDatabase() {
         // Create curricula and course instances for each class
         console.log('\n📖 Creating curricula and courses...');
         
-        // Teknikprogrammet kurser (typiska kurser)
+        // ===========================================
+        // TEKNIKPROGRAMMET (2500p)
+        // År 1: 850p, År 2: 850p, År 3: 800p
+        // ===========================================
         const teknikCourses = [
-            // Grundläggande ämnen
-            { courseCode: 'MATMAT01a', courseName: 'Matematik 1a', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'MATMAT02a', courseName: 'Matematik 2a', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
-            { courseCode: 'MATMAT03b', courseName: 'Matematik 3b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
+            // År 1: 850p (mål: 400 HT + 450 VT)
+            { courseCode: 'MATMAT01c', courseName: 'Matematik 1c', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             { courseCode: 'SVESVE01', courseName: 'Svenska 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'SVESVE02', courseName: 'Svenska 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
-            { courseCode: 'SVESVE03', courseName: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
             { courseCode: 'ENGENG05', courseName: 'Engelska 5', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
             { courseCode: 'IDHIDH01', courseName: 'Idrott och hälsa 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            // Programgemensamma ämnen
-            { courseCode: 'FYSFYS01', courseName: 'Fysik 1', points: 150, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'FYSFYS02', courseName: 'Fysik 2', points: 150, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'FYSFYS01a', courseName: 'Fysik 1a', points: 150, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'KEMKEM01', courseName: 'Kemi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'TEKTEK01', courseName: 'Teknik 1', points: 150, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'PRRPRR01', courseName: 'Programmering 1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            // År 2: 850p (mål: 400 HT + 450 VT)
+            { courseCode: 'MATMAT02c', courseName: 'Matematik 2c', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'SVESVE02', courseName: 'Svenska 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'HISHIS01b', courseName: 'Historia 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'FYSFYS01b', courseName: 'Fysik 1b1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
             { courseCode: 'KEMKEM02', courseName: 'Kemi 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
-            { courseCode: 'BIOBIO01', courseName: 'Biologi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'TEKTEK01', courseName: 'Teknik 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
             { courseCode: 'TEKTEK02', courseName: 'Teknik 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'PRRPRR02', courseName: 'Programmering 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 50, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'SAMSAM01b', courseName: 'Samhällskunskap 1b', points: 50, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            // År 3: 800p (mål: 400 HT + 400 VT, inkl. gymnasiearbete + individuellt val)
+            { courseCode: 'MATMAT03c', courseName: 'Matematik 3c', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
+            { courseCode: 'SVESVE03', courseName: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
+            { courseCode: 'FYSFYS02', courseName: 'Fysik 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
+            { courseCode: 'TEKTSP01', courseName: 'Teknik - Loss specialisering', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'WEBWEB02', courseName: 'Webbutveckling 2', points: 100, category: 'ORIENTATION', year: 3 },
             { courseCode: 'GYMNASIEARBETE', courseName: 'Gymnasiearbete', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
-            // Inriktningsämnen (default specialization courses that are auto-selected in planning)
-            { courseCode: 'WEBB2000X', courseName: 'Webbutveckling 2', points: 100, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'WEBS1000X', courseName: 'Webbserverprogrammering 1', points: 100, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'PROG2000X', courseName: 'Programmering 2', points: 100, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'TILL1000X', courseName: 'Tillämpad programmering 1', points: 100, category: 'ORIENTATION', year: 3 },
-            // Individuellt val
-            { courseCode: 'INDIVIDUAL_CHOICE', courseName: 'Individuellt val', points: 200, category: 'INDIVIDUAL_CHOICE', year: 2 },
+            { courseCode: 'INDIVIDUAL_CHOICE_1', courseName: 'Individuellt val 1', points: 100, category: 'INDIVIDUAL_CHOICE', year: 3 },
+            { courseCode: 'INDIVIDUAL_CHOICE_2', courseName: 'Individuellt val 2', points: 100, category: 'INDIVIDUAL_CHOICE', year: 3 },
         ];
 
-        // Samhällsvetenskapsprogrammet kurser
+        // ===========================================
+        // SAMHÄLLSVETENSKAPSPROGRAMMET (2500p)
+        // År 1: 850p, År 2: 850p, År 3: 800p
+        // ===========================================
         const samhällCourses = [
-            // Grundläggande ämnen
-            { courseCode: 'MATMAT01a', courseName: 'Matematik 1a', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'MATMAT02a', courseName: 'Matematik 2a', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            // År 1: 850p (mål: 400 HT + 450 VT)
+            { courseCode: 'MATMAT01b', courseName: 'Matematik 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             { courseCode: 'SVESVE01', courseName: 'Svenska 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'SVESVE02', courseName: 'Svenska 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
-            { courseCode: 'SVESVE03', courseName: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
             { courseCode: 'ENGENG05', courseName: 'Engelska 5', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
             { courseCode: 'IDHIDH01', courseName: 'Idrott och hälsa 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            // Programgemensamma ämnen
-            { courseCode: 'HISHIS01', courseName: 'Historia 1a1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'HISHIS02', courseName: 'Historia 1a2', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'HISHIS03', courseName: 'Historia 1b', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
-            { courseCode: 'SAMSAM01', courseName: 'Samhällskunskap 1b', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'HISHIS01a1', courseName: 'Historia 1a1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'HISHIS01a2', courseName: 'Historia 1a2', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'SAMSAM01b', courseName: 'Samhällskunskap 1b', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 50, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            { courseCode: 'NAKNAF01b', courseName: 'Naturkunskap 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            { courseCode: 'MODSPR01', courseName: 'Moderna språk 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            // År 2: 850p (mål: 400 HT + 450 VT)
+            { courseCode: 'MATMAT02b', courseName: 'Matematik 2b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'SVESVE02', courseName: 'Svenska 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'HISHIS02a', courseName: 'Historia 2a', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
             { courseCode: 'SAMSAM02', courseName: 'Samhällskunskap 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
-            { courseCode: 'GEOGEO01', courseName: 'Geografi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'PSYPSY01', courseName: 'Psykologi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'PSYPSY01', courseName: 'Psykologi 1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'GEOGEO01', courseName: 'Geografi 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'MODSPR02', courseName: 'Moderna språk 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'RELREL02', courseName: 'Religionskunskap 2', points: 50, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'NAKNAK02', courseName: 'Naturkunskap 2', points: 50, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            // År 3: 800p (mål: 400 HT + 400 VT, inkl. gymnasiearbete + individuellt val)
+            { courseCode: 'SVESVE03', courseName: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
+            { courseCode: 'SAMSAM03', courseName: 'Samhällskunskap 3', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'PSYPSY02a', courseName: 'Psykologi 2a', points: 50, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'HISHIS02b', courseName: 'Historia 2b - Loss specialisering', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'FILFIL00S', courseName: 'Filosofi', points: 50, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'MODSPR03', courseName: 'Moderna språk 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
             { courseCode: 'GYMNASIEARBETE', courseName: 'Gymnasiearbete', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
-            { courseCode: 'HISHIS04', courseName: 'Historia 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
-            { courseCode: 'GEOGEO02', courseName: 'Geografi 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
-            { courseCode: 'SAMSAM04', courseName: 'Samhällskunskap 4', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
-            // Inriktningsämnen
-            { courseCode: 'SAMSAM03', courseName: 'Samhällskunskap 3', points: 200, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'PSYPSY02', courseName: 'Psykologi 2', points: 200, category: 'ORIENTATION', year: 3 },
-            // Individuellt val
-            { courseCode: 'INDIVIDUAL_CHOICE', courseName: 'Individuellt val', points: 200, category: 'INDIVIDUAL_CHOICE', year: 2 },
+            { courseCode: 'INDIVIDUAL_CHOICE_1', courseName: 'Individuellt val 1', points: 100, category: 'INDIVIDUAL_CHOICE', year: 3 },
+            { courseCode: 'INDIVIDUAL_CHOICE_2', courseName: 'Individuellt val 2', points: 100, category: 'INDIVIDUAL_CHOICE', year: 3 },
         ];
 
-        // Estetiska programmet kurser
+        // ===========================================
+        // ESTETISKA PROGRAMMET - MUSIK (2500p)
+        // År 1: 850p, År 2: 850p, År 3: 800p
+        // ===========================================
         const estetiskaCourses = [
-            // Grundläggande ämnen
-            { courseCode: 'MATMAT01a', courseName: 'Matematik 1a', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'MATMAT02a', courseName: 'Matematik 2a', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            // År 1: 850p (mål: 400 HT + 450 VT)
+            { courseCode: 'MATMAT01b', courseName: 'Matematik 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
             { courseCode: 'SVESVE01', courseName: 'Svenska 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'SVESVE02', courseName: 'Svenska 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
-            { courseCode: 'SVESVE03', courseName: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
             { courseCode: 'ENGENG05', courseName: 'Engelska 5', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
             { courseCode: 'IDHIDH01', courseName: 'Idrott och hälsa 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
-            // Programgemensamma ämnen
-            { courseCode: 'BILBIL01', courseName: 'Bild 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'BILBIL02', courseName: 'Bild 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
-            { courseCode: 'MUSMUS01', courseName: 'Musik 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'MUSMUS02', courseName: 'Musik 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
-            { courseCode: 'HISHIS01', courseName: 'Historia 1a1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
-            { courseCode: 'HISHIS02', courseName: 'Historia 1a2', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'ESTEST01', courseName: 'Estetisk kommunikation 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'ENSENS01', courseName: 'Ensemble 1', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 1 },
+            { courseCode: 'MUSINS01', courseName: 'Instrument eller sång 1', points: 100, category: 'ORIENTATION', year: 1 },
+            { courseCode: 'GEHGEH01', courseName: 'Gehörs- och musiklära 1', points: 100, category: 'ORIENTATION', year: 1 },
+            { courseCode: 'RELREL01', courseName: 'Religionskunskap 1', points: 50, category: 'FOUNDATIONAL_SUBJECTS', year: 1 },
+            // År 2: 850p (mål: 400 HT + 450 VT)
+            { courseCode: 'SVESVE02', courseName: 'Svenska 2', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'ENGENG06', courseName: 'Engelska 6', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'HISHIS01b', courseName: 'Historia 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'SAMSAM01b', courseName: 'Samhällskunskap 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 2 },
+            { courseCode: 'ESTEST02', courseName: 'Estetisk kommunikation 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'ENSENS02', courseName: 'Ensemble 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            { courseCode: 'MUSINS02', courseName: 'Instrument eller sång 2', points: 100, category: 'ORIENTATION', year: 2 },
+            { courseCode: 'GEHGEH02', courseName: 'Gehörs- och musiklära 2', points: 100, category: 'ORIENTATION', year: 2 },
+            { courseCode: 'KOSKOS01', courseName: 'Konst och kultur 1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 2 },
+            // År 3: 800p (mål: 400 HT + 400 VT, inkl. gymnasiearbete + individuellt val)
+            { courseCode: 'SVESVE03', courseName: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
+            { courseCode: 'NAKNAF01b', courseName: 'Naturkunskap 1b', points: 100, category: 'FOUNDATIONAL_SUBJECTS', year: 3 },
+            { courseCode: 'ESTEST03', courseName: 'Estetisk kommunikation 3', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
+            { courseCode: 'MUSINS03', courseName: 'Instrument eller sång 3', points: 100, category: 'ORIENTATION', year: 3 },
+            { courseCode: 'MUSSPE00S', courseName: 'Musik - Loss specialisering', points: 100, category: 'ORIENTATION', year: 3 },
             { courseCode: 'GYMNASIEARBETE', courseName: 'Gymnasiearbete', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS', year: 3 },
-            // Inriktningsämnen (Bild och form)
-            { courseCode: 'BILBIL03', courseName: 'Bild 3', points: 200, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'BILBIL04', courseName: 'Bild 4', points: 200, category: 'ORIENTATION', year: 3 },
-            // Inriktningsämnen (Musik)
-            { courseCode: 'MUSMUS03', courseName: 'Musik 3', points: 200, category: 'ORIENTATION', year: 3 },
-            { courseCode: 'MUSMUS04', courseName: 'Musik 4', points: 200, category: 'ORIENTATION', year: 3 },
-            // Individuellt val
-            { courseCode: 'INDIVIDUAL_CHOICE', courseName: 'Individuellt val', points: 200, category: 'INDIVIDUAL_CHOICE', year: 2 },
+            { courseCode: 'INDIVIDUAL_CHOICE_1', courseName: 'Individuellt val 1', points: 100, category: 'INDIVIDUAL_CHOICE', year: 3 },
+            { courseCode: 'INDIVIDUAL_CHOICE_2', courseName: 'Individuellt val 2', points: 100, category: 'INDIVIDUAL_CHOICE', year: 3 },
         ];
+
+        // Helper function to distribute courses across terms
+        // Target: 400p fall terms (HT), 450p spring terms (VT)
+        // Exception: term5 and term6 both target 400p (gymnasiearbete i term6 gör att VT år 3 redan har 100p fast)
+        function distributeCourses(courses: typeof teknikCourses): Array<typeof teknikCourses[0] & { terms: string[] }> {
+            // Pre-account for fixed courses in year 3:
+            // - GYMNASIEARBETE: 100p in term6
+            // - INDIVIDUAL_CHOICE_1: 100p in term5
+            // - INDIVIDUAL_CHOICE_2: 100p in term6
+            // This means term5 starts with 100p, term6 starts with 200p
+            const termPoints: Record<string, number> = {
+                term1: 0, term2: 0, term3: 0, term4: 0, term5: 100, term6: 200
+            };
+
+            // Targets: 400p for fall (HT), 450p for spring (VT)
+            // Exception: term6 target is 400p (since VT år 3 already has gymnasiearbete)
+            const getTarget = (term: string) => {
+                if (term === 'term6') return 400; // VT år 3 - lower target due to gymnasiearbete
+                if (['term1', 'term3', 'term5'].includes(term)) return 400; // HT
+                return 450; // VT (term2, term4)
+            };
+
+            return courses.map(course => {
+                let terms: string[];
+
+                // Special handling for fixed courses (already counted in termPoints)
+                if (course.courseCode === 'GYMNASIEARBETE') {
+                    terms = ['term6'];
+                    return { ...course, terms }; // Don't add to counter again
+                } else if (course.courseCode === 'INDIVIDUAL_CHOICE_1') {
+                    terms = ['term5'];
+                    return { ...course, terms }; // Don't add to counter again
+                } else if (course.courseCode === 'INDIVIDUAL_CHOICE_2') {
+                    terms = ['term6'];
+                    return { ...course, terms }; // Don't add to counter again
+                } else {
+                    // Determine which terms this course can be assigned to based on year
+                    const yearTerms = course.year === 1
+                        ? ['term1', 'term2']
+                        : course.year === 2
+                            ? ['term3', 'term4']
+                            : ['term5', 'term6'];
+
+                    const [ht, vt] = yearTerms;
+                    const htRoom = getTarget(ht) - termPoints[ht];
+                    const vtRoom = getTarget(vt) - termPoints[vt];
+
+                    // Decision logic:
+                    // 1. If course fits in both, prefer VT (spring) since it has higher target (450 vs 400)
+                    //    Unless HT has significantly more room (>=50p more)
+                    // 2. If only fits in one, use that one
+                    // 3. If doesn't fit in either, split across both
+                    if (course.points <= htRoom && course.points <= vtRoom) {
+                        // Both have room - prefer VT unless HT has much more room
+                        if (htRoom - vtRoom >= 50) {
+                            terms = [ht];
+                        } else {
+                            terms = [vt];
+                        }
+                    } else if (course.points <= htRoom) {
+                        terms = [ht];
+                    } else if (course.points <= vtRoom) {
+                        terms = [vt];
+                    } else {
+                        // Neither term has enough room - split across both
+                        terms = yearTerms;
+                    }
+                }
+
+                // Update term point counters
+                const pointsPerTerm = course.points / terms.length;
+                terms.forEach(t => termPoints[t] += pointsPerTerm);
+
+                return { ...course, terms };
+            });
+        }
 
         // Create curricula and courses for each class
         for (const cls of insertedClasses) {
@@ -259,37 +368,24 @@ async function seedDatabase() {
                 version: 1,
             }).returning();
 
+            // Distribute courses evenly across terms
+            const distributedCourses = distributeCourses(coursesToUse);
+
             // Create course instances
             await db.insert(courseInstances).values(
-                coursesToUse.map(course => {
-                    // Set appropriate terms based on year and course type
-                    let terms: string[];
-                    if (course.courseCode === 'GYMNASIEARBETE') {
-                        // Gymnasiearbete should be in term 6 (year 3, second term)
-                        terms = ['term6'];
-                    } else if (course.year === 1) {
-                        terms = ['term1', 'term2'];
-                    } else if (course.year === 2) {
-                        terms = ['term3', 'term4'];
-                    } else {
-                        // Year 3 courses default to term 5 and 6, but gymnasiearbete is handled above
-                        terms = ['term5', 'term6'];
-                    }
-                    
-                    return {
-                        curriculumId: curriculum.id,
-                        classId: cls.id,
-                        courseCode: course.courseCode,
-                        courseName: course.courseName,
-                        points: course.points,
-                        category: course.category as any,
-                        year: course.year,
-                        terms: terms as any,
-                        teacherId: null,
-                        roomId: null,
-                        lessonDuration: null,
-                    };
-                })
+                distributedCourses.map(course => ({
+                    curriculumId: curriculum.id,
+                    classId: cls.id,
+                    courseCode: course.courseCode,
+                    courseName: course.courseName,
+                    points: course.points,
+                    category: course.category as any,
+                    year: course.year,
+                    terms: course.terms as any,
+                    teacherId: null,
+                    roomId: null,
+                    lessonDuration: null,
+                }))
             );
 
             console.log(`✅ Created curriculum for ${cls.classCode} (${coursesToUse.length} courses, ${totalPoints} points)`);

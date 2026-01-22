@@ -8,7 +8,7 @@ export async function GET() {
             with: {
                 classes: {
                     with: {
-                        curriculum: true,
+                        curricula: true,
                     },
                 },
             },
@@ -30,14 +30,13 @@ export async function GET() {
                 orientationName: classItem.orientationName,
                 startYear: classItem.startYear,
                 graduationYear: classItem.graduationYear,
-                curriculum: classItem.curriculum ? {
-                    id: classItem.curriculum.id,
-                    totalPoints: classItem.curriculum.totalPoints,
-                    isValid: classItem.curriculum.isValid,
-                    courses: classItem.curriculum.courses,
-                    createdAt: classItem.curriculum.createdAt,
-                    updatedAt: classItem.curriculum.updatedAt,
-                } : undefined,
+                curricula: classItem.curricula?.map(curr => ({
+                    id: curr.id,
+                    totalPoints: curr.totalPoints,
+                    isValid: curr.isValid,
+                    createdAt: curr.createdAt,
+                    updatedAt: curr.updatedAt,
+                })) || [],
             })) || [],
         }));
 

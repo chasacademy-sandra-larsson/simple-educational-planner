@@ -15,6 +15,15 @@ import {
     CreateTeacherRequest,
     Room,
     CreateRoomRequest,
+    TermDates,
+    CreateTermDatesRequest,
+    ProjectScheduleCalculation,
+    ClassScheduleInfo,
+    GeneratedSchedule,
+    GenerateScheduleRequest,
+    GenerateScheduleResponse,
+    ScheduleWithLessons,
+    ScheduleStatus,
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -111,6 +120,20 @@ export const authApi = {
     },
 };
 
+// Initialize curricula response type
+export interface InitializeCurriculaResult {
+    classCode: string;
+    success: boolean;
+    error?: string;
+    courseCount?: number;
+}
+
+export interface InitializeCurriculaResponse {
+    message: string;
+    initialized: number;
+    results?: InitializeCurriculaResult[];
+}
+
 // Projects API
 export const projectsApi = {
     async getAll(): Promise<Project[]> {
@@ -152,6 +175,12 @@ export const projectsApi = {
         return fetchWithAuth<ClassCurriculum>(`/api/projects/classes/${classId}/curriculum`, {
             method: 'PUT',
             body: JSON.stringify(data),
+        });
+    },
+
+    async initializeCurricula(projectId: string): Promise<InitializeCurriculaResponse> {
+        return fetchWithAuth<InitializeCurriculaResponse>(`/api/projects/${projectId}/initialize-curricula`, {
+            method: 'POST',
         });
     },
 };
@@ -235,10 +264,94 @@ export const serviceDistributionsApi = {
     },
 
     async getAll(projectId: string, academicYear?: string): Promise<any[]> {
-        const url = academicYear 
+        const url = academicYear
             ? `/api/projects/${projectId}/service-distributions?academicYear=${academicYear}`
             : `/api/projects/${projectId}/service-distributions`;
         return fetchWithAuth<any[]>(url);
+    },
+
+    async assignTeacherToCourse(projectId: string, courseInstanceId: string, teacherId: string | null): Promise<any> {
+        return fetchWithAuth<any>(`/api/projects/${projectId}/course-instances/${courseInstanceId}/teacher`, {
+            method: 'PUT',
+            body: JSON.stringify({ teacherId }),
+        });
+    },
+};
+
+// Term Dates API
+export const termDatesApi = {
+    async getAll(projectId: string): Promise<TermDates[]> {
+        return fetchWithAuth<TermDates[]>(`/api/projects/${projectId}/term-dates`);
+    },
+
+    async getByAcademicYear(projectId: string, academicYear: string): Promise<TermDates[]> {
+        return fetchWithAuth<TermDates[]>(`/api/projects/${projectId}/term-dates/${academicYear}`);
+    },
+
+    async create(projectId: string, data: CreateTermDatesRequest): Promise<TermDates> {
+        return fetchWithAuth<TermDates>(`/api/projects/${projectId}/term-dates`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async update(id: string, data: Partial<CreateTermDatesRequest>): Promise<TermDates> {
+        return fetchWithAuth<TermDates>(`/api/term-dates/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async delete(id: string): Promise<{ message: string }> {
+        return fetchWithAuth<{ message: string }>(`/api/term-dates/${id}`, {
+            method: 'DELETE',
+        });
+    },
+};
+
+// Schedule API
+export const scheduleApi = {
+    async calculateForProject(projectId: string): Promise<ProjectScheduleCalculation> {
+        return fetchWithAuth<ProjectScheduleCalculation>(`/api/projects/${projectId}/schedule/calculate`);
+    },
+
+    async calculateForClass(projectId: string, classId: string): Promise<ClassScheduleInfo & { termDatesAvailable: boolean }> {
+        return fetchWithAuth<ClassScheduleInfo & { termDatesAvailable: boolean }>(`/api/projects/${projectId}/classes/${classId}/schedule`);
+    },
+};
+
+// Schedule Generator API
+export const scheduleGeneratorApi = {
+    async generate(projectId: string, data: GenerateScheduleRequest): Promise<GenerateScheduleResponse> {
+        return fetchWithAuth<GenerateScheduleResponse>(`/api/projects/${projectId}/schedules/generate`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async getAll(projectId: string): Promise<GeneratedSchedule[]> {
+        return fetchWithAuth<GeneratedSchedule[]>(`/api/projects/${projectId}/schedules`);
+    },
+
+    async getById(projectId: string, scheduleId: string): Promise<ScheduleWithLessons> {
+        return fetchWithAuth<ScheduleWithLessons>(`/api/projects/${projectId}/schedules/${scheduleId}`);
+    },
+
+    async delete(projectId: string, scheduleId: string): Promise<{ message: string }> {
+        return fetchWithAuth<{ message: string }>(`/api/projects/${projectId}/schedules/${scheduleId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    async updateStatus(projectId: string, scheduleId: string, status: ScheduleStatus): Promise<GeneratedSchedule> {
+        return fetchWithAuth<GeneratedSchedule>(`/api/projects/${projectId}/schedules/${scheduleId}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
+        });
+    },
+
+    async getAcademicYears(projectId: string): Promise<{ academicYears: string[] }> {
+        return fetchWithAuth<{ academicYears: string[] }>(`/api/projects/${projectId}/schedules/academic-years`);
     },
 };
 
@@ -249,6 +362,9 @@ export const api = {
     teachers: teachersApi,
     rooms: roomsApi,
     serviceDistributions: serviceDistributionsApi,
+    termDates: termDatesApi,
+    schedule: scheduleApi,
+    scheduleGenerator: scheduleGeneratorApi,
 };
 
 export { ApiError };

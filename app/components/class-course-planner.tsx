@@ -18,6 +18,7 @@ interface CourseAssignment {
     points: number;
     category: string;
     year: number;
+    terms?: string[];
 }
 
 export default function ClassCoursePlanner({ classId, programCode, orientationCode, onSaveSuccess, hasCurriculum = false }: ClassCoursePlannerProps) {
@@ -33,8 +34,23 @@ export default function ClassCoursePlanner({ classId, programCode, orientationCo
         setSuccess(false);
 
         try {
+            // Add default terms if not provided and cast types
+            type TermType = "term1" | "term2" | "term3" | "term4" | "term5" | "term6";
+            type CategoryType = 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE' | 'GYMNASIEARBETE';
+            const coursesWithTerms = courseAssignments.map(c => {
+                const termIndex1 = ((c.year - 1) * 2 + 1) as 1 | 2 | 3 | 4 | 5 | 6;
+                const termIndex2 = ((c.year - 1) * 2 + 2) as 1 | 2 | 3 | 4 | 5 | 6;
+                return {
+                    courseCode: c.courseCode,
+                    courseName: c.courseName,
+                    points: c.points,
+                    category: c.category as CategoryType,
+                    year: c.year as 1 | 2 | 3,
+                    terms: (c.terms || [`term${termIndex1}`, `term${termIndex2}`]) as TermType[],
+                };
+            });
             await api.projects.updateCurriculum(classId, {
-                courses: courseAssignments,
+                courses: coursesWithTerms,
             });
 
             setSuccess(true);

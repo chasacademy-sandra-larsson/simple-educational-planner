@@ -3,13 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api, ApiError } from '@/app/lib/api';
-import type { ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoomRequest } from '@/app/lib/api/types';
+import type { Project, ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoomRequest } from '@/app/lib/api/types';
 import AddClassForm from '@/app/components/add-class-form';
 import ComprehensiveCoursePlanner from '@/app/components/comprehensive-course-planner';
 import TimeSettingsForm from '@/app/components/time-settings-form';
 import ProjectSummary from '@/app/components/project-summary';
+import TermDatesForm from '@/app/components/term-dates-form';
+import WeeklySchedule from '@/app/components/weekly-schedule';
+import ScheduleGenerator from '@/app/components/schedule-generator';
 
-type Tab = 'summary' | 'classes' | 'teachers' | 'rooms' | 'settings';
+type Tab = 'summary' | 'classes' | 'schedule' | 'scheduling' | 'teachers' | 'rooms' | 'settings';
 
 export default function ProjectDetailPage() {
     const router = useRouter();
@@ -43,6 +46,9 @@ export default function ProjectDetailPage() {
     }>>([]);
     const [courseInstancesMap, setCourseInstancesMap] = useState<Map<string, string>>(new Map()); // course code -> course instance id
 
+    // Existing service distributions state (grouped by academic year)
+    const [existingDistributions, setExistingDistributions] = useState<Record<string, { count: number; totalPoints: number }>>({});
+
     // Room form state
     const [showRoomForm, setShowRoomForm] = useState(false);
     const [newRoom, setNewRoom] = useState<CreateRoomRequest>({ roomNumber: '', roomType: '', capacity: undefined, notes: '' });
@@ -55,6 +61,10 @@ export default function ProjectDetailPage() {
     // Expanded class for course planning
     const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
 
+    // Initialize curricula state
+    const [initializingCurricula, setInitializingCurricula] = useState(false);
+    const [initCurriculaMessage, setInitCurriculaMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
     useEffect(() => {
         // For design/development: skip auth redirect so you can freely open project pages
         // and just load data if a projectId is present.
@@ -62,6 +72,7 @@ export default function ProjectDetailPage() {
             fetchProject();
             if (activeTab === 'teachers' || activeTab === 'summary') {
                 fetchTeachers();
+                fetchServiceDistributions();
             }
             if (activeTab === 'rooms' || activeTab === 'summary') {
                 fetchRooms();
@@ -114,6 +125,27 @@ export default function ProjectDetailPage() {
         }
     };
 
+    const fetchServiceDistributions = async () => {
+        try {
+            console.log('[DEBUG] Fetching service distributions for project:', projectId);
+            const distributions = await api.serviceDistributions.getAll(projectId);
+            console.log('[DEBUG] Received distributions:', distributions);
+            // Group by academic year
+            const byYear: Record<string, { count: number; totalPoints: number }> = {};
+            for (const dist of distributions) {
+                const existing = byYear[dist.academicYear] || { count: 0, totalPoints: 0 };
+                byYear[dist.academicYear] = {
+                    count: existing.count + 1,
+                    totalPoints: existing.totalPoints + (dist.servicePoints || 0),
+                };
+            }
+            console.log('[DEBUG] Grouped by year:', byYear);
+            setExistingDistributions(byYear);
+        } catch (err) {
+            console.error('[DEBUG] Failed to fetch service distributions:', err);
+        }
+    };
+
     const handleCreateTeacher = async (e: React.FormEvent) => {
         e.preventDefault();
         setCreatingTeacher(true);
@@ -153,6 +185,40 @@ export default function ProjectDetailPage() {
             }
         } finally {
             setCreatingRoom(false);
+        }
+    };
+
+    const handleInitializeCurricula = async () => {
+        setInitializingCurricula(true);
+        setInitCurriculaMessage(null);
+        
+        try {
+            const result = await api.projects.initializeCurricula(projectId);
+            
+            if (result.initialized > 0) {
+                setInitCurriculaMessage({
+                    type: 'success',
+                    text: `Initierade ${result.initialized} kursplaner! Laddar om...`,
+                });
+                // Refresh project data to show updated curricula
+                setTimeout(() => {
+                    fetchProject();
+                    setInitCurriculaMessage(null);
+                }, 2000);
+            } else {
+                setInitCurriculaMessage({
+                    type: 'success',
+                    text: result.message || 'Alla klasser har redan kursplaner.',
+                });
+            }
+        } catch (err) {
+            if (err instanceof ApiError) {
+                setInitCurriculaMessage({ type: 'error', text: err.message });
+            } else {
+                setInitCurriculaMessage({ type: 'error', text: 'Kunde inte initiera kursplaner' });
+            }
+        } finally {
+            setInitializingCurricula(false);
         }
     };
 
@@ -256,13 +322,31 @@ export default function ProjectDetailPage() {
                                 Classes ({project.classes?.length || 0})
                             </button>
                             <button
+                                onClick={() => setActiveTab('schedule')}
+                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'schedule'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
+                                    }`}
+                            >
+                                Schema
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('scheduling')}
+                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'scheduling'
+                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
+                                    }`}
+                            >
+                                Schemaläggning
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('teachers')}
                                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'teachers'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
                                     }`}
                             >
-                                Teachers ({teachers.length})
+                                Lärare ({teachers.length})
                             </button>
                             <button
                                 onClick={() => setActiveTab('rooms')}
@@ -271,7 +355,7 @@ export default function ProjectDetailPage() {
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
                                     }`}
                             >
-                                Rooms ({rooms.length})
+                                Salar ({rooms.length})
                             </button>
                             <button
                                 onClick={() => setActiveTab('settings')}
@@ -324,6 +408,70 @@ export default function ProjectDetailPage() {
                                         />
                                     )}
                                 </div>
+
+                                {/* Initialize Curricula Section */}
+                                {project.classes && project.classes.length > 0 && (() => {
+                                    const classesWithoutCurricula = project.classes.filter(
+                                        cls => !cls.curriculum || !cls.curriculum.courses || !Array.isArray(cls.curriculum.courses) || cls.curriculum.courses.length === 0
+                                    );
+                                    
+                                    if (classesWithoutCurricula.length === 0) return null;
+                                    
+                                    return (
+                                        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                            <div className="flex items-start gap-3">
+                                                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                                <div className="flex-1">
+                                                    <h4 className="font-medium text-amber-800 dark:text-amber-200">
+                                                        {classesWithoutCurricula.length} {classesWithoutCurricula.length === 1 ? 'klass saknar' : 'klasser saknar'} kursplan
+                                                    </h4>
+                                                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                                        För att kunna generera schema behöver alla klasser ha sparade kursplaner. 
+                                                        Klicka på knappen nedan för att automatiskt initiera standardkurser för alla klasser som saknar kursplan.
+                                                    </p>
+                                                    <div className="mt-3 flex items-center gap-3">
+                                                        <button
+                                                            onClick={handleInitializeCurricula}
+                                                            disabled={initializingCurricula}
+                                                            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                                        >
+                                                            {initializingCurricula ? (
+                                                                <>
+                                                                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                                    </svg>
+                                                                    Initierar...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                                    </svg>
+                                                                    Initiera alla kursplaner
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                                                            Klasser: {classesWithoutCurricula.map(c => c.classCode).join(', ')}
+                                                        </span>
+                                                    </div>
+                                                    {initCurriculaMessage && (
+                                                        <div className={`mt-3 p-2 rounded text-sm ${
+                                                            initCurriculaMessage.type === 'success' 
+                                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                                                                : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
+                                                        }`}>
+                                                            {initCurriculaMessage.text}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Classes List */}
                                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
@@ -412,6 +560,16 @@ export default function ProjectDetailPage() {
                                     </div>
                                 )}
                             </div>
+                        )}
+
+                        {/* Schedule Tab */}
+                        {activeTab === 'schedule' && project && (
+                            <WeeklySchedule project={project} />
+                        )}
+
+                        {/* Scheduling Tab (Generator) */}
+                        {activeTab === 'scheduling' && project && (
+                            <ScheduleGenerator project={project} onUpdate={fetchProject} />
                         )}
 
                         {/* Teachers Tab */}
@@ -703,10 +861,11 @@ export default function ProjectDetailPage() {
                                                     };
                                                     
                                                     // Group courses by academic year first, then by subject
-                                                    const coursesByAcademicYear = new Map<string, Map<string, Array<{ code: string; name: string; year: number; classStartYear: number; points: number }>>>();
-                                                    
+                                                    const coursesByAcademicYear = new Map<string, Map<string, Array<{ id: string; code: string; name: string; year: number; classStartYear: number; points: number; teacherId?: string | null; teacherName?: string | null }>>>();
+
                                                     // Extract all courses with their subjects and academic years
                                                     const allCoursesWithSubjects: Array<{
+                                                        id: string;
                                                         code: string;
                                                         name: string;
                                                         year: number;
@@ -715,16 +874,19 @@ export default function ProjectDetailPage() {
                                                         points: number;
                                                         academicYear: string;
                                                         academicYearSortKey: number;
+                                                        teacherId?: string | null;
+                                                        teacherName?: string | null;
                                                     }> = [];
-                                                    
+
                                                     project.classes?.forEach(cls => {
                                                         if (cls.curriculum && cls.curriculum.courses && Array.isArray(cls.curriculum.courses)) {
                                                             cls.curriculum.courses.forEach(course => {
                                                                 const subject = extractSubject(course.courseCode, course.courseName);
                                                                 const academicYear = formatAcademicYear(cls.startYear, course.year);
                                                                 const academicYearSortKey = getAcademicYearSortKey(cls.startYear, course.year);
-                                                                
+
                                                                 allCoursesWithSubjects.push({
+                                                                    id: course.id || '',
                                                                     code: course.courseCode,
                                                                     name: course.courseName,
                                                                     year: course.year,
@@ -733,11 +895,13 @@ export default function ProjectDetailPage() {
                                                                     points: course.points || 0,
                                                                     academicYear,
                                                                     academicYearSortKey,
+                                                                    teacherId: course.teacherId,
+                                                                    teacherName: course.teacherName,
                                                                 });
                                                             });
                                                         }
                                                     });
-                                                    
+
                                                     // Group by academic year, then by subject
                                                     allCoursesWithSubjects.forEach(course => {
                                                         if (!coursesByAcademicYear.has(course.academicYear)) {
@@ -752,11 +916,14 @@ export default function ProjectDetailPage() {
                                                         const alreadyExists = coursesList.some((c: { code: string }) => c.code === course.code);
                                                         if (!alreadyExists) {
                                                             coursesList.push({
+                                                                id: course.id,
                                                                 code: course.code,
                                                                 name: course.name,
                                                                 year: course.year,
                                                                 classStartYear: course.classStartYear,
                                                                 points: course.points,
+                                                                teacherId: course.teacherId,
+                                                                teacherName: course.teacherName,
                                                             });
                                                         }
                                                     });
@@ -781,7 +948,7 @@ export default function ProjectDetailPage() {
                                                             .sort((a, b) => b.totalPoints - a.totalPoints);
                                                         
                                                         // Get all courses for this academic year, removing duplicates by course code
-                                                        const allCoursesForYearMap = new Map<string, { code: string; name: string; year: number; classStartYear: number; points: number }>();
+                                                        const allCoursesForYearMap = new Map<string, { id: string; code: string; name: string; year: number; classStartYear: number; points: number; teacherId?: string | null; teacherName?: string | null }>();
                                                         selectedYearSubjectsMap.forEach(subjectCourses => {
                                                             subjectCourses.forEach(course => {
                                                                 // Use course code as key to avoid duplicates
@@ -798,6 +965,12 @@ export default function ProjectDetailPage() {
                                                             return b.points - a.points;
                                                         });
                                                         
+                                                        // Calculate vacant courses
+                                                        const vacantCourses = allCoursesForYear.filter(c => !c.teacherId);
+                                                        const vacantPoints = vacantCourses.reduce((sum, c) => sum + c.points, 0);
+                                                        const totalPoints = allCoursesForYear.reduce((sum, c) => sum + c.points, 0);
+                                                        const assignedPoints = totalPoints - vacantPoints;
+
                                                         return (
                                                             <div className="space-y-6">
                                                                 <div className="flex items-center justify-between mb-4">
@@ -814,7 +987,45 @@ export default function ProjectDetailPage() {
                                                                         Tillbaka
                                                                     </button>
                                                                 </div>
-                                                                
+
+                                                                {/* Summary of vacant courses */}
+                                                                {vacantCourses.length > 0 && (
+                                                                    <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                                                                        <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-medium mb-2">
+                                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                                            </svg>
+                                                                            {vacantCourses.length} vakanta kurser ({vacantPoints} p)
+                                                                        </div>
+                                                                        <div className="text-sm text-orange-600 dark:text-orange-500">
+                                                                            Dessa kurser saknar lärare och behöver tilldelas:
+                                                                        </div>
+                                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                                            {vacantCourses.map(c => (
+                                                                                <span key={c.code} className="px-2 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 text-xs rounded">
+                                                                                    {c.name} ({c.points}p)
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Progress bar */}
+                                                                <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+                                                                    <div className="flex justify-between text-sm mb-2">
+                                                                        <span className="text-zinc-600 dark:text-zinc-400">Tilldelat: {assignedPoints}p / {totalPoints}p</span>
+                                                                        <span className={vacantPoints === 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}>
+                                                                            {vacantPoints === 0 ? 'Alla kurser tilldelade!' : `${vacantPoints}p kvar att tilldela`}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                                                                        <div
+                                                                            className={`h-2 rounded-full ${vacantPoints === 0 ? 'bg-green-500' : 'bg-blue-500'}`}
+                                                                            style={{ width: `${(assignedPoints / totalPoints) * 100}%` }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
                                                                 {/* Teacher assignments list */}
                                                                 <div className="space-y-4">
                                                                     {teacherAssignments.map((assignment, index) => {
@@ -958,30 +1169,75 @@ export default function ProjectDetailPage() {
                                                                                     Välj kurser för {assignment.name || 'läraren'}:
                                                                                 </label>
                                                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 border border-zinc-200 dark:border-zinc-700 rounded">
-                                                                                    {allCoursesForYear.map((course) => (
-                                                                                        <label key={course.code} className="flex items-center space-x-2 p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 rounded cursor-pointer">
+                                                                                    {allCoursesForYear.map((course) => {
+                                                                                        const isAssignedToOther = course.teacherId && course.teacherId !== assignment.teacherId;
+                                                                                        const isAssignedToThis = course.teacherId === assignment.teacherId;
+                                                                                        const isVacant = !course.teacherId;
+                                                                                        const assignedTeacher = isAssignedToOther ? course.teacherName : null;
+                                                                                        return (
+                                                                                        <label key={course.code} className={`flex items-center space-x-2 p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 rounded cursor-pointer ${isAssignedToOther ? 'opacity-60' : ''} ${isVacant ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' : ''}`}>
                                                                                             <input
                                                                                                 type="checkbox"
                                                                                                 checked={assignment.courses.includes(course.code)}
-                                                                                                onChange={(e) => {
-                                                                                                    setTeacherAssignments(prev => prev.map(a => 
-                                                                                                        a.id === assignment.id 
-                                                                                                            ? { 
-                                                                                                                ...a, 
-                                                                                                                courses: e.target.checked
+                                                                                                onChange={async (e) => {
+                                                                                                    const isChecked = e.target.checked;
+                                                                                                    const teacherId = assignment.teacherId || null;
+
+                                                                                                    // Update local state immediately for responsive UI
+                                                                                                    setTeacherAssignments(prev => prev.map(a =>
+                                                                                                        a.id === assignment.id
+                                                                                                            ? {
+                                                                                                                ...a,
+                                                                                                                courses: isChecked
                                                                                                                     ? [...a.courses, course.code]
                                                                                                                     : a.courses.filter(c => c !== course.code)
                                                                                                             }
                                                                                                             : a
                                                                                                     ));
+
+                                                                                                    // Save to database
+                                                                                                    try {
+                                                                                                        if (course.id) {
+                                                                                                            await api.serviceDistributions.assignTeacherToCourse(
+                                                                                                                projectId,
+                                                                                                                course.id,
+                                                                                                                isChecked ? teacherId : null
+                                                                                                            );
+                                                                                                        }
+                                                                                                    } catch (err) {
+                                                                                                        console.error('Failed to save assignment:', err);
+                                                                                                        // Revert local state on error
+                                                                                                        setTeacherAssignments(prev => prev.map(a =>
+                                                                                                            a.id === assignment.id
+                                                                                                                ? {
+                                                                                                                    ...a,
+                                                                                                                    courses: isChecked
+                                                                                                                        ? a.courses.filter(c => c !== course.code)
+                                                                                                                        : [...a.courses, course.code]
+                                                                                                                }
+                                                                                                                : a
+                                                                                                        ));
+                                                                                                        alert('Kunde inte spara ändringen');
+                                                                                                    }
                                                                                                 }}
                                                                                                 className="rounded border-zinc-300 dark:border-zinc-600"
                                                                                             />
                                                                                             <span className="text-sm text-zinc-900 dark:text-zinc-100">
                                                                                                 {course.name} ({course.points} p)
+                                                                                                {isVacant && (
+                                                                                                    <span className="text-xs text-orange-600 dark:text-orange-400 ml-1 font-medium">
+                                                                                                        [VAKANT]
+                                                                                                    </span>
+                                                                                                )}
+                                                                                                {assignedTeacher && (
+                                                                                                    <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">
+                                                                                                        [{assignedTeacher}]
+                                                                                                    </span>
+                                                                                                )}
                                                                                             </span>
                                                                                         </label>
-                                                                                    ))}
+                                                                                        );
+                                                                                    })}
                                                                                 </div>
                                                                             </div>
                                                                         </div>
@@ -1127,9 +1383,19 @@ export default function ProjectDetailPage() {
                                                                     return (
                                                                         <div key={academicYear} className="p-5 bg-white dark:bg-zinc-800 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 shadow-sm">
                                                                             <div className="mb-4 pb-3 border-b-2 border-zinc-300 dark:border-zinc-600">
-                                                                                <h5 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                                                                                    Läsår {academicYear}
-                                                                                </h5>
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <h5 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+                                                                                        Läsår {academicYear}
+                                                                                    </h5>
+                                                                                    {existingDistributions[academicYear] && (
+                                                                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
+                                                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                            </svg>
+                                                                                            Tjänstefördelning
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
                                                                                 <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
                                                                                     {subjects.reduce((sum, s) => sum + s.courseCount, 0)} kurser över {subjects.length} ämnen
                                                                                 </div>
@@ -1170,59 +1436,146 @@ export default function ProjectDetailPage() {
                                                                                 ))}
                                                                             </div>
                                                                             
-                                                                            {/* Create teacher assignment button - at the end of the card */}
+                                                                            {/* Service distribution status / create button */}
                                                                             <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
-                                                                                <button
-                                                                                    onClick={async () => {
-                                                                                        try {
-                                                                                            // Check if there are any teachers
-                                                                                            if (teachers.length === 0) {
-                                                                                                alert('Du måste skapa lärare först innan du kan skapa tjänstefördelning.');
-                                                                                                return;
+                                                                                {existingDistributions[academicYear] ? (
+                                                                                    <div className="space-y-3">
+                                                                                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                                                                            <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                                                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                                                                </svg>
+                                                                                                <span className="font-medium">Tjänstefördelning skapad</span>
+                                                                                            </div>
+                                                                                            <div className="text-sm text-green-600 dark:text-green-500 mt-1">
+                                                                                                {existingDistributions[academicYear]?.count} lärare tilldelade
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <button
+                                                                                            onClick={async () => {
+                                                                                                try {
+                                                                                                    const distributions = await api.serviceDistributions.getAll(projectId, academicYear);
+
+                                                                                                    // Get all courses for this academic year with their teacher assignments
+                                                                                                    const coursesWithTeachers: Array<{ code: string; teacherId?: string | null }> = [];
+                                                                                                    project.classes?.forEach(cls => {
+                                                                                                        if (cls.curriculum?.courses) {
+                                                                                                            cls.curriculum.courses.forEach(course => {
+                                                                                                                const courseAcademicYear = `${cls.startYear + (course.year - 1)}/${cls.startYear + course.year}`;
+                                                                                                                if (courseAcademicYear === academicYear && course.teacherId) {
+                                                                                                                    coursesWithTeachers.push({
+                                                                                                                        code: course.courseCode,
+                                                                                                                        teacherId: course.teacherId,
+                                                                                                                    });
+                                                                                                                }
+                                                                                                            });
+                                                                                                        }
+                                                                                                    });
+
+                                                                                                    const assignments = teachers.map(teacher => {
+                                                                                                        const distribution = distributions.find(d => d.teacherId === teacher.id);
+                                                                                                        // Get courses assigned to this teacher
+                                                                                                        const teacherCourses = coursesWithTeachers
+                                                                                                            .filter(c => c.teacherId === teacher.id)
+                                                                                                            .map(c => c.code);
+                                                                                                        // Remove duplicates
+                                                                                                        const uniqueCourses = [...new Set(teacherCourses)];
+                                                                                                        return {
+                                                                                                            id: distribution?.id || `temp-${teacher.id}`,
+                                                                                                            teacherId: teacher.id,
+                                                                                                            name: teacher.name,
+                                                                                                            capacity: distribution?.servicePoints || teacherCapacity,
+                                                                                                            courses: uniqueCourses,
+                                                                                                        };
+                                                                                                    });
+                                                                                                    setTeacherAssignments(assignments);
+                                                                                                    setAssignmentViewAcademicYear(academicYear);
+                                                                                                } catch (err) {
+                                                                                                    console.error('Failed to load distributions:', err);
+                                                                                                }
+                                                                                            }}
+                                                                                            className="w-full p-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                                                                        >
+                                                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                                            </svg>
+                                                                                            Visa tjänstefördelning {academicYear}
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <button
+                                                                                        onClick={async () => {
+                                                                                            try {
+                                                                                                if (teachers.length === 0) {
+                                                                                                    alert('Du måste skapa lärare först innan du kan skapa tjänstefördelning.');
+                                                                                                    return;
+                                                                                                }
+
+                                                                                                const result = await api.serviceDistributions.createForAllTeachers(
+                                                                                                    projectId,
+                                                                                                    academicYear,
+                                                                                                    teacherCapacity
+                                                                                                );
+
+                                                                                                console.log('Service distributions created:', result);
+
+                                                                                                // Refresh the existing distributions state
+                                                                                                await fetchServiceDistributions();
+
+                                                                                                const distributions = await api.serviceDistributions.getAll(projectId, academicYear);
+
+                                                                                                // Get all courses for this academic year with their teacher assignments
+                                                                                                const coursesWithTeachers: Array<{ code: string; teacherId?: string | null }> = [];
+                                                                                                project.classes?.forEach(cls => {
+                                                                                                    if (cls.curriculum?.courses) {
+                                                                                                        cls.curriculum.courses.forEach(course => {
+                                                                                                            const courseAcademicYear = `${cls.startYear + (course.year - 1)}/${cls.startYear + course.year}`;
+                                                                                                            if (courseAcademicYear === academicYear && course.teacherId) {
+                                                                                                                coursesWithTeachers.push({
+                                                                                                                    code: course.courseCode,
+                                                                                                                    teacherId: course.teacherId,
+                                                                                                                });
+                                                                                                            }
+                                                                                                        });
+                                                                                                    }
+                                                                                                });
+
+                                                                                                const assignments = teachers.map(teacher => {
+                                                                                                    const distribution = distributions.find(d => d.teacherId === teacher.id);
+                                                                                                    // Get courses assigned to this teacher
+                                                                                                    const teacherCourses = coursesWithTeachers
+                                                                                                        .filter(c => c.teacherId === teacher.id)
+                                                                                                        .map(c => c.code);
+                                                                                                    // Remove duplicates
+                                                                                                    const uniqueCourses = [...new Set(teacherCourses)];
+                                                                                                    return {
+                                                                                                        id: distribution?.id || `temp-${teacher.id}`,
+                                                                                                        teacherId: teacher.id,
+                                                                                                        name: teacher.name,
+                                                                                                        capacity: distribution?.servicePoints || teacherCapacity,
+                                                                                                        courses: uniqueCourses,
+                                                                                                    };
+                                                                                                });
+
+                                                                                                setTeacherAssignments(assignments);
+                                                                                                setAssignmentViewAcademicYear(academicYear);
+                                                                                            } catch (err: any) {
+                                                                                                console.error('Failed to create service distributions:', err);
+                                                                                                const errorMessage = err instanceof ApiError
+                                                                                                    ? err.message
+                                                                                                    : err?.message || 'Okänt fel';
+                                                                                                alert(`Kunde inte skapa tjänstefördelning: ${errorMessage}`);
                                                                                             }
-                                                                                            
-                                                                                            // Create service distributions for all teachers
-                                                                                            const result = await api.serviceDistributions.createForAllTeachers(
-                                                                                                projectId,
-                                                                                                academicYear,
-                                                                                                teacherCapacity
-                                                                                            );
-                                                                                            
-                                                                                            console.log('Service distributions created:', result);
-                                                                                            
-                                                                                            // Load existing teachers into assignments
-                                                                                            const distributions = await api.serviceDistributions.getAll(projectId, academicYear);
-                                                                                            console.log('Loaded distributions:', distributions);
-                                                                                            
-                                                                                            const assignments = teachers.map(teacher => {
-                                                                                                const distribution = distributions.find(d => d.teacherId === teacher.id);
-                                                                                                return {
-                                                                                                    id: distribution?.id || `temp-${teacher.id}`,
-                                                                                                    teacherId: teacher.id,
-                                                                                                    name: teacher.name,
-                                                                                                    capacity: distribution?.servicePoints || teacherCapacity,
-                                                                                                    courses: [], // Will be loaded from distribution if exists
-                                                                                                };
-                                                                                            });
-                                                                                            
-                                                                                            console.log('Created assignments:', assignments);
-                                                                                            setTeacherAssignments(assignments);
-                                                                                            setAssignmentViewAcademicYear(academicYear);
-                                                                                        } catch (err: any) {
-                                                                                            console.error('Failed to create service distributions:', err);
-                                                                                            const errorMessage = err instanceof ApiError 
-                                                                                                ? err.message 
-                                                                                                : err?.message || 'Okänt fel';
-                                                                                            alert(`Kunde inte skapa tjänstefördelning: ${errorMessage}`);
-                                                                                        }
-                                                                                    }}
-                                                                                    className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                                                                                >
-                                                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                                                                    </svg>
-                                                                                    Skapa tjänstefördelning
-                                        </button>
+                                                                                        }}
+                                                                                        className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                                                                    >
+                                                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                                                        </svg>
+                                                                                        Skapa tjänstefördelning {academicYear}
+                                                                                    </button>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     );
@@ -1561,9 +1914,13 @@ export default function ProjectDetailPage() {
                         {/* Settings Tab */}
                         {activeTab === 'settings' && project && (
                             <div className="space-y-6">
-                                <TimeSettingsForm 
-                                    project={project} 
+                                <TimeSettingsForm
+                                    project={project}
                                     onUpdate={handleProjectUpdate}
+                                />
+                                <TermDatesForm
+                                    project={project}
+                                    onUpdate={() => fetchProject()}
                                 />
                             </div>
                         )}

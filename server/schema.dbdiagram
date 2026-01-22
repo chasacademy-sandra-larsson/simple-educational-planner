@@ -66,6 +66,36 @@
       "firstFieldNames": [
         "class_id"
       ],
+      "firstTableName": "class_curricula",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "project_classes",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "curriculum_id"
+      ],
+      "firstTableName": "course_instances",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "class_curricula",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "class_id"
+      ],
       "firstTableName": "course_instances",
       "firstSchemaName": "public",
       "firstRelation": "*",

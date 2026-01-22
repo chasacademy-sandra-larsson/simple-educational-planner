@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, time, integer, jsonb, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, time, integer, jsonb, unique, date } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Users table
@@ -19,7 +19,9 @@ export const projects = pgTable('projects', {
     // Time settings
     earliestLessonStart: time('earliest_lesson_start'), // When lessons can earliest start (e.g., "08:00:00")
     latestLessonEnd: time('latest_lesson_end'), // When lessons can latest end (e.g., "17:00:00")
-    defaultLessonDuration: integer('default_lesson_duration'), // Default lesson duration in minutes (e.g., 60)
+    defaultLessonDuration: integer('default_lesson_duration'), // Default lesson duration in minutes (e.g., 60) - used for calculations
+    minLessonDuration: integer('min_lesson_duration'), // Minimum lesson duration in minutes (e.g., 40)
+    maxLessonDuration: integer('max_lesson_duration'), // Maximum lesson duration in minutes (e.g., 90)
     mentorTimePerWeek: integer('mentor_time_per_week'), // Mentor time per week in minutes (e.g., 30)
     lunchDuration: integer('lunch_duration'), // Lunch duration in minutes (e.g., 45)
     earliestLunchTime: time('earliest_lunch_time'), // Earliest lunch time (e.g., "11:30:00")
@@ -125,6 +127,8 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     teachers: many(teachers),
     rooms: many(rooms),
     teacherServiceDistributions: many(teacherServiceDistributions),
+    termDates: many(termDates),
+    generatedSchedules: many(generatedSchedules),
 }));
 
 export const projectClassesRelations = relations(projectClasses, ({ one, many }) => ({
@@ -226,5 +230,97 @@ export const serviceDistributionCoursesRelations = relations(serviceDistribution
     courseInstance: one(courseInstances, {
         fields: [serviceDistributionCourses.courseInstanceId],
         references: [courseInstances.id],
+    }),
+}));
+
+// Term dates - stores start/end dates for fall (höst) and spring (vår) terms per academic year
+export const termDates = pgTable('term_dates', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+    academicYear: text('academic_year').notNull(), // e.g., "2026/2027"
+    year: integer('year').notNull(), // 1, 2, or 3 (gymnasium year)
+    // Fall term (Hösttermin) - corresponds to term1, term3, term5
+    fallTermStart: date('fall_term_start').notNull(),
+    fallTermEnd: date('fall_term_end').notNull(),
+    // Spring term (Vårtermin) - corresponds to term2, term4, term6
+    springTermStart: date('spring_term_start').notNull(),
+    springTermEnd: date('spring_term_end').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+    // Unique constraint: one set of term dates per project per academic year per gymnasium year
+    uniqueTermDatesPerProjectYear: unique('unique_term_dates_per_project_year').on(table.projectId, table.academicYear, table.year),
+}));
+
+export const termDatesRelations = relations(termDates, ({ one }) => ({
+    project: one(projects, {
+        fields: [termDates.projectId],
+        references: [projects.id],
+    }),
+}));
+
+// Generated schedules - metadata for generated schedules
+export const generatedSchedules = pgTable('generated_schedules', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+    name: text('name').notNull(), // User-friendly name for the schedule
+    academicYear: text('academic_year').notNull(), // e.g., "2026/2027"
+    termType: text('term_type').notNull(), // 'fall' or 'spring'
+    status: text('status').notNull().default('draft'), // 'draft', 'approved', 'archived', 'failed'
+    solverStatus: text('solver_status'), // 'OPTIMAL', 'FEASIBLE', 'INFEASIBLE', 'UNKNOWN'
+    solverTimeMs: integer('solver_time_ms'), // Time taken by solver in milliseconds
+    totalConflicts: integer('total_conflicts').default(0), // Number of soft constraint violations
+    generatedAt: timestamp('generated_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Scheduled lessons - individual lessons in a generated schedule
+export const scheduledLessons = pgTable('scheduled_lessons', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    scheduleId: uuid('schedule_id').references(() => generatedSchedules.id, { onDelete: 'cascade' }).notNull(),
+    courseInstanceId: uuid('course_instance_id').references(() => courseInstances.id, { onDelete: 'cascade' }).notNull(),
+    classId: uuid('class_id').references(() => projectClasses.id, { onDelete: 'cascade' }).notNull(),
+    teacherId: uuid('teacher_id').references(() => teachers.id, { onDelete: 'set null' }),
+    roomId: uuid('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+    dayOfWeek: integer('day_of_week').notNull(), // 1-5 (Monday-Friday)
+    startTime: time('start_time').notNull(), // e.g., "08:00:00"
+    endTime: time('end_time').notNull(), // e.g., "09:00:00"
+    lessonIndex: integer('lesson_index').notNull(), // Which lesson number for this course in the week
+    durationMinutes: integer('duration_minutes').notNull(), // Duration in minutes
+    isLocked: integer('is_locked').notNull().default(0), // 1 = locked, 0 = can be moved
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Relations for generated schedules
+export const generatedSchedulesRelations = relations(generatedSchedules, ({ one, many }) => ({
+    project: one(projects, {
+        fields: [generatedSchedules.projectId],
+        references: [projects.id],
+    }),
+    lessons: many(scheduledLessons),
+}));
+
+// Relations for scheduled lessons
+export const scheduledLessonsRelations = relations(scheduledLessons, ({ one }) => ({
+    schedule: one(generatedSchedules, {
+        fields: [scheduledLessons.scheduleId],
+        references: [generatedSchedules.id],
+    }),
+    courseInstance: one(courseInstances, {
+        fields: [scheduledLessons.courseInstanceId],
+        references: [courseInstances.id],
+    }),
+    class: one(projectClasses, {
+        fields: [scheduledLessons.classId],
+        references: [projectClasses.id],
+    }),
+    teacher: one(teachers, {
+        fields: [scheduledLessons.teacherId],
+        references: [teachers.id],
+    }),
+    room: one(rooms, {
+        fields: [scheduledLessons.roomId],
+        references: [rooms.id],
     }),
 }));
