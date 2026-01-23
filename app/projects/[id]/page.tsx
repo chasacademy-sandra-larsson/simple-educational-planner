@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/app/lib/api';
 import type { Project, ProjectWithDetails, Teacher, Room, CreateTeacherRequest, CreateRoomRequest } from '@/app/lib/api/types';
 import AddClassForm from '@/app/components/add-class-form';
@@ -19,10 +19,24 @@ type TabGroup = 'overview' | 'planning' | 'resources' | 'settings';
 export default function ProjectDetailPage() {
     const router = useRouter();
     const params = useParams();
+    const searchParams = useSearchParams();
     const projectId = params.id as string;
 
-    const [activeTab, setActiveTab] = useState<Tab>('summary');
+    // Get initial tab from URL or default to 'summary'
+    const getInitialTab = (): Tab => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam && ['summary', 'classes', 'schedule', 'scheduling', 'teachers', 'rooms', 'settings'].includes(tabParam)) {
+            return tabParam as Tab;
+        }
+        return 'summary';
+    };
+
+    const [activeTab, setActiveTab] = useState<Tab>(getInitialTab);
     const [openDropdown, setOpenDropdown] = useState<'planning' | 'resources' | null>(null);
+    
+    // Refs for dropdown click-outside handling
+    const planningDropdownRef = useRef<HTMLDivElement>(null);
+    const resourcesDropdownRef = useRef<HTMLDivElement>(null);
     const [project, setProject] = useState<ProjectWithDetails | null>(null);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
@@ -67,6 +81,57 @@ export default function ProjectDetailPage() {
     // Initialize curricula state
     const [initializingCurricula, setInitializingCurricula] = useState(false);
     const [initCurriculaMessage, setInitCurriculaMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // Handle tab change with URL sync
+    const handleTabChange = useCallback((tab: Tab) => {
+        setActiveTab(tab);
+        setOpenDropdown(null);
+        // Update URL without navigation
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+    }, []);
+
+    // Click outside handler for dropdowns
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (openDropdown === null) return;
+            
+            const target = event.target as Node;
+            const planningRef = planningDropdownRef.current;
+            const resourcesRef = resourcesDropdownRef.current;
+            
+            if (openDropdown === 'planning' && planningRef && !planningRef.contains(target)) {
+                setOpenDropdown(null);
+            }
+            if (openDropdown === 'resources' && resourcesRef && !resourcesRef.contains(target)) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [openDropdown]);
+
+    // Escape key handler for dropdowns
+    useEffect(() => {
+        const handleEscapeKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && openDropdown !== null) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscapeKey);
+        return () => document.removeEventListener('keydown', handleEscapeKey);
+    }, [openDropdown]);
+
+    // Sync tab from URL when searchParams change
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam && ['summary', 'classes', 'schedule', 'scheduling', 'teachers', 'rooms', 'settings'].includes(tabParam)) {
+            setActiveTab(tabParam as Tab);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         // For design/development: skip auth redirect so you can freely open project pages
@@ -279,7 +344,7 @@ export default function ProjectDetailPage() {
                         <nav className="flex -mb-px relative">
                             {/* 1. Översikt */}
                             <button
-                                onClick={() => { setActiveTab('summary'); setOpenDropdown(null); }}
+                                onClick={() => handleTabChange('summary')}
                                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'summary'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
@@ -290,7 +355,7 @@ export default function ProjectDetailPage() {
                             </button>
 
                             {/* 2. Planering (Dropdown) */}
-                            <div className="relative">
+                            <div className="relative" ref={planningDropdownRef}>
                                 <button
                                     onClick={() => setOpenDropdown(openDropdown === 'planning' ? null : 'planning')}
                                     className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
@@ -301,15 +366,15 @@ export default function ProjectDetailPage() {
                                 >
                                     <span>📚</span>
                                     Planering
-                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'planning' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className={`w-4 h-4 transition-transform duration-200 ${openDropdown === 'planning' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </button>
                                 {openDropdown === 'planning' && (
-                                    <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                                    <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <button
-                                            onClick={() => { setActiveTab('classes'); setOpenDropdown(null); }}
-                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                            onClick={() => handleTabChange('classes')}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 transition-colors ${
                                                 activeTab === 'classes' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                             }`}
                                         >
@@ -320,8 +385,8 @@ export default function ProjectDetailPage() {
                                             </div>
                                         </button>
                                         <button
-                                            onClick={() => { setActiveTab('schedule'); setOpenDropdown(null); }}
-                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                            onClick={() => handleTabChange('schedule')}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 transition-colors ${
                                                 activeTab === 'schedule' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                             }`}
                                         >
@@ -332,8 +397,8 @@ export default function ProjectDetailPage() {
                                             </div>
                                         </button>
                                         <button
-                                            onClick={() => { setActiveTab('scheduling'); setOpenDropdown(null); }}
-                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                            onClick={() => handleTabChange('scheduling')}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 transition-colors ${
                                                 activeTab === 'scheduling' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                             }`}
                                         >
@@ -348,7 +413,7 @@ export default function ProjectDetailPage() {
                             </div>
 
                             {/* 3. Resurser (Dropdown) */}
-                            <div className="relative">
+                            <div className="relative" ref={resourcesDropdownRef}>
                                 <button
                                     onClick={() => setOpenDropdown(openDropdown === 'resources' ? null : 'resources')}
                                     className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
@@ -357,17 +422,17 @@ export default function ProjectDetailPage() {
                                             : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
                                     }`}
                                 >
-                                    <span>👥</span>
+                                    <span>🏢</span>
                                     Resurser
-                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'resources' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className={`w-4 h-4 transition-transform duration-200 ${openDropdown === 'resources' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </button>
                                 {openDropdown === 'resources' && (
-                                    <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                                    <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <button
-                                            onClick={() => { setActiveTab('teachers'); setOpenDropdown(null); }}
-                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                            onClick={() => handleTabChange('teachers')}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 transition-colors ${
                                                 activeTab === 'teachers' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                             }`}
                                         >
@@ -378,8 +443,8 @@ export default function ProjectDetailPage() {
                                             </div>
                                         </button>
                                         <button
-                                            onClick={() => { setActiveTab('rooms'); setOpenDropdown(null); }}
-                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                            onClick={() => handleTabChange('rooms')}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 transition-colors ${
                                                 activeTab === 'rooms' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
                                             }`}
                                         >
@@ -395,7 +460,7 @@ export default function ProjectDetailPage() {
 
                             {/* 4. Inställningar */}
                             <button
-                                onClick={() => { setActiveTab('settings'); setOpenDropdown(null); }}
+                                onClick={() => handleTabChange('settings')}
                                 className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'settings'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
