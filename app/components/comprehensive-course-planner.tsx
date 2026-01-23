@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DndContext, DragEndEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { getCoursesByOrientation, getProgramSpecializationSubjects, Course } from '../lib/syllabus-api';
 import { api, ApiError, type CourseAssignment } from '../lib/api';
@@ -1027,18 +1027,38 @@ interface SpecializationStepProps {
 }
 
 function SpecializationStep({ specializationSubjects, selectedCourses, onCoursesChange, currentPoints }: SpecializationStepProps) {
-    console.log("SpecializationStep - received subjects:", specializationSubjects.length, specializationSubjects);
-    console.log("SpecializationStep - selectedCourses:", selectedCourses.length);
-    const selectedOrientationCourses = selectedCourses.filter(c => c.category === 'ORIENTATION');
-    console.log("SpecializationStep - selected ORIENTATION courses:", selectedOrientationCourses.map(c => `${c.courseName} (${c.courseCode})`));
-    
-    // Target course codes that should be selected
-    const targetCourseCodes = ['WEBB2000X', 'WEBS1000X', 'PROG2000X', 'TILL1000X'];
-    const targetSelected = selectedCourses.filter(c => targetCourseCodes.includes(c.courseCode));
-    console.log("SpecializationStep - target courses selected:", targetSelected.length, targetSelected.map(c => `${c.courseName} (${c.courseCode})`));
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Group courses by subject
-    const coursesBySubject = specializationSubjects.reduce((acc, course) => {
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+                searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Get selected orientation courses
+    const selectedOrientationCourses = selectedCourses.filter(c => c.category === 'ORIENTATION');
+
+    // Filter courses based on search query (only courses not already selected)
+    const filteredCourses = specializationSubjects.filter(course => {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = course.name.toLowerCase().includes(query) ||
+                              course.courseCode.toLowerCase().includes(query) ||
+                              (course.subjectName && course.subjectName.toLowerCase().includes(query));
+        const notAlreadySelected = !selectedCourses.some(sc => sc.courseCode === course.courseCode);
+        return matchesSearch && notAlreadySelected;
+    });
+
+    // Group filtered courses by subject for display
+    const groupedFilteredCourses = filteredCourses.reduce((acc, course) => {
         const subjectName = course.subjectName || 'Övriga kurser';
         if (!acc[subjectName]) {
             acc[subjectName] = [];
@@ -1047,31 +1067,32 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
         return acc;
     }, {} as Record<string, Course[]>);
 
-    const toggleCourse = (course: Course) => {
-        const exists = selectedCourses.find(c => c.courseCode === course.courseCode);
-        if (exists) {
-            onCoursesChange(selectedCourses.filter(c => c.courseCode !== course.courseCode));
-        } else {
-            onCoursesChange([
-                ...selectedCourses,
-                {
-                    courseCode: course.courseCode,
-                    courseName: course.name,
-                    points: course.points,
-                    category: 'ORIENTATION',
-                },
-            ]);
+    const addCourse = (course: Course) => {
+        // Check if adding this course would exceed 400 points
+        if (currentPoints + course.points > 400) {
+            return; // Don't add if it would exceed
         }
+        
+        onCoursesChange([
+            ...selectedCourses,
+            {
+                courseCode: course.courseCode,
+                courseName: course.name,
+                points: course.points,
+                category: 'ORIENTATION',
+            },
+        ]);
+        setSearchQuery('');
+        setShowDropdown(false);
     };
 
-    const getSubjectPoints = (subjectName: string): number => {
-        return coursesBySubject[subjectName]
-            .filter(course => selectedCourses.some(sc => sc.courseCode === course.courseCode))
-            .reduce((sum, course) => sum + course.points, 0);
+    const removeCourse = (courseCode: string) => {
+        onCoursesChange(selectedCourses.filter(c => c.courseCode !== courseCode));
     };
 
-    const targetRange = { min: 400, max: 600 };
-    const isInRange = currentPoints >= targetRange.min && currentPoints <= targetRange.max;
+    const targetMax = 400;
+    const remainingPoints = targetMax - currentPoints;
+    const isAtLimit = currentPoints >= targetMax;
 
     return (
         <div className="space-y-6">
@@ -1080,117 +1101,197 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                     Planera programfördjupning
                 </h4>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-2">
-                    Välj vilka ämnen som ska fördjupas och specifika kurser för fördjupning. Kontrollera att poängkraven uppfylls (ofta 400-600 poäng).
+                    Sök och lägg till kurser för programfördjupning. Du kan lägga till kurser upp till 400 poäng.
                 </p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-500 italic">
                     Enligt Skolverket: "Ämnen och nivåer i dessa ämnen som får erbjudas som programfördjupning inom programmet"
                 </p>
             </div>
 
+            {/* Points Progress */}
             <div className={`p-4 rounded-lg border ${
-                isInRange
+                isAtLimit
                     ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                    : currentPoints < targetRange.min
-                        ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
-                        : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
             }`}>
-                <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">
-                        Totalt fördjupning: {currentPoints} poäng
+                <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        Programfördjupning: {currentPoints} / {targetMax} poäng
                     </span>
-                    <span className="text-xs">
-                        Mål: {targetRange.min}-{targetRange.max} poäng
-                        {!isInRange && (
-                            <span className="ml-2">
-                                {currentPoints < targetRange.min 
-                                    ? `(Saknas ${targetRange.min - currentPoints} poäng)`
-                                    : `(${currentPoints - targetRange.max} poäng för mycket)`
-                                }
-                            </span>
-                        )}
-                    </span>
+                    {!isAtLimit && (
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                            {remainingPoints} poäng kvar
+                        </span>
+                    )}
+                    {isAtLimit && (
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                            ✓ Maxgräns uppnådd
+                        </span>
+                    )}
+                </div>
+                <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                    <div
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                            isAtLimit ? 'bg-green-500' : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${Math.min((currentPoints / targetMax) * 100, 100)}%` }}
+                    />
                 </div>
             </div>
 
-            {Object.keys(coursesBySubject).length === 0 ? (
-                <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-300 dark:border-yellow-700 text-center">
-                    <p className="text-zinc-600 dark:text-zinc-400 mb-2">
-                        Inga programfördjupningsämnen hittades för detta program.
-                    </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                        Kontrollera konsolen (F12) för debug-information om API-strukturen.
-                    </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                        Antal specialiseringsämnen: {specializationSubjects.length}
-                    </p>
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    {Object.entries(coursesBySubject).map(([subjectName, subjectCourses]) => {
-                        const subjectPoints = getSubjectPoints(subjectName);
-                        const hasSelectedCourses = subjectPoints > 0;
-
-                        return (
+            {/* Selected Courses (including pre-selected) */}
+            <div>
+                <h5 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+                    Valda kurser ({selectedOrientationCourses.length})
+                </h5>
+                {selectedOrientationCourses.length === 0 ? (
+                    <div className="p-6 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 text-center">
+                        <svg className="w-12 h-12 mx-auto text-zinc-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <p className="text-zinc-500 dark:text-zinc-400">
+                            Inga kurser valda ännu. Sök och lägg till kurser nedan.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {selectedOrientationCourses.map(course => (
                             <div
-                                key={subjectName}
-                                className={`rounded-lg border ${
-                                    hasSelectedCourses
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
-                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                                }`}
+                                key={course.courseCode}
+                                className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center justify-between"
                             >
-                                <div className="p-4 border-b border-zinc-200 dark:border-zinc-600">
-                                    <div className="flex justify-between items-center">
-                                        <h5 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                            {subjectName}
-                                        </h5>
-                                        {hasSelectedCourses && (
-                                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                                                {subjectPoints} poäng valda
-                                            </span>
-                                        )}
+                                <div>
+                                    <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                        {course.courseName}
+                                    </div>
+                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {course.courseCode}
                                     </div>
                                 </div>
-                                <div className="p-4 space-y-2">
-                                    {subjectCourses.map((course) => {
-                                        const isSelected = selectedCourses.some(c => c.courseCode === course.courseCode);
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                        {course.points} poäng
+                                    </span>
+                                    <button
+                                        onClick={() => removeCourse(course.courseCode)}
+                                        className="p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        title="Ta bort kurs"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Search Autocomplete */}
+            <div className="relative">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Sök och lägg till fler kurser
+                </label>
+                <div className="relative">
+                    <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        placeholder="Sök på kursnamn, kurskod eller ämne..."
+                        disabled={isAtLimit}
+                        className={`w-full px-4 py-3 pl-10 rounded-lg border transition-colors ${
+                            isAtLimit
+                                ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
+                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
+                        } text-zinc-900 dark:text-zinc-100`}
+                    />
+                    <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+
+                {/* Autocomplete Dropdown */}
+                {showDropdown && searchQuery.length > 0 && !isAtLimit && (
+                    <div
+                        ref={dropdownRef}
+                        className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 max-h-80 overflow-y-auto"
+                    >
+                        {Object.keys(groupedFilteredCourses).length === 0 ? (
+                            <div className="p-4 text-center text-zinc-500 dark:text-zinc-400">
+                                Inga kurser hittades för "{searchQuery}"
+                            </div>
+                        ) : (
+                            Object.entries(groupedFilteredCourses).map(([subjectName, courses]) => (
+                                <div key={subjectName}>
+                                    <div className="px-4 py-2 bg-zinc-50 dark:bg-zinc-700/50 text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+                                        {subjectName}
+                                    </div>
+                                    {courses.map(course => {
+                                        const wouldExceed = currentPoints + course.points > targetMax;
                                         return (
-                                            <div
+                                            <button
                                                 key={course.courseCode}
-                                                className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                                                    isSelected
-                                                        ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600'
-                                                        : 'bg-white dark:bg-zinc-700 border-zinc-200 dark:border-zinc-600 hover:border-blue-300 dark:hover:border-blue-500'
+                                                onClick={() => !wouldExceed && addCourse(course)}
+                                                disabled={wouldExceed}
+                                                className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
+                                                    wouldExceed
+                                                        ? 'bg-zinc-50 dark:bg-zinc-800/50 cursor-not-allowed opacity-50'
+                                                        : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
                                                 }`}
-                                                onClick={() => toggleCourse(course)}
                                             >
-                                                <div className="flex justify-between items-center">
-                                                    <div className="flex-1">
-                                                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                                                            {course.name}
-                                                        </div>
-                                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                                            {course.courseCode}
-                                                        </div>
+                                                <div>
+                                                    <div className="font-medium text-zinc-900 dark:text-zinc-100">
+                                                        {course.name}
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                                            {course.points} poäng
-                                                        </span>
-                                                        {isSelected && (
-                                                            <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                            </svg>
-                                                        )}
+                                                    <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                        {course.courseCode}
                                                     </div>
                                                 </div>
-                                            </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-sm font-semibold ${
+                                                        wouldExceed ? 'text-red-500' : 'text-blue-600 dark:text-blue-400'
+                                                    }`}>
+                                                        {course.points} p
+                                                    </span>
+                                                    {wouldExceed && (
+                                                        <span className="text-xs text-red-500">
+                                                            Överstiger
+                                                        </span>
+                                                    )}
+                                                    {!wouldExceed && (
+                                                        <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </button>
                                         );
                                     })}
                                 </div>
-                            </div>
-                        );
-                    })}
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Quick Info */}
+            {specializationSubjects.length > 0 && (
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg border border-zinc-200 dark:border-zinc-600">
+                    <div className="flex items-start gap-2">
+                        <svg className="w-5 h-5 text-zinc-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                            <strong>{specializationSubjects.length} kurser</strong> tillgängliga för programfördjupning. 
+                            Använd sökfältet ovan för att hitta och lägga till fler kurser.
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
