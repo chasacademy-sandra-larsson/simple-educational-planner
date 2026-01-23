@@ -22,6 +22,7 @@ export default function ProjectDetailPage() {
     const projectId = params.id as string;
 
     const [activeTab, setActiveTab] = useState<Tab>('summary');
+    const [openDropdown, setOpenDropdown] = useState<'planning' | 'resources' | null>(null);
     const [project, setProject] = useState<ProjectWithDetails | null>(null);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [rooms, setRooms] = useState<Room[]>([]);
@@ -272,71 +273,135 @@ export default function ProjectDetailPage() {
                     </p>
                 </div>
 
-                {/* Tabs */}
+                {/* Tabs - Grouped Navigation (4 main tabs with dropdowns) */}
                 <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                     <div className="border-b border-zinc-200 dark:border-zinc-700">
-                        <nav className="flex -mb-px">
+                        <nav className="flex -mb-px relative">
+                            {/* 1. Översikt */}
                             <button
-                                onClick={() => setActiveTab('summary')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'summary'
+                                onClick={() => { setActiveTab('summary'); setOpenDropdown(null); }}
+                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'summary'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
                                     }`}
                             >
+                                <span>📊</span>
                                 Översikt
                             </button>
+
+                            {/* 2. Planering (Dropdown) */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setOpenDropdown(openDropdown === 'planning' ? null : 'planning')}
+                                    className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                        ['classes', 'schedule', 'scheduling'].includes(activeTab)
+                                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                            : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
+                                    }`}
+                                >
+                                    <span>📚</span>
+                                    Planering
+                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'planning' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {openDropdown === 'planning' && (
+                                    <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                                        <button
+                                            onClick={() => { setActiveTab('classes'); setOpenDropdown(null); }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                                activeTab === 'classes' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
+                                            }`}
+                                        >
+                                            <span>👥</span>
+                                            <div>
+                                                <div className="font-medium">Klasser</div>
+                                                <div className="text-xs text-zinc-500">{project.classes?.length || 0} klasser</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => { setActiveTab('schedule'); setOpenDropdown(null); }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                                activeTab === 'schedule' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
+                                            }`}
+                                        >
+                                            <span>📅</span>
+                                            <div>
+                                                <div className="font-medium">Schema</div>
+                                                <div className="text-xs text-zinc-500">Visa veckoschema</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => { setActiveTab('scheduling'); setOpenDropdown(null); }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                                activeTab === 'scheduling' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
+                                            }`}
+                                        >
+                                            <span>⚙️</span>
+                                            <div>
+                                                <div className="font-medium">Schemaläggning</div>
+                                                <div className="text-xs text-zinc-500">Generera schema</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 3. Resurser (Dropdown) */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setOpenDropdown(openDropdown === 'resources' ? null : 'resources')}
+                                    className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                                        ['teachers', 'rooms'].includes(activeTab)
+                                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                            : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
+                                    }`}
+                                >
+                                    <span>👥</span>
+                                    Resurser
+                                    <svg className={`w-4 h-4 transition-transform ${openDropdown === 'resources' ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                {openDropdown === 'resources' && (
+                                    <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50">
+                                        <button
+                                            onClick={() => { setActiveTab('teachers'); setOpenDropdown(null); }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                                activeTab === 'teachers' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
+                                            }`}
+                                        >
+                                            <span>👨‍🏫</span>
+                                            <div>
+                                                <div className="font-medium">Lärare</div>
+                                                <div className="text-xs text-zinc-500">{teachers.length} lärare</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={() => { setActiveTab('rooms'); setOpenDropdown(null); }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-3 ${
+                                                activeTab === 'rooms' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-zinc-700 dark:text-zinc-300'
+                                            }`}
+                                        >
+                                            <span>🏫</span>
+                                            <div>
+                                                <div className="font-medium">Salar</div>
+                                                <div className="text-xs text-zinc-500">{rooms.length} salar</div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 4. Inställningar */}
                             <button
-                                onClick={() => setActiveTab('classes')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'classes'
+                                onClick={() => { setActiveTab('settings'); setOpenDropdown(null); }}
+                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'settings'
                                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
                                     }`}
                             >
-                                Klasser ({project.classes?.length || 0})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('schedule')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'schedule'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
-                                    }`}
-                            >
-                                Schema
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('scheduling')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'scheduling'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
-                                    }`}
-                            >
-                                Schemaläggning
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('teachers')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'teachers'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
-                                    }`}
-                            >
-                                Lärare ({teachers.length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('rooms')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'rooms'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
-                                    }`}
-                            >
-                                Salar ({rooms.length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('settings')}
-                                className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'settings'
-                                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
-                                    }`}
-                            >
+                                <span>⚙️</span>
                                 Inställningar
                             </button>
                         </nav>
