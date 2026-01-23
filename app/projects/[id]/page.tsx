@@ -11,8 +11,10 @@ import ProjectSummary from '@/app/components/project-summary';
 import TermDatesForm from '@/app/components/term-dates-form';
 import WeeklySchedule from '@/app/components/weekly-schedule';
 import ScheduleGenerator from '@/app/components/schedule-generator';
+import GlobalHeader from '@/app/components/global-header';
 
 type Tab = 'summary' | 'classes' | 'schedule' | 'scheduling' | 'teachers' | 'rooms' | 'settings';
+type TabGroup = 'overview' | 'planning' | 'resources' | 'settings';
 
 export default function ProjectDetailPage() {
     const router = useRouter();
@@ -258,37 +260,8 @@ export default function ProjectDetailPage() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
-            {/* Navigation */}
-            <nav className="bg-white dark:bg-zinc-800 shadow-sm border-b border-zinc-200 dark:border-zinc-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => router.push('/dashboard')}
-                                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                            >
-                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                                {project.name}
-                            </h1>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                {user?.name}
-                            </span>
-                            <button
-                                onClick={handleLogout}
-                                className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                            >
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            {/* Global Header */}
+            <GlobalHeader currentProjectId={projectId} currentProjectName={project.name} />
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -319,7 +292,7 @@ export default function ProjectDetailPage() {
                                     : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-300'
                                     }`}
                             >
-                                Classes ({project.classes?.length || 0})
+                                Klasser ({project.classes?.length || 0})
                             </button>
                             <button
                                 onClick={() => setActiveTab('schedule')}
