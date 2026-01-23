@@ -1087,11 +1087,13 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
     };
 
     const removeCourse = (courseCode: string) => {
-        onCoursesChange(selectedCourses.filter(c => c.courseCode !== courseCode));
+        // Filter out the course and update state
+        const updatedCourses = selectedCourses.filter(c => c.courseCode !== courseCode);
+        onCoursesChange(updatedCourses);
     };
 
     const targetMax = 400;
-    const remainingPoints = targetMax - currentPoints;
+    const remainingPoints = Math.max(0, targetMax - currentPoints);
     const isAtLimit = currentPoints >= targetMax;
 
     return (
