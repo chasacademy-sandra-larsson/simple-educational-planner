@@ -24,6 +24,9 @@ import {
     GenerateScheduleResponse,
     ScheduleWithLessons,
     ScheduleStatus,
+    ClassMentor,
+    CreateMentorRequest,
+    UpdateMentorRequest,
 } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -355,6 +358,33 @@ export const scheduleGeneratorApi = {
     },
 };
 
+// Mentors API (class mentors - not counted in service points)
+export const mentorsApi = {
+    async getByClass(classId: string): Promise<ClassMentor[]> {
+        return fetchWithAuth<ClassMentor[]>(`/api/classes/${classId}/mentors`);
+    },
+
+    async assign(classId: string, data: CreateMentorRequest): Promise<ClassMentor> {
+        return fetchWithAuth<ClassMentor>(`/api/classes/${classId}/mentors`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async update(classId: string, teacherId: string, data: UpdateMentorRequest): Promise<ClassMentor> {
+        return fetchWithAuth<ClassMentor>(`/api/classes/${classId}/mentors/${teacherId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async remove(classId: string, teacherId: string): Promise<{ message: string }> {
+        return fetchWithAuth<{ message: string }>(`/api/classes/${classId}/mentors/${teacherId}`, {
+            method: 'DELETE',
+        });
+    },
+};
+
 // Export everything as a single API object
 export const api = {
     auth: authApi,
@@ -365,6 +395,7 @@ export const api = {
     termDates: termDatesApi,
     schedule: scheduleApi,
     scheduleGenerator: scheduleGeneratorApi,
+    mentors: mentorsApi,
 };
 
 export { ApiError };

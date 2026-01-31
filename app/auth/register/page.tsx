@@ -3,44 +3,55 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { api, ApiError } from '@/app/lib/api';
+import { AuthLayout, AuthCard, AuthInput, AuthButton, StepIndicator } from '@/app/components/auth/auth-layout';
 
 export default function RegisterPage() {
     const router = useRouter();
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [currentStep, setCurrentStep] = useState(1);
+    const [formData, setFormData] = useState({
+        email: '',
+        password: '',
+        name: '',
+        school: ''
+    });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const updateFormData = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleStepOne = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        // Validate passwords match
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
+        if (formData.password.length < 6) {
+            setError('Lösenordet måste vara minst 6 tecken');
             return;
         }
 
-        // Validate password length
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters');
-            return;
-        }
+        setCurrentStep(2);
+    };
 
+    const handleStepTwo = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
         setLoading(true);
 
         try {
-            const { user } = await api.auth.register({ name, email, password });
-            console.log('Registered as:', user);
+            await api.auth.register({
+                email: formData.email,
+                password: formData.password,
+                name: formData.name,
+            });
             router.push('/dashboard');
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.message);
             } else {
-                setError('An unexpected error occurred');
+                setError('Ett oväntat fel uppstod');
             }
         } finally {
             setLoading(false);
@@ -48,106 +59,102 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 px-4">
-            <div className="max-w-md w-full">
-                <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                            Create Account
-                        </h1>
-                        <p className="text-zinc-600 dark:text-zinc-400">
-                            Sign up to get started
-                        </p>
+        <AuthLayout
+            title="Schemaläggning"
+            subtitle="Skapa ditt konto för att komma igång"
+        >
+            <StepIndicator currentStep={currentStep} totalSteps={2} />
+
+            <AuthCard>
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800">{error}</p>
                     </div>
+                )}
 
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-                        </div>
-                    )}
+                {/* Step 1: Account Details */}
+                {currentStep === 1 && (
+                    <form onSubmit={handleStepOne} className="space-y-5">
+                        <AuthInput
+                            label="E-postadress"
+                            id="email"
+                            type="email"
+                            required
+                            value={formData.email}
+                            onChange={(e) => updateFormData('email', e.target.value)}
+                            placeholder="admin@skola.se"
+                        />
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Full Name
-                            </label>
-                            <input
-                                id="name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="John Doe"
-                            />
-                        </div>
+                        <AuthInput
+                            label="Lösenord"
+                            id="password"
+                            type="password"
+                            required
+                            minLength={6}
+                            value={formData.password}
+                            onChange={(e) => updateFormData('password', e.target.value)}
+                            placeholder="Minst 6 tecken"
+                        />
 
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Email
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="you@example.com"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                minLength={6}
-                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Confirm Password
-                            </label>
-                            <input
-                                id="confirmPassword"
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                                minLength={6}
-                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="••••••••"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
-                        >
-                            {loading ? 'Creating account...' : 'Sign Up'}
-                        </button>
+                        <AuthButton type="submit" className="w-full">
+                            Fortsätt
+                            <ChevronRight className="w-4 h-4" />
+                        </AuthButton>
                     </form>
+                )}
 
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            Already have an account?{' '}
-                            <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                                Sign in
-                            </Link>
-                        </p>
-                    </div>
+                {/* Step 2: Profile Details */}
+                {currentStep === 2 && (
+                    <form onSubmit={handleStepTwo} className="space-y-5">
+                        <AuthInput
+                            label="Ditt namn"
+                            id="name"
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={(e) => updateFormData('name', e.target.value)}
+                            placeholder="Anna Andersson"
+                        />
+
+                        <AuthInput
+                            label="Skola"
+                            id="school"
+                            type="text"
+                            required
+                            value={formData.school}
+                            onChange={(e) => updateFormData('school', e.target.value)}
+                            placeholder="Stockholms Gymnasium"
+                        />
+
+                        <div className="flex gap-3">
+                            <AuthButton
+                                type="button"
+                                variant="secondary"
+                                onClick={() => setCurrentStep(1)}
+                                className="flex-1"
+                            >
+                                Tillbaka
+                            </AuthButton>
+                            <AuthButton
+                                type="submit"
+                                disabled={loading}
+                                className="flex-1"
+                            >
+                                {loading ? 'Skapar...' : 'Skapa konto'}
+                            </AuthButton>
+                        </div>
+                    </form>
+                )}
+
+                <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600">
+                        Har du redan ett konto?{' '}
+                        <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">
+                            Logga in
+                        </Link>
+                    </p>
                 </div>
-            </div>
-        </div>
+            </AuthCard>
+        </AuthLayout>
     );
 }

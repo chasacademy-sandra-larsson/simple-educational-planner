@@ -134,7 +134,7 @@ async function createTeachers() {
             name: t.name,
             subject: t.subject,
         }).returning();
-        createdTeachers.push({ ...created, codes: t.codes });
+        createdTeachers.push({ id: created.id, name: created.name, subject: t.subject, codes: t.codes });
     }
     console.log(`Skapade ${createdTeachers.length} lärare\n`);
 

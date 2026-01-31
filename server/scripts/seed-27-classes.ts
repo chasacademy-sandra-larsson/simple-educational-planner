@@ -8,11 +8,14 @@
  * Alla 27 klasser är aktiva läsår 2026/2027!
  */
 
+import 'dotenv/config';
 import { db } from '../src/db';
-import { projects, projectClasses, classCurricula, courseInstances, teachers, teacherServiceDistributions } from '../src/db/schema';
+import { projects, projectClasses, classCurricula, courseInstances, teachers, teacherServiceDistributions, users, rooms, classMentors } from '../src/db/schema';
 import { eq, inArray } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
 
-const PROJECT_ID = '108da1ff-93d5-4d99-bb07-ac7064214518';
+// Will be set after finding/creating user and project
+let PROJECT_ID = '';
 
 // Program configurations
 const PROGRAMS = [
@@ -148,6 +151,59 @@ const COURSES: Record<string, Record<number, Course[]>> = {
 async function seedProject() {
     console.log('=== SKAPAR GYMNASIUM MED 27 KLASSER ===\n');
 
+    // 1. Create or find default user
+    const defaultEmail = 'admin@example.com';
+    const defaultPassword = 'admin123';
+
+    let user = await db.select()
+        .from(users)
+        .where(eq(users.email, defaultEmail))
+        .limit(1);
+
+    if (user.length === 0) {
+        const passwordHash = await bcrypt.hash(defaultPassword, 10);
+        const [newUser] = await db.insert(users).values({
+            email: defaultEmail,
+            name: 'Admin User',
+            passwordHash,
+        }).returning();
+        user = [newUser];
+        console.log('✅ Skapade användare:', defaultEmail);
+    } else {
+        console.log('✅ Hittade befintlig användare:', defaultEmail);
+    }
+
+    // 2. Create or find project
+    const projectName = 'Gymnasium 27 Klasser';
+    let existingProject = await db.select()
+        .from(projects)
+        .where(eq(projects.name, projectName))
+        .limit(1);
+
+    if (existingProject.length === 0) {
+        const [newProject] = await db.insert(projects).values({
+            userId: user[0].id,
+            name: projectName,
+            description: 'Stort gymnasium med 27 klasser - 3 program (TE, NA, SA) x 3 paralleller x 3 årskurser',
+            earliestLessonStart: '08:00:00',
+            latestLessonEnd: '17:00:00',
+            defaultLessonDuration: 60,
+            mentorTimePerWeek: 30,
+            lunchDuration: 45,
+            earliestLunchTime: '11:30:00',
+            latestLunchTime: '13:30:00',
+            shortestBreakBetweenLessons: 5,
+            longestBreakBetweenLessons: 15,
+        }).returning();
+        existingProject = [newProject];
+        console.log('✅ Skapade projekt:', projectName);
+    } else {
+        console.log('✅ Hittade befintligt projekt:', projectName);
+    }
+
+    PROJECT_ID = existingProject[0].id;
+    console.log('   Projekt-ID:', PROJECT_ID);
+
     // Delete existing classes and related data
     const existingClasses = await db.select().from(projectClasses).where(eq(projectClasses.projectId, PROJECT_ID));
     if (existingClasses.length > 0) {
@@ -260,6 +316,134 @@ async function seedProject() {
     console.log(`\n=== LÄRARBEHOV ===`);
     console.log(`Med 600p-gräns: ${Math.ceil(totalPoints / 600)} lärare`);
     console.log(`Med 550p snitt: ${Math.ceil(totalPoints / 550)} lärare`);
+
+    // Create teachers
+    console.log('\n=== SKAPAR LÄRARE ===\n');
+    const teachersData = [
+        { name: 'Anna Andersson', email: 'anna.andersson@skola.se', subject: 'Matematik' },
+        { name: 'Björn Berg', email: 'bjorn.berg@skola.se', subject: 'Fysik' },
+        { name: 'Cecilia Carlsson', email: 'cecilia.carlsson@skola.se', subject: 'Kemi' },
+        { name: 'David Dahl', email: 'david.dahl@skola.se', subject: 'Biologi' },
+        { name: 'Erik Eriksson', email: 'erik.eriksson@skola.se', subject: 'Historia' },
+        { name: 'Frida Fredriksson', email: 'frida.fredriksson@skola.se', subject: 'Samhällskunskap' },
+        { name: 'Gustav Gustafsson', email: 'gustav.gustafsson@skola.se', subject: 'Svenska' },
+        { name: 'Hanna Hansson', email: 'hanna.hansson@skola.se', subject: 'Engelska' },
+        { name: 'Ingrid Ingvarsson', email: 'ingrid.ingvarsson@skola.se', subject: 'Geografi' },
+        { name: 'Johan Johansson', email: 'johan.johansson@skola.se', subject: 'Religion' },
+        { name: 'Karin Karlsson', email: 'karin.karlsson@skola.se', subject: 'Idrott' },
+        { name: 'Lars Larsson', email: 'lars.larsson@skola.se', subject: 'Teknik' },
+        { name: 'Maria Magnusson', email: 'maria.magnusson@skola.se', subject: 'Programmering' },
+        { name: 'Nils Nilsson', email: 'nils.nilsson@skola.se', subject: 'Psykologi' },
+        { name: 'Olof Olsson', email: 'olof.olsson@skola.se', subject: 'Filosofi' },
+        { name: 'Petra Persson', email: 'petra.persson@skola.se', subject: 'Moderna språk' },
+        { name: 'Rolf Robertsson', email: 'rolf.robertsson@skola.se', subject: 'Naturkunskap' },
+        { name: 'Susanne Svensson', email: 'susanne.svensson@skola.se', subject: 'Matematik' },
+        { name: 'Thomas Thörnqvist', email: 'thomas.thornqvist@skola.se', subject: 'Fysik' },
+        { name: 'Ulrika Ullman', email: 'ulrika.ullman@skola.se', subject: 'Svenska' },
+    ];
+
+    const insertedTeachers = await db.insert(teachers).values(
+        teachersData.map(t => ({
+            projectId: PROJECT_ID,
+            name: t.name,
+            email: t.email,
+            subject: t.subject,
+        }))
+    ).returning();
+
+    console.log(`✅ Skapade ${insertedTeachers.length} lärare`);
+
+    // Create rooms
+    console.log('\n=== SKAPAR SALAR ===\n');
+
+    // Delete existing rooms for this project
+    await db.delete(rooms).where(eq(rooms.projectId, PROJECT_ID));
+
+    const roomsData = [
+        { roomNumber: 'A101', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'A102', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'A103', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'A104', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'A105', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'B101', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'B102', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'B103', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'B104', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'B105', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'C101', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'C102', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'C103', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'C104', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'C105', roomType: 'Klassrum', capacity: 32 },
+        { roomNumber: 'Fysiksal 1', roomType: 'Laboratorium', capacity: 24 },
+        { roomNumber: 'Fysiksal 2', roomType: 'Laboratorium', capacity: 24 },
+        { roomNumber: 'Kemisal 1', roomType: 'Laboratorium', capacity: 24 },
+        { roomNumber: 'Kemisal 2', roomType: 'Laboratorium', capacity: 24 },
+        { roomNumber: 'Biologisal', roomType: 'Laboratorium', capacity: 24 },
+        { roomNumber: 'Datorsal 1', roomType: 'Datorsal', capacity: 30 },
+        { roomNumber: 'Datorsal 2', roomType: 'Datorsal', capacity: 30 },
+        { roomNumber: 'Datorsal 3', roomType: 'Datorsal', capacity: 30 },
+        { roomNumber: 'Idrottshall', roomType: 'Idrottshall', capacity: 60 },
+        { roomNumber: 'Aula', roomType: 'Aula', capacity: 200 },
+    ];
+
+    const insertedRooms = await db.insert(rooms).values(
+        roomsData.map(r => ({
+            projectId: PROJECT_ID,
+            roomNumber: r.roomNumber,
+            roomType: r.roomType,
+            capacity: r.capacity,
+        }))
+    ).returning();
+
+    console.log(`✅ Skapade ${insertedRooms.length} salar`);
+
+    // Assign mentors to classes
+    console.log('\n=== TILLDELAR MENTORER ===\n');
+
+    // Delete existing mentor assignments for this project's classes
+    const classIdsForMentors = createdClasses.map(c => c.id);
+    await db.delete(classMentors).where(inArray(classMentors.classId, classIdsForMentors));
+
+    // Assign 1-2 mentors per class, round-robin from teacher list
+    const mentorAssignments: { classId: string; teacherId: string; isPrimary: number }[] = [];
+    let teacherIndex = 0;
+
+    for (const cls of createdClasses) {
+        // Primary mentor
+        const primaryTeacher = insertedTeachers[teacherIndex % insertedTeachers.length];
+        mentorAssignments.push({
+            classId: cls.id,
+            teacherId: primaryTeacher.id,
+            isPrimary: 1,
+        });
+
+        // Some classes get a secondary mentor (every third class)
+        if (cls.classCode.endsWith('a')) {
+            const secondaryTeacher = insertedTeachers[(teacherIndex + 1) % insertedTeachers.length];
+            mentorAssignments.push({
+                classId: cls.id,
+                teacherId: secondaryTeacher.id,
+                isPrimary: 0,
+            });
+        }
+
+        teacherIndex++;
+    }
+
+    await db.insert(classMentors).values(mentorAssignments);
+
+    console.log(`✅ Tilldelade ${mentorAssignments.length} mentorskap till ${createdClasses.length} klasser`);
+
+    // Print mentor summary
+    const primaryMentorCount = mentorAssignments.filter(m => m.isPrimary === 1).length;
+    const secondaryMentorCount = mentorAssignments.filter(m => m.isPrimary === 0).length;
+    console.log(`   Huvudmentorer: ${primaryMentorCount}`);
+    console.log(`   Biträdande mentorer: ${secondaryMentorCount}`);
+
+    console.log('\n=== KLART! ===');
+    console.log(`\nLogga in med: admin@example.com / admin123`);
+    console.log(`Projekt: "${existingProject[0].name}"`);
 
     process.exit(0);
 }

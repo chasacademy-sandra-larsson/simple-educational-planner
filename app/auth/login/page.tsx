@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 import { api, ApiError } from '@/app/lib/api';
+import { AuthLayout, AuthCard, AuthInput, AuthButton } from '@/app/components/auth/auth-layout';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -18,14 +20,13 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const { user } = await api.auth.login({ email, password });
-            console.log('Logged in as:', user);
+            await api.auth.login({ email, password });
             router.push('/dashboard');
         } catch (err) {
             if (err instanceof ApiError) {
                 setError(err.message);
             } else {
-                setError('An unexpected error occurred');
+                setError('Ett oväntat fel uppstod');
             }
         } finally {
             setLoading(false);
@@ -33,74 +34,56 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-zinc-900 dark:to-zinc-800 px-4">
-            <div className="max-w-md w-full">
-                <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-8">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-2">
-                            Welcome Back
-                        </h1>
-                        <p className="text-zinc-600 dark:text-zinc-400">
-                            Sign in to your account
-                        </p>
+        <AuthLayout
+            title="Schemaläggning"
+            subtitle="Logga in på ditt konto"
+        >
+            <AuthCard>
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800">{error}</p>
                     </div>
+                )}
 
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-                        </div>
-                    )}
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <AuthInput
+                        label="E-postadress"
+                        id="email"
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="admin@skola.se"
+                    />
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Email
-                            </label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="you@example.com"
-                            />
-                        </div>
+                    <AuthInput
+                        label="Lösenord"
+                        id="password"
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="w-full px-4 py-3 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                placeholder="••••••••"
-                            />
-                        </div>
+                    <AuthButton
+                        type="submit"
+                        disabled={loading}
+                        className="w-full"
+                    >
+                        {loading ? 'Loggar in...' : 'Logga in'}
+                        {!loading && <ChevronRight className="w-4 h-4" />}
+                    </AuthButton>
+                </form>
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
-                        >
-                            {loading ? 'Signing in...' : 'Sign In'}
-                        </button>
-                    </form>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            Don't have an account?{' '}
-                            <Link href="/auth/register" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                                Sign up
-                            </Link>
-                        </p>
-                    </div>
+                <div className="mt-6 text-center">
+                    <p className="text-sm text-gray-600">
+                        Inget konto?{' '}
+                        <Link href="/auth/register" className="text-blue-600 hover:underline font-medium">
+                            Skapa ett nu
+                        </Link>
+                    </p>
                 </div>
-            </div>
-        </div>
+            </AuthCard>
+        </AuthLayout>
     );
 }

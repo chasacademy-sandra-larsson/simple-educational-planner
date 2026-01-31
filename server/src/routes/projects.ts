@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { db } from '../db';
-import { projects, projectClasses, courseInstances, classCurricula, teachers } from '../db/schema';
+import { projects, projectClasses, courseInstances, classCurricula, teachers, classMentors } from '../db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { CreateProjectRequest, CreateClassRequest, UpdateCurriculumRequest } from '../types';
@@ -67,6 +67,28 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
             .where(eq(teachers.projectId, project.id));
         const teacherMap = new Map(projectTeachers.map(t => [t.id, t]));
 
+        // Get mentors for all classes
+        const mentorAssignments = classIds.length > 0
+            ? await db.select()
+                .from(classMentors)
+                .where(inArray(classMentors.classId, classIds))
+            : [];
+
+        // Group mentors by class
+        const mentorsByClass = new Map<string, { teacherId: string; teacherName: string; isPrimary: boolean }[]>();
+        for (const mentor of mentorAssignments) {
+            const teacher = teacherMap.get(mentor.teacherId);
+            if (teacher) {
+                const classMentorList = mentorsByClass.get(mentor.classId) || [];
+                classMentorList.push({
+                    teacherId: mentor.teacherId,
+                    teacherName: teacher.name,
+                    isPrimary: mentor.isPrimary === 1,
+                });
+                mentorsByClass.set(mentor.classId, classMentorList);
+            }
+        }
+
         // Group by class and find active curriculum (draft or approved)
         const classesWithCourses = classes.map(cls => {
             // Find active curriculum (prefer approved, fallback to draft)
@@ -81,7 +103,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                 })[0];
 
             if (!activeCurriculum) {
-                return { ...cls, curriculum: null };
+                return { ...cls, curriculum: null, mentors: mentorsByClass.get(cls.id) || [] };
             }
 
             const classCourses = instances
@@ -112,6 +134,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                     status: activeCurriculum.status,
                     version: activeCurriculum.version,
                 },
+                mentors: mentorsByClass.get(cls.id) || [],
             };
         });
 
@@ -730,6 +753,246 @@ router.post('/:id/initialize-curricula', async (req: AuthRequest, res: Response)
     } catch (error) {
         console.error('Initialize curricula error:', error);
         res.status(500).json({ error: 'Failed to initialize curricula' });
+    }
+});
+
+// === MENTOR MANAGEMENT ===
+
+// Get mentors for a class
+router.get('/classes/:classId/mentors', async (req: AuthRequest, res: Response) => {
+    try {
+        const classId = req.params.classId;
+
+        // Get class and verify access
+        const classData = await db.select()
+            .from(projectClasses)
+            .where(eq(projectClasses.id, classId))
+            .limit(1);
+
+        if (classData.length === 0) {
+            return res.status(404).json({ error: 'Class not found' });
+        }
+
+        // Verify project ownership
+        const projectData = await db.select()
+            .from(projects)
+            .where(eq(projects.id, classData[0].projectId))
+            .limit(1);
+
+        if (projectData.length === 0 || projectData[0].userId !== req.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Get mentors for this class
+        const mentorAssignments = await db.select()
+            .from(classMentors)
+            .where(eq(classMentors.classId, classId));
+
+        // Get teacher details
+        const teacherIds = mentorAssignments.map(m => m.teacherId);
+        const mentorTeachers = teacherIds.length > 0
+            ? await db.select()
+                .from(teachers)
+                .where(inArray(teachers.id, teacherIds))
+            : [];
+
+        const teacherMap = new Map(mentorTeachers.map(t => [t.id, t]));
+
+        const mentors = mentorAssignments.map(m => ({
+            id: m.id,
+            teacherId: m.teacherId,
+            teacherName: teacherMap.get(m.teacherId)?.name || 'Unknown',
+            teacherEmail: teacherMap.get(m.teacherId)?.email || null,
+            isPrimary: m.isPrimary === 1,
+        }));
+
+        res.json(mentors);
+    } catch (error) {
+        console.error('Get mentors error:', error);
+        res.status(500).json({ error: 'Failed to get mentors' });
+    }
+});
+
+// Assign a mentor to a class
+router.post('/classes/:classId/mentors', async (req: AuthRequest, res: Response) => {
+    try {
+        const classId = req.params.classId;
+        const { teacherId, isPrimary = true } = req.body;
+
+        if (!teacherId) {
+            return res.status(400).json({ error: 'teacherId is required' });
+        }
+
+        // Get class and verify access
+        const classData = await db.select()
+            .from(projectClasses)
+            .where(eq(projectClasses.id, classId))
+            .limit(1);
+
+        if (classData.length === 0) {
+            return res.status(404).json({ error: 'Class not found' });
+        }
+
+        // Verify project ownership
+        const projectData = await db.select()
+            .from(projects)
+            .where(eq(projects.id, classData[0].projectId))
+            .limit(1);
+
+        if (projectData.length === 0 || projectData[0].userId !== req.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Verify teacher exists and belongs to the same project
+        const teacherData = await db.select()
+            .from(teachers)
+            .where(and(
+                eq(teachers.id, teacherId),
+                eq(teachers.projectId, classData[0].projectId)
+            ))
+            .limit(1);
+
+        if (teacherData.length === 0) {
+            return res.status(404).json({ error: 'Teacher not found in this project' });
+        }
+
+        // Check if already a mentor
+        const existingMentor = await db.select()
+            .from(classMentors)
+            .where(and(
+                eq(classMentors.classId, classId),
+                eq(classMentors.teacherId, teacherId)
+            ))
+            .limit(1);
+
+        if (existingMentor.length > 0) {
+            return res.status(409).json({ error: 'Teacher is already a mentor for this class' });
+        }
+
+        // If isPrimary, update other mentors to not be primary
+        if (isPrimary) {
+            await db.update(classMentors)
+                .set({ isPrimary: 0 })
+                .where(eq(classMentors.classId, classId));
+        }
+
+        // Create mentor assignment
+        const [newMentor] = await db.insert(classMentors).values({
+            classId,
+            teacherId,
+            isPrimary: isPrimary ? 1 : 0,
+        }).returning();
+
+        res.status(201).json({
+            id: newMentor.id,
+            teacherId: newMentor.teacherId,
+            teacherName: teacherData[0].name,
+            isPrimary: newMentor.isPrimary === 1,
+        });
+    } catch (error) {
+        console.error('Assign mentor error:', error);
+        res.status(500).json({ error: 'Failed to assign mentor' });
+    }
+});
+
+// Update mentor (e.g., set as primary)
+router.put('/classes/:classId/mentors/:teacherId', async (req: AuthRequest, res: Response) => {
+    try {
+        const { classId, teacherId } = req.params;
+        const { isPrimary } = req.body;
+
+        // Get class and verify access
+        const classData = await db.select()
+            .from(projectClasses)
+            .where(eq(projectClasses.id, classId))
+            .limit(1);
+
+        if (classData.length === 0) {
+            return res.status(404).json({ error: 'Class not found' });
+        }
+
+        // Verify project ownership
+        const projectData = await db.select()
+            .from(projects)
+            .where(eq(projects.id, classData[0].projectId))
+            .limit(1);
+
+        if (projectData.length === 0 || projectData[0].userId !== req.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // If setting as primary, update other mentors to not be primary
+        if (isPrimary) {
+            await db.update(classMentors)
+                .set({ isPrimary: 0 })
+                .where(eq(classMentors.classId, classId));
+        }
+
+        // Update mentor
+        const [updatedMentor] = await db.update(classMentors)
+            .set({ isPrimary: isPrimary ? 1 : 0 })
+            .where(and(
+                eq(classMentors.classId, classId),
+                eq(classMentors.teacherId, teacherId)
+            ))
+            .returning();
+
+        if (!updatedMentor) {
+            return res.status(404).json({ error: 'Mentor assignment not found' });
+        }
+
+        res.json({
+            id: updatedMentor.id,
+            teacherId: updatedMentor.teacherId,
+            isPrimary: updatedMentor.isPrimary === 1,
+        });
+    } catch (error) {
+        console.error('Update mentor error:', error);
+        res.status(500).json({ error: 'Failed to update mentor' });
+    }
+});
+
+// Remove a mentor from a class
+router.delete('/classes/:classId/mentors/:teacherId', async (req: AuthRequest, res: Response) => {
+    try {
+        const { classId, teacherId } = req.params;
+
+        // Get class and verify access
+        const classData = await db.select()
+            .from(projectClasses)
+            .where(eq(projectClasses.id, classId))
+            .limit(1);
+
+        if (classData.length === 0) {
+            return res.status(404).json({ error: 'Class not found' });
+        }
+
+        // Verify project ownership
+        const projectData = await db.select()
+            .from(projects)
+            .where(eq(projects.id, classData[0].projectId))
+            .limit(1);
+
+        if (projectData.length === 0 || projectData[0].userId !== req.userId) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        // Delete mentor assignment
+        const [deletedMentor] = await db.delete(classMentors)
+            .where(and(
+                eq(classMentors.classId, classId),
+                eq(classMentors.teacherId, teacherId)
+            ))
+            .returning();
+
+        if (!deletedMentor) {
+            return res.status(404).json({ error: 'Mentor assignment not found' });
+        }
+
+        res.json({ message: 'Mentor removed successfully' });
+    } catch (error) {
+        console.error('Remove mentor error:', error);
+        res.status(500).json({ error: 'Failed to remove mentor' });
     }
 });
 

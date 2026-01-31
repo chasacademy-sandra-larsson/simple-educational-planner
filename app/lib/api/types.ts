@@ -73,6 +73,7 @@ export interface ClassCurriculum {
 export interface ProjectWithDetails extends Project {
     classes: (ProjectClass & {
         curriculum?: ClassCurriculum;
+        mentors?: ClassMentor[];
     })[];
 }
 
@@ -268,4 +269,25 @@ export interface GenerateScheduleResponse {
 export interface ScheduleWithLessons {
     schedule: GeneratedSchedule;
     lessons: ScheduledLesson[];
+}
+
+// Class Mentor types
+export interface ClassMentor {
+    id: string;
+    classId: string;
+    teacherId: string;
+    isPrimary: number; // 1 = primary mentor, 0 = secondary mentor
+    createdAt: string;
+    // Enriched fields from API
+    teacherName?: string;
+    teacherEmail?: string;
+}
+
+export interface CreateMentorRequest {
+    teacherId: string;
+    isPrimary?: number; // Defaults to 1 (primary)
+}
+
+export interface UpdateMentorRequest {
+    isPrimary: number;
 }
