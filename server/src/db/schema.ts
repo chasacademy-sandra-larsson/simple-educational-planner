@@ -113,6 +113,20 @@ export const rooms = pgTable('rooms', {
     uniqueRoomNumberPerProject: unique('unique_room_number_per_project').on(table.projectId, table.roomNumber),
 }));
 
+// Class mentors - assigns teachers as mentors for classes
+// Note: Mentor time is NOT counted in service points (tjänstefördelning)
+// but IS included in schedule generation using project.mentorTimePerWeek
+export const classMentors = pgTable('class_mentors', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    classId: uuid('class_id').references(() => projectClasses.id, { onDelete: 'cascade' }).notNull(),
+    teacherId: uuid('teacher_id').references(() => teachers.id, { onDelete: 'cascade' }).notNull(),
+    isPrimary: integer('is_primary').notNull().default(1), // 1 = primary mentor, 0 = secondary mentor
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+    // Unique constraint: a teacher can only be mentor for a class once
+    uniqueMentorPerClass: unique('unique_mentor_per_class').on(table.classId, table.teacherId),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
     projects: many(projects),
@@ -138,6 +152,7 @@ export const projectClassesRelations = relations(projectClasses, ({ one, many })
     }),
     curricula: many(classCurricula),
     courseInstances: many(courseInstances),
+    mentors: many(classMentors),
 }));
 
 export const teachersRelations = relations(teachers, ({ one, many }) => ({
@@ -147,6 +162,7 @@ export const teachersRelations = relations(teachers, ({ one, many }) => ({
     }),
     courseInstances: many(courseInstances),
     serviceDistributions: many(teacherServiceDistributions),
+    mentorships: many(classMentors),
 }));
 
 export const classCurriculaRelations = relations(classCurricula, ({ one, many }) => ({
@@ -256,6 +272,17 @@ export const termDatesRelations = relations(termDates, ({ one }) => ({
     project: one(projects, {
         fields: [termDates.projectId],
         references: [projects.id],
+    }),
+}));
+
+export const classMentorsRelations = relations(classMentors, ({ one }) => ({
+    class: one(projectClasses, {
+        fields: [classMentors.classId],
+        references: [projectClasses.id],
+    }),
+    teacher: one(teachers, {
+        fields: [classMentors.teacherId],
+        references: [teachers.id],
     }),
 }));
 

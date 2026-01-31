@@ -1053,9 +1053,9 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                         <p className="text-xs text-gray-600">
                           {classItem.courses.length} kurser • {totalPoints} poäng
                           <span className={`ml-2 ${
-                            allCoursesPlanned && totalPoints === 2500 ? 'text-green-600' : 'text-yellow-600'
+                            isComplete ? 'text-green-600' : 'text-yellow-600'
                           }`}>
-                            {allCoursesPlanned && totalPoints === 2500 ? '• Komplett' : '• Inkomplett'}
+                            {isComplete ? '• Komplett' : '• Inkomplett'}
                           </span>
                         </p>
                       </div>
