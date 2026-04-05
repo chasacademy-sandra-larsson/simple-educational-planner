@@ -18,7 +18,7 @@ const SUBJECT_ROOMS = [
   'Fysik',
   'Biologi',
   'Musik',
-  'Idrott och hälsa',
+  'Idrott',
   'Bild',
   'Hemkunskap',
   'Slöjd',

@@ -1,9 +1,6 @@
 /**
- * Script för att tilldela tjänstefördelning och mentorskap för "Gymnasium 27 Klasser"
- *
- * Mål:
- * 1. Fördela kurser så jämnt som möjligt så att lärare når ~600p (100% tjänst)
- * 2. Tilldela en mentor per klass-spår (samma mentor följer klassen alla 3 åren)
+ * Engångsscript: Tilldelar kurser till lärare (~600p per heltidstjänst) och sätter
+ * mentorer per klass-spår (samma mentor följer klassen genom alla 3 åren).
  */
 
 import 'dotenv/config';

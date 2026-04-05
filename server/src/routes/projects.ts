@@ -356,13 +356,10 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
         const totalPoints = courses.reduce((sum: number, course: any) => sum + course.points, 0);
         const isValid = totalPoints === 2500 ? 1 : 0;
 
-        // Find existing draft curriculum or create new one
+        // Find existing curriculum (approved or draft) or create new one
         const existingCurricula = await db.select()
             .from(classCurricula)
-            .where(and(
-                eq(classCurricula.classId, classId),
-                eq(classCurricula.status, 'draft')
-            ))
+            .where(eq(classCurricula.classId, classId))
             .orderBy(desc(classCurricula.version))
             .limit(1);
 
@@ -399,26 +396,53 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
             curriculum = newCurriculum;
         }
 
-        // Delete existing course instances for this curriculum
-        await db.delete(courseInstances)
-            .where(eq(courseInstances.curriculumId, curriculum.id));
+        // Get existing course instances to preserve teacher/room assignments
+        const existingInstances = await db.select()
+            .from(courseInstances)
+            .where(eq(courseInstances.classId, classId));
 
-        // Insert new course instances
+        // Build a map of courseCode -> preserved data (teacherId, roomId, lessonDuration, year, terms)
+        const assignmentMap = new Map<string, {
+            teacherId: string | null,
+            roomId: string | null,
+            lessonDuration: number | null,
+            year: number,
+            terms: string[],
+        }>();
+        for (const inst of existingInstances) {
+            assignmentMap.set(inst.courseCode, {
+                teacherId: inst.teacherId,
+                roomId: inst.roomId,
+                lessonDuration: inst.lessonDuration,
+                year: inst.year,
+                terms: inst.terms as string[],
+            });
+        }
+
+        // Delete existing course instances for this class
+        await db.delete(courseInstances)
+            .where(eq(courseInstances.classId, classId));
+
+        // Insert new course instances, preserving teacher/room/year/terms from existing data
         if (courses && courses.length > 0) {
             await db.insert(courseInstances).values(
-                courses.map((course: any) => ({
-                    curriculumId: curriculum.id,
-                    classId: classId, // Denormalized for faster queries
-                    courseCode: course.courseCode,
-                    courseName: course.courseName,
-                    points: course.points,
-                    category: course.category,
-                    year: course.year,
-                    terms: course.terms || [],
-                    teacherId: null, // No teacher assigned yet
-                    roomId: null, // No room assigned yet
-                    lessonDuration: null, // Use project default
-                }))
+                courses.map((course: any) => {
+                    const existing = assignmentMap.get(course.courseCode);
+                    return {
+                        curriculumId: curriculum.id,
+                        classId: classId,
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        points: course.points,
+                        category: course.category,
+                        // Preserve year and terms if they exist, otherwise use course values
+                        year: existing?.year ?? course.year ?? 1,
+                        terms: existing?.terms ?? course.terms ?? ['HT', 'VT'],
+                        teacherId: existing?.teacherId || null,
+                        roomId: existing?.roomId || null,
+                        lessonDuration: existing?.lessonDuration || null,
+                    };
+                })
             );
         }
 
@@ -485,7 +509,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
                             points: parseInt(course.points) || 0,
                             category: category,
                             year: 1, // Default to year 1, will be distributed later
-                            terms: ['term1', 'term2'], // Default to full year
+                            terms: ['HT', 'VT'], // Default to full year (HT=hösttermin, VT=vårtermin)
                         });
                     }
                 }
@@ -519,7 +543,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
             points: 100,
             category: 'INDIVIDUAL_CHOICE',
             year: 3,
-            terms: ['term5'],
+            terms: ['HT'], // Fall term only
         });
         courses.push({
             courseCode: 'INDIVIDUAL_CHOICE_2',
@@ -527,7 +551,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
             points: 100,
             category: 'INDIVIDUAL_CHOICE',
             year: 3,
-            terms: ['term6'],
+            terms: ['VT'], // Spring term only
         });
 
         // Add Gymnasiearbete (required: 100p)
@@ -537,7 +561,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
             points: 100,
             category: 'GYMNASIEARBETE',
             year: 3,
-            terms: ['term5', 'term6'],
+            terms: ['HT', 'VT'], // Full year
         });
 
         // Distribute courses across years based on total points
@@ -546,19 +570,20 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
         const targetPerYear = 833;
 
         // First pass: assign foundation and programme-specific to year 1-2
+        // Terms are always ['HT', 'VT'] - the data-loader converts based on course.year
         for (const course of courses) {
             if (course.category === 'FOUNDATIONAL_SUBJECTS' || course.category === 'PROGRAMME_SPECIFIC_SUBJECTS') {
                 if (year1Points + course.points <= targetPerYear + 100) {
                     course.year = 1;
-                    course.terms = ['term1', 'term2'];
+                    course.terms = ['HT', 'VT'];
                     year1Points += course.points;
                 } else if (year2Points + course.points <= targetPerYear + 100) {
                     course.year = 2;
-                    course.terms = ['term3', 'term4'];
+                    course.terms = ['HT', 'VT'];
                     year2Points += course.points;
                 } else {
                     course.year = 3;
-                    course.terms = ['term5', 'term6'];
+                    course.terms = ['HT', 'VT'];
                     year3Points += course.points;
                 }
             }
@@ -569,11 +594,11 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
             if (course.category === 'ORIENTATION') {
                 if (year2Points + course.points <= targetPerYear + 100) {
                     course.year = 2;
-                    course.terms = ['term3', 'term4'];
+                    course.terms = ['HT', 'VT'];
                     year2Points += course.points;
                 } else {
                     course.year = 3;
-                    course.terms = ['term5', 'term6'];
+                    course.terms = ['HT', 'VT'];
                     year3Points += course.points;
                 }
             }
@@ -716,25 +741,43 @@ router.post('/:id/initialize-curricula', async (req: AuthRequest, res: Response)
                     curriculum = updatedCurriculum;
                 }
 
+                // Get existing course instances to preserve teacher/room assignments
+                const existingInstances = await db.select()
+                    .from(courseInstances)
+                    .where(eq(courseInstances.classId, cls.id));
+
+                // Build a map of courseCode -> assignments
+                const assignmentMap = new Map<string, { teacherId: string | null, roomId: string | null, lessonDuration: number | null }>();
+                for (const inst of existingInstances) {
+                    assignmentMap.set(inst.courseCode, {
+                        teacherId: inst.teacherId,
+                        roomId: inst.roomId,
+                        lessonDuration: inst.lessonDuration,
+                    });
+                }
+
                 // Delete any existing course instances
                 await db.delete(courseInstances)
-                    .where(eq(courseInstances.curriculumId, curriculum.id));
+                    .where(eq(courseInstances.classId, cls.id));
 
-                // Insert course instances
+                // Insert course instances, preserving teacher/room assignments
                 await db.insert(courseInstances).values(
-                    courses.map(course => ({
-                        curriculumId: curriculum!.id,
-                        classId: cls.id,
-                        courseCode: course.courseCode,
-                        courseName: course.courseName,
-                        points: course.points,
-                        category: course.category,
-                        year: course.year,
-                        terms: course.terms,
-                        teacherId: null,
-                        roomId: null,
-                        lessonDuration: null,
-                    }))
+                    courses.map(course => {
+                        const existing = assignmentMap.get(course.courseCode);
+                        return {
+                            curriculumId: curriculum!.id,
+                            classId: cls.id,
+                            courseCode: course.courseCode,
+                            courseName: course.courseName,
+                            points: course.points,
+                            category: course.category,
+                            year: course.year,
+                            terms: course.terms,
+                            teacherId: existing?.teacherId || null,
+                            roomId: existing?.roomId || null,
+                            lessonDuration: existing?.lessonDuration || null,
+                        };
+                    })
                 );
 
                 results.push({ classCode: cls.classCode, success: true, courseCount: courses.length });

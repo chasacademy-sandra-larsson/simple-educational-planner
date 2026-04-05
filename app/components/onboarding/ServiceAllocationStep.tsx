@@ -53,6 +53,37 @@ const getClassYearLevel = (classStartYear: number, academicYear: number): number
   return academicYear - classStartYear + 1;
 };
 
+// Helper to check if teacher is qualified for a course
+const isTeacherQualified = (teacherSubjects: string[] | undefined, courseName: string): boolean => {
+  if (!teacherSubjects || teacherSubjects.length === 0) return false;
+  const courseNameLower = courseName.toLowerCase();
+
+  return teacherSubjects.some((subject: string) => {
+    const subjectLower = subject.toLowerCase();
+    return courseNameLower.includes(subjectLower) ||
+           courseNameLower.startsWith(subjectLower) ||
+           (subjectLower === 'matematik' && courseNameLower.startsWith('mat')) ||
+           (subjectLower === 'svenska' && courseNameLower.startsWith('sve')) ||
+           (subjectLower === 'engelska' && courseNameLower.startsWith('eng')) ||
+           (subjectLower === 'moderna språk' && courseNameLower.startsWith('moderna')) ||
+           (subjectLower === 'fysik' && courseNameLower.startsWith('fys')) ||
+           (subjectLower === 'kemi' && courseNameLower.startsWith('kem')) ||
+           (subjectLower === 'biologi' && courseNameLower.startsWith('bio')) ||
+           (subjectLower === 'historia' && courseNameLower.startsWith('his')) ||
+           (subjectLower === 'religion' && courseNameLower.startsWith('rel')) ||
+           (subjectLower === 'samhällskunskap' && courseNameLower.startsWith('sam')) ||
+           (subjectLower === 'idrott' && courseNameLower.startsWith('idr')) ||
+           (subjectLower === 'teknik' && courseNameLower.startsWith('tek')) ||
+           (subjectLower === 'programmering' && courseNameLower.startsWith('pro')) ||
+           (subjectLower === 'naturkunskap' && (courseNameLower.startsWith('nat') || courseNameLower.startsWith('naturvetenskaplig'))) ||
+           (subjectLower === 'geografi' && courseNameLower.startsWith('geo')) ||
+           (subjectLower === 'filosofi' && courseNameLower.startsWith('fil')) ||
+           (subjectLower === 'psykologi' && courseNameLower.startsWith('psy')) ||
+           (subjectLower.includes('gymnasiearbete') && courseNameLower.includes('gymnasiearbete')) ||
+           (subjectLower.includes('individuellt') && courseNameLower.includes('individuellt'));
+  });
+};
+
 // Available academic years for planning
 const ACADEMIC_YEARS = [
   { value: 2026, label: 'Läsår 2026/2027' },
@@ -214,7 +245,18 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
   };
 
   const generateAutomaticAllocations = () => {
+    const MAX_POINTS_PER_TEACHER = 600;
     const newAllocations: any[] = [];
+    const unassignedCourses: { className: string; courseName: string; points: number; reason: string }[] = [];
+
+    // Track teacher load for balancing
+    const teacherLoad: Record<string, number> = {};
+    teachers.forEach(t => { teacherLoad[t.id] = 0; });
+
+    // Helper to check if teacher can teach course
+    const canTeach = (teacher: any, courseName: string): boolean => {
+      return isTeacherQualified(teacher.subjects, courseName);
+    };
 
     activeClasses.forEach((classItem) => {
       if (classItem.courses && Array.isArray(classItem.courses)) {
@@ -224,14 +266,20 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
         relevantCourses.forEach((course: any) => {
           const courseName = course.name || course.courseName;
           const courseCode = course.code || course.courseCode;
+          const coursePoints = course.points || 100;
 
-          const qualifiedTeachers = teachers.filter(teacher =>
-            teacher.subjects?.some((subject: string) =>
-              courseName.toLowerCase().includes(subject.toLowerCase())
-            )
+          // Find qualified teachers
+          const qualifiedTeachers = teachers.filter(teacher => canTeach(teacher, courseName));
+
+          // Filter to only teachers under 600p limit
+          const availableTeachers = qualifiedTeachers.filter(t =>
+            (teacherLoad[t.id] || 0) + coursePoints <= MAX_POINTS_PER_TEACHER
           );
 
-          const teacherToAssign = qualifiedTeachers.length > 0 ? qualifiedTeachers[0] : teachers[0];
+          // Sort by load (least loaded first) for even distribution
+          availableTeachers.sort((a, b) => (teacherLoad[a.id] || 0) - (teacherLoad[b.id] || 0));
+
+          const teacherToAssign = availableTeachers.length > 0 ? availableTeachers[0] : null;
 
           if (teacherToAssign) {
             newAllocations.push({
@@ -240,10 +288,44 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
               courseCode: courseCode,
               teacherId: teacherToAssign.id,
             });
+            teacherLoad[teacherToAssign.id] = (teacherLoad[teacherToAssign.id] || 0) + coursePoints;
+          } else {
+            // Track unassigned course
+            const reason = qualifiedTeachers.length === 0
+              ? 'Ingen behörig lärare'
+              : 'Alla behöriga lärare har nått 600p';
+            unassignedCourses.push({
+              className: classItem.code || classItem.name,
+              courseName,
+              points: coursePoints,
+              reason
+            });
           }
         });
       }
     });
+
+    // Log statistics
+    const assignedPoints = newAllocations.reduce((sum, a) => {
+      const classItem = activeClasses.find(c => c.id === a.classId);
+      const course = classItem?.courses?.find((c: any) => (c.code || c.courseCode) === a.courseCode);
+      return sum + (course?.points || 100);
+    }, 0);
+
+    const teachersUsed = Object.values(teacherLoad).filter(load => load > 0).length;
+
+    console.log('📊 Automatisk fördelning klar:');
+    console.log(`   Tilldelade kurser: ${newAllocations.length}`);
+    console.log(`   Tilldelade poäng: ${assignedPoints}`);
+    console.log(`   Lärare använda: ${teachersUsed} av ${teachers.length}`);
+    console.log(`   Otilldelade kurser: ${unassignedCourses.length}`);
+
+    if (unassignedCourses.length > 0) {
+      console.log('⚠️ Otilldelade kurser:');
+      unassignedCourses.forEach(c => {
+        console.log(`   ${c.className}: ${c.courseName} (${c.points}p) - ${c.reason}`);
+      });
+    }
 
     setAllocations(newAllocations);
     onChange(newAllocations);
@@ -305,6 +387,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
     const totalPoints = instances.reduce((sum, i) => sum + i.points, 0);
     const assignedPoints = instances.filter(i => i.allocations.length > 0).reduce((sum, i) => sum + i.points, 0);
 
+
     const unqualifiedAssignments = instances.filter(i => {
       return i.allocations.some((allocation: any) => {
         const teacher = teachers.find(t => t.id === allocation.teacherId);
@@ -314,9 +397,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
 
         if (!teacher || !course) return false;
 
-        return !teacher.subjects?.some((subject: string) =>
-          course.name.toLowerCase().includes(subject.toLowerCase())
-        );
+        return !isTeacherQualified(teacher?.subjects, course.name);
       });
     }).length;
 
@@ -966,9 +1047,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                                     const course = classes
                                                       .find(c => c.id === instance.classId)
                                                       ?.courses?.find((co: any) => co.code === instance.courseCode);
-                                                    const qualified = teacher.subjects?.some((subject: string) =>
-                                                      course?.name.toLowerCase().includes(subject.toLowerCase())
-                                                    );
+                                                    const qualified = course ? isTeacherQualified(teacher.subjects, course.name) : false;
                                                     return (
                                                       <option key={teacher.id} value={teacher.id}>
                                                         {teacher.name} {qualified ? '✓ Behörig' : ''}

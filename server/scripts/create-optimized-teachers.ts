@@ -1,16 +1,13 @@
 /**
- * Optimerad tjänstefördelning för 27 klasser
- * Läsår 2026/2027
- *
- * Totalt: 23 400p
- * Mål: ~40 lärare med snitt 585p, max 600p
+ * Engångsscript: Skapar 40 lärare med specifika kurskod-behörigheter och fördelar
+ * kurser för läsåret 2026/2027 med max 600p per lärare. Sparar tjänstefördelningar.
  */
 
 import { db } from '../src/db';
 import { courseInstances, projectClasses, teachers, teacherServiceDistributions } from '../src/db/schema';
 import { eq, inArray } from 'drizzle-orm';
 
-const PROJECT_ID = '108da1ff-93d5-4d99-bb07-ac7064214518';
+const PROJECT_ID = '88d52f1c-e2e3-4dd8-ad91-bfe843291295';
 const MAX_POINTS = 600;
 
 // Kurskoder per ämnesområde

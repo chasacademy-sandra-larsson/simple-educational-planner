@@ -1,11 +1,7 @@
 /**
- * Seed script for realistic gymnasium with 27 classes
- *
- * 9 klasser i åk 1 (startår 2026) → tar åk1-kurser läsår 26/27
- * 9 klasser i åk 2 (startår 2025) → tar åk2-kurser läsår 26/27
- * 9 klasser i åk 3 (startår 2024) → tar åk3-kurser läsår 26/27
- *
- * Alla 27 klasser är aktiva läsår 2026/2027!
+ * Seed-script (npm run db:seed-27): Skapar ett gymnasium med 27 klasser (TE/NA/SA × 3
+ * paralleller × 3 årskurser), kompletta kursplaner (2500p/elev), 20 lärare, 25 salar
+ * och mentortilldelningar. Körs för läsår 2026/2027.
  */
 
 import 'dotenv/config';
@@ -17,9 +13,9 @@ import bcrypt from 'bcrypt';
 // Will be set after finding/creating user and project
 let PROJECT_ID = '';
 
-// Program configurations
+// Program configurations (orientation codes from Skolverket API)
 const PROGRAMS = [
-    { code: 'TE', name: 'Teknikprogrammet', orientation: 'TEKTEK', orientationName: 'Teknik' },
+    { code: 'TE', name: 'Teknikprogrammet', orientation: 'TETEK', orientationName: 'Teknikvetenskap' },
     { code: 'NA', name: 'Naturvetenskapsprogrammet', orientation: 'NANAT', orientationName: 'Naturvetenskap' },
     { code: 'SA', name: 'Samhällsvetenskapsprogrammet', orientation: 'SASAM', orientationName: 'Samhällsvetenskap' },
 ];
@@ -58,18 +54,17 @@ const COURSES: Record<string, Record<number, Course[]>> = {
         ], // = 850p
         3: [
             { code: 'SVESVE03', name: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS' },
-            { code: 'ENGENG07', name: 'Engelska 7', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'MATMAT03c', name: 'Matematik 3c', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'MATMAT04', name: 'Matematik 4', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'FYSFYS03', name: 'Fysik 3', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'PRRPRR02', name: 'Programmering 2', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
+            { code: 'ENGENG07', name: 'Engelska 7', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'MATMAT03c', name: 'Matematik 3c', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'FYSFYS03', name: 'Fysik 3', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'PRRPRR02', name: 'Programmering 2', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
             { code: 'EXAEXMTE', name: 'Gymnasiearbete (Teknik)', points: 100, category: 'GYMNASIEARBETE' },
-            // Individuellt val
-            { code: 'INDTE01', name: 'Individuellt val - Teknik', points: 100, category: 'INDIVIDUAL_CHOICE' },
-            { code: 'INDTE02', name: 'Individuellt val - Teknik 2', points: 100, category: 'INDIVIDUAL_CHOICE' },
-        ], // = 900p
+            // Individuellt val - alltid 200p
+            { code: 'INDTE01', name: 'Individuellt val 1', points: 100, category: 'INDIVIDUAL_CHOICE' },
+            { code: 'INDTE02', name: 'Individuellt val 2', points: 100, category: 'INDIVIDUAL_CHOICE' },
+        ], // = 800p
     },
-    // NATURVETENSKAPSPROGRAMMET: 850 + 850 + 900 = 2600p
+    // NATURVETENSKAPSPROGRAMMET: 850 + 850 + 800 = 2500p
     NA: {
         1: [
             { code: 'SVESVE01', name: 'Svenska 1', points: 100, category: 'FOUNDATIONAL_SUBJECTS' },
@@ -96,16 +91,15 @@ const COURSES: Record<string, Record<number, Course[]>> = {
         ], // = 850p
         3: [
             { code: 'SVESVE03', name: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS' },
-            { code: 'ENGENG07', name: 'Engelska 7', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'MATMAT04', name: 'Matematik 4', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'MATMAT05', name: 'Matematik 5', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'KEMKEM03', name: 'Kemi 2 forts', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'BIOBIO03', name: 'Biologi 2 forts', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
+            { code: 'ENGENG07', name: 'Engelska 7', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'MATMAT04', name: 'Matematik 4', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'KEMKEM03', name: 'Kemi 2 forts', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'BIOBIO03', name: 'Biologi 2 forts', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
             { code: 'EXAEXMNA', name: 'Gymnasiearbete (Natur)', points: 100, category: 'GYMNASIEARBETE' },
-            // Individuellt val
-            { code: 'INDNA01', name: 'Individuellt val - Natur', points: 100, category: 'INDIVIDUAL_CHOICE' },
-            { code: 'INDNA02', name: 'Individuellt val - Natur 2', points: 100, category: 'INDIVIDUAL_CHOICE' },
-        ], // = 900p
+            // Individuellt val - alltid 200p
+            { code: 'INDNA01', name: 'Individuellt val 1', points: 100, category: 'INDIVIDUAL_CHOICE' },
+            { code: 'INDNA02', name: 'Individuellt val 2', points: 100, category: 'INDIVIDUAL_CHOICE' },
+        ], // = 800p
     },
     // SAMHÄLLSVETENSKAPSPROGRAMMET: 850 + 850 + 800 = 2500p
     SA: {
@@ -134,17 +128,16 @@ const COURSES: Record<string, Record<number, Course[]>> = {
         ], // = 850p
         3: [
             { code: 'SVESVE03', name: 'Svenska 3', points: 100, category: 'FOUNDATIONAL_SUBJECTS' },
-            { code: 'ENGENG07', name: 'Engelska 7', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'SAMSAM03', name: 'Samhällskunskap 3', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'PSYPSY02a', name: 'Psykologi 2', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'MODSPR03', name: 'Moderna språk 3', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'FILFIL01', name: 'Filosofi 1', points: 50, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
-            { code: 'HISHIS03', name: 'Historia 3', points: 100, category: 'PROGRAMME_SPECIFIC_SUBJECTS' },
+            { code: 'ENGENG07', name: 'Engelska 7', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'SAMSAM03', name: 'Samhällskunskap 3', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'PSYPSY02a', name: 'Psykologi 2', points: 50, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'MODSPR03', name: 'Moderna språk 3', points: 100, category: 'PROGRAMME_SPECIALIZATION' },
+            { code: 'FILFIL01', name: 'Filosofi 1', points: 50, category: 'PROGRAMME_SPECIALIZATION' },
             { code: 'EXAEXMSA', name: 'Gymnasiearbete (Samhälle)', points: 100, category: 'GYMNASIEARBETE' },
-            // Individuellt val
-            { code: 'INDSA01', name: 'Individuellt val - Samhälle', points: 100, category: 'INDIVIDUAL_CHOICE' },
-            { code: 'INDSA02', name: 'Individuellt val - Samhälle 2', points: 100, category: 'INDIVIDUAL_CHOICE' },
-        ], // = 900p
+            // Individuellt val - alltid 200p
+            { code: 'INDSA01', name: 'Individuellt val 1', points: 100, category: 'INDIVIDUAL_CHOICE' },
+            { code: 'INDSA02', name: 'Individuellt val 2', points: 100, category: 'INDIVIDUAL_CHOICE' },
+        ], // = 800p (100+100+100+50+100+50+100+200)
     },
 };
 

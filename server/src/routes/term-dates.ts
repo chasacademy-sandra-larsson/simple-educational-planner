@@ -96,6 +96,33 @@ router.post('/projects/:projectId/term-dates', async (req: AuthRequest, res: Res
             return res.status(404).json({ error: 'Project not found' });
         }
 
+        // Check if term dates already exist (upsert logic)
+        const [existing] = await db.select()
+            .from(termDates)
+            .where(and(
+                eq(termDates.projectId, req.params.projectId),
+                eq(termDates.academicYear, academicYear),
+                eq(termDates.year, year)
+            ))
+            .limit(1);
+
+        if (existing) {
+            // Update existing term dates
+            const [updatedTermDates] = await db.update(termDates)
+                .set({
+                    fallTermStart,
+                    fallTermEnd,
+                    springTermStart,
+                    springTermEnd,
+                    updatedAt: new Date(),
+                })
+                .where(eq(termDates.id, existing.id))
+                .returning();
+
+            return res.json(updatedTermDates);
+        }
+
+        // Create new term dates
         const [newTermDates] = await db.insert(termDates).values({
             projectId: req.params.projectId,
             academicYear,
@@ -109,10 +136,6 @@ router.post('/projects/:projectId/term-dates', async (req: AuthRequest, res: Res
         res.status(201).json(newTermDates);
     } catch (error: any) {
         console.error('Create term dates error:', error);
-        // Handle unique constraint violation
-        if (error.code === '23505') {
-            return res.status(409).json({ error: 'Term dates already exist for this academic year and gymnasium year' });
-        }
         res.status(500).json({ error: 'Failed to create term dates' });
     }
 });

@@ -1,3 +1,8 @@
+/**
+ * Testscript: Laddar solverdata, kör preflight-check och genererar ett schema.
+ * Använder hårdkodade projekt- och användar-ID:n.
+ */
+
 import { loadSolverData } from '../src/solver/data-loader';
 import { generateSchedule, preflightCheck } from '../src/solver';
 

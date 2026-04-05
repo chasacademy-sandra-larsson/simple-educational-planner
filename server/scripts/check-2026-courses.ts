@@ -1,3 +1,8 @@
+/**
+ * Debugscript: Visar vilka kurser som finns för läsår 2026/2027, vilka som har
+ * lärare tilldelad och vilka som saknar det – per klass och totalt.
+ */
+
 import { db } from '../src/db';
 import { courseInstances, projectClasses, teachers } from '../src/db/schema';
 import { eq, inArray } from 'drizzle-orm';

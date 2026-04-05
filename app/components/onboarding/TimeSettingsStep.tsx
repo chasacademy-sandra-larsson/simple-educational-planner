@@ -391,7 +391,7 @@ export function TimeSettingsStep({ data, onChange }: TimeSettingsStepProps) {
                     value={customLessonForm.subjectName}
                     onChange={(e) => setCustomLessonForm({ ...customLessonForm, subjectName: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder="t.ex. Idrott och hälsa"
+                    placeholder="t.ex. Idrott"
                   />
                 </div>
                 <div>

@@ -125,6 +125,7 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
             terms: course.terms || [],
             year: course.year || 1
           })) || [],
+          mentors: cls.mentors || [],
           isComplete: true
         })) || [];
 
@@ -132,7 +133,7 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
           id: t.id,
           name: t.name,
           email: t.email || '',
-          subjects: t.subject ? [t.subject] : [],
+          subjects: t.subject ? t.subject.split(', ').map(s => s.trim()) : [],
           employmentPercentage: 100,
           isComplete: true
         }));
@@ -223,7 +224,12 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
             points: course.points,
             category: mapCategoryToApi(course.category),
             year: 1 as const,
-            terms: course.terms?.map((t: number) => `term${t}`) || ['term1']
+            // Keep terms as-is if they're already strings (HT, VT, term1, etc.)
+            // Only convert if they're numbers
+            terms: course.terms?.map((t: number | string) => {
+              if (typeof t === 'string') return t;
+              return `term${t}`;
+            }) || ['HT', 'VT']
           }));
 
           await api.projects.updateCurriculum(classId, { courses: coursesForApi });

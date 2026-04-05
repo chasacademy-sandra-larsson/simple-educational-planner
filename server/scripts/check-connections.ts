@@ -1,3 +1,8 @@
+/**
+ * Debugscript: Verifierar kopplingar mellan kursinstanser, klasser och lärare.
+ * Visar antal kurser med/utan lärare, uppdelat per årskurs.
+ */
+
 import { db } from '../src/db';
 import { courseInstances, projectClasses, teachers } from '../src/db/schema';
 import { eq, inArray } from 'drizzle-orm';

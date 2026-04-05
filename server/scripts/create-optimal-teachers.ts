@@ -1,11 +1,7 @@
 /**
- * Script för att skapa en optimal lärarkår med realistiska ämneskombinationer
- *
- * Lärare har typiskt 2-3 behörigheter, t.ex:
- * - Matematik + Fysik
- * - Svenska + Historia
- * - Biologi + Kemi
- * - Samhällskunskap + Geografi + Religion
+ * Engångsscript: Tar bort befintliga lärare och skapar en ny optimal lärarkår med
+ * realistiska ämneskombinationer (2–3 behörigheter per lärare). Tilldelar kurser
+ * och mentorer med optimeringsloop för jämn fördelning.
  */
 
 import 'dotenv/config';

@@ -29,8 +29,12 @@ import serviceDistributionRoutes from './routes/service-distributions';
 import termDatesRoutes from './routes/term-dates';
 import scheduleRoutes from './routes/schedule';
 import scheduleGeneratorRoutes from './routes/schedule-generator';
+import skolverketRoutes from './routes/skolverket';
 
 // API routes
+// Skolverket proxy first (no auth required, public data)
+app.use('/api/skolverket', skolverketRoutes);
+// Auth routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api', teacherRoutes);

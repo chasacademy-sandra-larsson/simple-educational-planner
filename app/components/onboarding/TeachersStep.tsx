@@ -37,46 +37,56 @@ const AVAILABLE_SUBJECTS = [
   'Matematik',
   'Svenska',
   'Engelska',
+  'Moderna språk',
   'Fysik',
   'Kemi',
   'Biologi',
+  'Naturkunskap',
   'Historia',
   'Samhällskunskap',
-  'Religionskunskap',
-  'Idrott och hälsa',
+  'Geografi',
+  'Religion',
+  'Idrott',
   'Programmering',
+  'Teknik',
+  'Psykologi',
+  'Filosofi',
+  'Gymnasiearbete',
+  'Individuellt val',
   'Webbutveckling',
   'Databaser',
   'Företagsekonomi',
-  'Psykologi',
-  'Filosofi',
   'Sociologi',
-  'Teknik',
   'CAD',
   'Estetisk kommunikation'
 ];
 
-// Map course names to subjects
+// Map course names to subjects (must match teacher subject names)
 const mapCourseToSubject = (courseName: string): string => {
   const name = courseName.toLowerCase();
   if (name.includes('matematik')) return 'Matematik';
   if (name.includes('svenska')) return 'Svenska';
   if (name.includes('engelska')) return 'Engelska';
+  if (name.includes('moderna')) return 'Moderna språk';
   if (name.includes('fysik')) return 'Fysik';
   if (name.includes('kemi')) return 'Kemi';
   if (name.includes('biologi')) return 'Biologi';
+  if (name.includes('naturkunskap') || name.includes('naturvetenskaplig')) return 'Naturkunskap';
   if (name.includes('historia')) return 'Historia';
   if (name.includes('samhällskunskap')) return 'Samhällskunskap';
-  if (name.includes('religionskunskap')) return 'Religionskunskap';
-  if (name.includes('idrott')) return 'Idrott och hälsa';
+  if (name.includes('geografi')) return 'Geografi';
+  if (name.includes('religion')) return 'Religion';
+  if (name.includes('idrott')) return 'Idrott';
   if (name.includes('programmering')) return 'Programmering';
+  if (name.includes('teknik')) return 'Teknik';
+  if (name.includes('psykologi')) return 'Psykologi';
+  if (name.includes('filosofi')) return 'Filosofi';
+  if (name.includes('gymnasiearbete')) return 'Gymnasiearbete';
+  if (name.includes('individuellt')) return 'Individuellt val';
   if (name.includes('webb')) return 'Webbutveckling';
   if (name.includes('databas')) return 'Databaser';
   if (name.includes('företagsekonomi') || name.includes('ekonomi')) return 'Företagsekonomi';
-  if (name.includes('psykologi')) return 'Psykologi';
-  if (name.includes('filosofi')) return 'Filosofi';
   if (name.includes('sociologi')) return 'Sociologi';
-  if (name.includes('teknik')) return 'Teknik';
   if (name.includes('cad')) return 'CAD';
   if (name.includes('estetisk')) return 'Estetisk kommunikation';
   return 'Övrigt';
