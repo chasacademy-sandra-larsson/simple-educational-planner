@@ -1,0 +1,57 @@
+{
+    "name": "educational-planner-server",
+    "version": "1.0.0",
+    "description": "Express backend with Drizzle ORM for educational planning",
+    "main": "dist/index.js",
+    "scripts": {
+        "db:seed": "tsx src/db/seed.ts",
+        "db:seed-27": "tsx scripts/seed-27-classes.ts",
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "tsx src/db/migrate.ts",
+        "db:push": "drizzle-kit push",
+        "db:reset": "tsx src/db/reset-database.ts",
+        "db:studio": "drizzle-kit studio",
+        "db:view": "tsx src/db/view-data.ts",
+        "db:view-users": "tsx src/db/view-users.ts",
+        "db:add-time-columns": "tsx src/db/add-time-columns.ts",
+        "db:check-columns": "tsx src/db/check-columns.ts",
+        "db:verify": "tsx src/db/verify-connection.ts",
+        "db:delete-seed": "tsx src/db/delete-seed-classes.ts",
+        "db:delete-classes": "tsx src/db/delete-classes.ts",
+        "db:migrate-curriculum": "tsx src/db/migrate-curriculum-data.ts",
+        "erd": "tsx src/db/dbml-manual.ts",
+        "erd:auto": "tsx src/db/dbml.ts",
+        "erd:watch": "nodemon --watch src/db/schema.ts --exec \"npm run erd\""
+    },
+    "keywords": [
+        "express",
+        "drizzle",
+        "postgresql"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "drizzle-orm": "^0.45.1",
+        "express": "^4.18.2",
+        "jsonwebtoken": "^9.0.2",
+        "postgres": "^3.4.3",
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^5.0.2",
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/jsonwebtoken": "^9.0.5",
+        "@types/node": "^20.10.5",
+        "drizzle-dbml-generator": "^0.10.0",
+        "drizzle-kit": "^0.31.8",
+        "tsx": "^4.21.0",
+        "typescript": "^5.3.3"
+    }
+}

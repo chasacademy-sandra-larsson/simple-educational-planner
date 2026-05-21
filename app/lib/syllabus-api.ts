@@ -10,6 +10,7 @@ export interface Course {
   name: string;
   points: number;
   category?: string; // FOUNDATIONAL_SUBJECTS, PROGRAMME_SPECIFIC_SUBJECTS, or ORIENTATION
+  subjectName?: string; // Name of the subject this course belongs to
 }
 
 export interface Orientation {
@@ -17,6 +18,7 @@ export interface Orientation {
   name: string;
   programCode: string;
 }
+
 
 export interface ProgramStructure {
   code: string;
@@ -32,7 +34,27 @@ interface StructureItem {
   children?: StructureItem[]; // For nested structures/choices
 }
 
-const BASE_URL = "https://api.skolverket.se/syllabus/v1";
+// Backend proxy URL (to avoid CORS issues with Skolverket API)
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const BACKEND_URL = `${API_BASE}/api/skolverket`;
+
+// Helper function to get auth token from localStorage
+function getAuthToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('auth_token');
+}
+
+// Helper function to get headers with auth
+function getAuthHeaders(): HeadersInit {
+    const token = getAuthToken();
+    const headers: Record<string, string> = {
+        Accept: "application/json",
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
 
 export const SCHOOL_TYPE_MAPPING: Record<string, string> = {
   GY: "Gymnasieskola",
@@ -54,36 +76,26 @@ export function getSchoolTypeName(code: string): string {
 
 export async function getPrograms(): Promise<Program[]> {
   try {
-    const response = await fetch(
-      `${BASE_URL}/programs`,
-      {
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
+    // Use backend proxy to avoid CORS issues
+    const response = await fetch(`${BACKEND_URL}/programs`, {
+      headers: getAuthHeaders(),
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch programs: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    // The API might return a wrapper object or an array. 
-    // Based on standard Skolverket API, it usually returns an object with a 'programs' property or similar.
-    // Let's assume for now it returns { programs: [...] } or just [...]
-    // I will add some safety checks.
-
-    const programs = data.programs || data;
+    const programs = await response.json();
 
     if (!Array.isArray(programs)) {
-      console.error("Unexpected API response format for programs:", data);
+      console.error("Unexpected API response format for programs:", programs);
       return [];
     }
 
     return programs.map((p: any) => ({
       code: p.code,
       name: p.name,
-      typeOfStudyPath: p.typeOfStudyPath,
+      typeOfStudyPath: p.typeOfStudyPath || p.category,
       schoolTypes: p.schoolTypes,
     }));
   } catch (error) {
@@ -94,10 +106,9 @@ export async function getPrograms(): Promise<Program[]> {
 
 export async function getProgramStructure(code: string): Promise<Course[]> {
   try {
-    const response = await fetch(`${BASE_URL}/programs/${code}`, {
-      headers: {
-        Accept: "application/json",
-      },
+    // Use backend proxy to avoid CORS issues
+    const response = await fetch(`${BACKEND_URL}/programs/${code}/courses`, {
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -106,37 +117,14 @@ export async function getProgramStructure(code: string): Promise<Course[]> {
 
     const data = await response.json();
 
-    console.log("Full API response:", JSON.stringify(data, null, 2));
-
-    // The API returns a structure like:
-    // { program: { programStructure: { subjects: [ { name, code, courses: [ { name, code, points } ] } ] } } }
-    const courses: Course[] = [];
-
-    // Check multiple possible paths for subjects
-    const subjects =
-      data.program?.programStructure?.subjects ||
-      data.programStructure?.subjects ||
-      data.subjects;
-
-    console.log("Subjects found:", subjects);
-
-    if (subjects && Array.isArray(subjects)) {
-      for (const subject of subjects) {
-        if (subject.courses && Array.isArray(subject.courses)) {
-          for (const course of subject.courses) {
-            courses.push({
-              courseCode: course.code,
-              name: course.name,
-              points: parseInt(course.points) || 0,
-            });
-          }
-        }
-      }
-    }
-
-    console.log("Parsed courses:", courses);
-
-    return courses;
+    // Backend returns array of courses directly
+    return data.map((course: any) => ({
+      courseCode: course.code,
+      name: course.name,
+      points: course.points || 0,
+      category: course.category,
+      subjectName: course.subjectName,
+    }));
 
   } catch (error) {
     console.error("Error fetching program structure:", error);
@@ -146,30 +134,22 @@ export async function getProgramStructure(code: string): Promise<Course[]> {
 
 export async function getOrientations(programCode: string): Promise<Orientation[]> {
   try {
-    const response = await fetch(`${BASE_URL}/programs/${programCode}`, {
-      headers: {
-        Accept: "application/json",
-      },
+    const url = `${BACKEND_URL}/programs/${programCode}/orientations`;
+    console.log('Fetching orientations from:', url);
+
+    // Use backend proxy to avoid CORS issues
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch orientations: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Failed to fetch orientations: ${response.status} ${response.statusText}`, errorText);
+      return [];
     }
 
-    const data = await response.json();
-    const orientations: Orientation[] = [];
-
-    // Extract orientations from the program data
-    if (data.program?.orientations && Array.isArray(data.program.orientations)) {
-      for (const orientation of data.program.orientations) {
-        orientations.push({
-          code: orientation.code,
-          name: orientation.name,
-          programCode: orientation.programCode || programCode,
-        });
-      }
-    }
-
+    const orientations = await response.json();
+    console.log('Received orientations:', orientations);
     return orientations;
 
   } catch (error) {
@@ -178,12 +158,11 @@ export async function getOrientations(programCode: string): Promise<Orientation[
   }
 }
 
-export async function getCoursesByOrientation(programCode: string, orientationCode: string): Promise<Course[]> {
+export async function getProgramSpecializationSubjects(programCode: string): Promise<Course[]> {
   try {
-    const response = await fetch(`${BASE_URL}/programs/${programCode}`, {
-      headers: {
-        Accept: "application/json",
-      },
+    // Use backend proxy to get program details including specialization subjects
+    const response = await fetch(`${BACKEND_URL}/programs/${programCode}`, {
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
@@ -193,59 +172,52 @@ export async function getCoursesByOrientation(programCode: string, orientationCo
     const data = await response.json();
     const courses: Course[] = [];
 
-    // 1. Add foundational subjects
-    if (data.program?.foundationSubjects?.subjects && Array.isArray(data.program.foundationSubjects.subjects)) {
-      for (const subject of data.program.foundationSubjects.subjects) {
+    // Backend returns specializationSubjects array with subjects containing courses
+    if (data.specializationSubjects && Array.isArray(data.specializationSubjects)) {
+      for (const subject of data.specializationSubjects) {
         if (subject.courses && Array.isArray(subject.courses)) {
           for (const course of subject.courses) {
             courses.push({
               courseCode: course.code,
               name: course.name,
-              points: parseInt(course.points) || 0,
-              category: "FOUNDATIONAL_SUBJECTS",
+              points: course.points || 0,
+              category: "PROGRAMME_SPECIALIZATION",
+              subjectName: subject.name,
             });
-          }
-        }
-      }
-    }
-
-    // 2. Add programme-specific subjects
-    if (data.program?.programmeSpecificSubjects?.subjects && Array.isArray(data.program.programmeSpecificSubjects.subjects)) {
-      for (const subject of data.program.programmeSpecificSubjects.subjects) {
-        if (subject.courses && Array.isArray(subject.courses)) {
-          for (const course of subject.courses) {
-            courses.push({
-              courseCode: course.code,
-              name: course.name,
-              points: parseInt(course.points) || 0,
-              category: "PROGRAMME_SPECIFIC_SUBJECTS",
-            });
-          }
-        }
-      }
-    }
-
-    // 3. Add orientation-specific subjects
-    if (data.program?.orientations && Array.isArray(data.program.orientations)) {
-      const orientation = data.program.orientations.find((o: any) => o.code === orientationCode);
-
-      if (orientation && orientation.subjects && Array.isArray(orientation.subjects)) {
-        for (const subject of orientation.subjects) {
-          if (subject.courses && Array.isArray(subject.courses)) {
-            for (const course of subject.courses) {
-              courses.push({
-                courseCode: course.code,
-                name: course.name,
-                points: parseInt(course.points) || 0,
-                category: "ORIENTATION",
-              });
-            }
           }
         }
       }
     }
 
     return courses;
+
+  } catch (error) {
+    console.error("Error fetching program specialization subjects:", error);
+    return [];
+  }
+}
+
+export async function getCoursesByOrientation(programCode: string, orientationCode: string): Promise<Course[]> {
+  try {
+    // Use backend proxy with orientation query parameter
+    const response = await fetch(`${BACKEND_URL}/programs/${programCode}/courses?orientation=${orientationCode}`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch program structure: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Backend returns array of courses directly with all categories
+    return data.map((course: any) => ({
+      courseCode: course.code,
+      name: course.name,
+      points: course.points || 0,
+      category: course.category,
+      subjectName: course.subjectName,
+    }));
 
   } catch (error) {
     console.error("Error fetching courses by orientation:", error);

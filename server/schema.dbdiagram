@@ -1,0 +1,261 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "class_curricula",
+      "schemaName": "public",
+      "x": -324.40373277930075,
+      "y": 36.89565011650578
+    },
+    {
+      "name": "course_instances",
+      "schemaName": "public",
+      "x": -145.525009121469,
+      "y": 603.430051789594
+    },
+    {
+      "name": "project_classes",
+      "schemaName": "public",
+      "x": 309.295251610357,
+      "y": 267.6148544486378
+    },
+    {
+      "name": "projects",
+      "schemaName": "public",
+      "x": 671.1336304612677,
+      "y": 113.61323359558023
+    },
+    {
+      "name": "rooms",
+      "schemaName": "public",
+      "x": 368.8070021448755,
+      "y": 1055.413684277347
+    },
+    {
+      "name": "service_distribution_courses",
+      "schemaName": "public",
+      "x": -668.683333315495,
+      "y": 757.9748831996442
+    },
+    {
+      "name": "teacher_service_distributions",
+      "schemaName": "public",
+      "x": -1140.3823809098465,
+      "y": 693.9748831996442
+    },
+    {
+      "name": "teachers",
+      "schemaName": "public",
+      "x": -759.8979990405287,
+      "y": 231.52692598051965
+    },
+    {
+      "name": "users",
+      "schemaName": "public",
+      "x": 773.923402336015,
+      "y": -341.0558374345966
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": [
+    {
+      "firstFieldNames": [
+        "class_id"
+      ],
+      "firstTableName": "class_curricula",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "project_classes",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "curriculum_id"
+      ],
+      "firstTableName": "course_instances",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "class_curricula",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "class_id"
+      ],
+      "firstTableName": "course_instances",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "project_classes",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "teacher_id"
+      ],
+      "firstTableName": "course_instances",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "teachers",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "room_id"
+      ],
+      "firstTableName": "course_instances",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "rooms",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "project_id"
+      ],
+      "firstTableName": "project_classes",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "projects",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "user_id"
+      ],
+      "firstTableName": "projects",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "users",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "project_id"
+      ],
+      "firstTableName": "rooms",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "projects",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "project_id"
+      ],
+      "firstTableName": "teachers",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "projects",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "service_distribution_id"
+      ],
+      "firstTableName": "service_distribution_courses",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "teacher_service_distributions",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "course_instance_id"
+      ],
+      "firstTableName": "service_distribution_courses",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "course_instances",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "teacher_id"
+      ],
+      "firstTableName": "teacher_service_distributions",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "teachers",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    },
+    {
+      "firstFieldNames": [
+        "project_id"
+      ],
+      "firstTableName": "teacher_service_distributions",
+      "firstSchemaName": "public",
+      "firstRelation": "*",
+      "secondFieldNames": [
+        "id"
+      ],
+      "secondTableName": "projects",
+      "secondSchemaName": "public",
+      "secondRelation": "1",
+      "checkPoints": []
+    }
+  ]
+}
