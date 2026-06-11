@@ -7,8 +7,10 @@ import type {
     ScheduledLesson,
     TermType,
     ScheduleStatus,
+    PreflightWarning,
 } from '@/app/lib/api/types';
 import { api, ApiError } from '@/app/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ScheduleGeneratorProps {
     project: ProjectWithDetails;
@@ -25,32 +27,38 @@ function formatTime(timeStr: string): string {
 
 // Status badge colors
 const STATUS_COLORS: Record<ScheduleStatus, string> = {
-    draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    approved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    archived: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300',
-    failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    draft: 'bg-accent text-accent-foreground',
+    active: 'bg-primary text-primary-foreground',
+    superseded: 'bg-muted text-muted-foreground',
+    failed: 'bg-destructive/10 text-destructive',
+    // Legacy statuses (pre ADR-0008)
+    approved: 'bg-primary/10 text-primary',
+    archived: 'bg-muted text-muted-foreground',
 };
 
 const STATUS_LABELS: Record<ScheduleStatus, string> = {
     draft: 'Utkast',
+    active: 'Aktivt',
+    superseded: 'Ersatt',
+    failed: 'Misslyckad',
+    // Legacy
     approved: 'Godkänd',
     archived: 'Arkiverad',
-    failed: 'Misslyckad',
 };
 
 // Color palette for different courses (consistent colors)
 function getCourseColor(courseCode: string): string {
     const colors = [
-        'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700',
-        'bg-green-100 dark:bg-green-900/40 border-green-300 dark:border-green-700',
-        'bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700',
-        'bg-orange-100 dark:bg-orange-900/40 border-orange-300 dark:border-orange-700',
-        'bg-pink-100 dark:bg-pink-900/40 border-pink-300 dark:border-pink-700',
-        'bg-teal-100 dark:bg-teal-900/40 border-teal-300 dark:border-teal-700',
-        'bg-indigo-100 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-700',
-        'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-300 dark:border-yellow-700',
-        'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700',
-        'bg-cyan-100 dark:bg-cyan-900/40 border-cyan-300 dark:border-cyan-700',
+        'bg-accent border-primary',
+        'bg-primary/10 border-primary',
+        'bg-muted border-border',
+        'bg-accent border-border',
+        'bg-muted border-border',
+        'bg-primary/10 border-primary',
+        'bg-accent border-border',
+        'bg-accent border-border',
+        'bg-destructive/10 border-destructive',
+        'bg-muted border-border',
     ];
     // Simple hash function to get consistent color for same course code
     let hash = 0;
@@ -67,6 +75,7 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [preflightWarnings, setPreflightWarnings] = useState<PreflightWarning[]>([]);
 
     // Form state
     const [selectedYear, setSelectedYear] = useState('');
@@ -135,6 +144,7 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
         setGenerating(true);
         setError('');
         setSuccess('');
+        setPreflightWarnings([]);
 
         try {
             console.log('[ScheduleGenerator] Calling API with:', { projectId: project.id, academicYear: selectedYear, termType: selectedTerm });
@@ -144,6 +154,8 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                 termType: selectedTerm,
             });
             console.log('[ScheduleGenerator] API response:', result);
+
+            setPreflightWarnings(result.preflight || []);
 
             if (result.result.success) {
                 setSuccess(`Schema genererat! ${result.result.lessonCount} lektioner på ${result.result.solverTimeMs}ms`);
@@ -256,11 +268,9 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
 
     if (loading) {
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div>
-                    <div className="h-32 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
-                </div>
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-32 w-full" />
             </div>
         );
     }
@@ -268,25 +278,43 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
     return (
         <div className="space-y-6">
             {/* Generate Form */}
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                <h2 className="text-xl font-semibold text-foreground mb-6">
                     Generera schema
                 </h2>
 
                 {error && (
-                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+                    <div className="mb-4 p-4 bg-destructive/10 border border-destructive rounded-lg text-destructive">
                         {error}
                     </div>
                 )}
 
                 {success && (
-                    <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
+                    <div className="mb-4 p-4 bg-primary/10 border border-primary rounded-lg text-primary">
                         {success}
                     </div>
                 )}
 
+                {preflightWarnings.length > 0 && (
+                    <div className="mb-4 p-4 bg-accent/40 border border-border rounded-lg">
+                        <h3 className="text-sm font-semibold text-foreground mb-2">
+                            Preflight-varningar ({preflightWarnings.length})
+                        </h3>
+                        <ul className="space-y-1 text-sm">
+                            {preflightWarnings.map((w, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                    <span className={`mt-0.5 inline-block w-2 h-2 rounded-full flex-shrink-0 ${
+                                        w.severity === 'error' ? 'bg-destructive' : 'bg-accent-foreground'
+                                    }`} />
+                                    <span className="text-foreground">{w.message}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
                 {academicYears.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                    <div className="text-center py-8 text-muted-foreground">
                         <p>Inga klasser har lagts till ännu.</p>
                         <p className="text-sm mt-2">Lägg till klasser och kurser för att kunna generera schema.</p>
                     </div>
@@ -294,13 +322,13 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Läsår
                                 </label>
                                 <select
                                     value={selectedYear}
                                     onChange={(e) => setSelectedYear(e.target.value)}
-                                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                                 >
                                     {academicYears.map(year => (
                                         <option key={year} value={year}>{year}</option>
@@ -308,20 +336,20 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Termin
                                 </label>
                                 <select
                                     value={selectedTerm}
                                     onChange={(e) => setSelectedTerm(e.target.value as TermType)}
-                                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                                 >
                                     <option value="fall">Hösttermin (HT)</option>
                                     <option value="spring">Vårtermin (VT)</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Namn (valfritt)
                                 </label>
                                 <input
@@ -329,14 +357,14 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                     value={scheduleName}
                                     onChange={(e) => setScheduleName(e.target.value)}
                                     placeholder={`Schema ${selectedYear} ${selectedTerm === 'fall' ? 'HT' : 'VT'}`}
-                                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                    className="w-full px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                                 />
                             </div>
                             <div className="flex items-end">
                                 <button
                                     onClick={handleGenerate}
                                     disabled={generating || !selectedYear}
-                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {generating ? 'Genererar...' : 'Generera schema'}
                                 </button>
@@ -347,13 +375,13 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
             </div>
 
             {/* Schedules List */}
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                <h2 className="text-xl font-semibold text-foreground mb-6">
                     Genererade scheman
                 </h2>
 
                 {schedules.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                    <div className="text-center py-8 text-muted-foreground">
                         <p>Inga scheman har genererats ännu.</p>
                     </div>
                 ) : (
@@ -363,18 +391,18 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                 key={schedule.id}
                                 className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                                     selectedSchedule?.id === schedule.id
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                        : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-700/50'
+                                        ? 'border-primary bg-accent'
+                                        : 'border-border hover:bg-muted'
                                 }`}
                                 onClick={() => loadScheduleDetails(schedule)}
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div>
-                                            <h3 className="font-medium text-zinc-900 dark:text-zinc-100">
+                                            <h3 className="font-medium text-foreground">
                                                 {schedule.name}
                                             </h3>
-                                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                            <p className="text-sm text-muted-foreground">
                                                 {schedule.academicYear} - {schedule.termType === 'fall' ? 'Hösttermin' : 'Vårtermin'}
                                             </p>
                                         </div>
@@ -391,11 +419,11 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                                     handleStatusChange(schedule.id, e.target.value as ScheduleStatus);
                                                 }}
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="text-sm px-2 py-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                                className="text-sm px-2 py-1 border border-border rounded bg-card text-foreground"
                                             >
                                                 <option value="draft">Utkast</option>
-                                                <option value="approved">Godkänd</option>
-                                                <option value="archived">Arkiverad</option>
+                                                <option value="active">Aktivt</option>
+                                                <option value="superseded">Ersatt</option>
                                             </select>
                                         )}
                                         <button
@@ -403,17 +431,17 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                                 e.stopPropagation();
                                                 handleDelete(schedule.id);
                                             }}
-                                            className="text-sm px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                                            className="text-sm px-3 py-1 bg-destructive/10 text-destructive rounded hover:bg-destructive/20 transition-colors"
                                         >
                                             Ta bort
                                         </button>
                                     </div>
                                 </div>
                                 {schedule.solverTimeMs !== null && (
-                                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2">
+                                    <p className="text-xs text-muted-foreground mt-2">
                                         Genererades på {schedule.solverTimeMs}ms
                                         {schedule.totalConflicts !== null && schedule.totalConflicts > 0 && (
-                                            <span className="text-orange-500"> ({schedule.totalConflicts} konflikter)</span>
+                                            <span className="text-accent-foreground"> ({schedule.totalConflicts} konflikter)</span>
                                         )}
                                     </p>
                                 )}
@@ -425,25 +453,25 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
 
             {/* Schedule View */}
             {selectedSchedule && (
-                <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+                <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                            <h2 className="text-xl font-semibold text-foreground">
                                 {selectedSchedule.name}
                             </h2>
-                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                            <p className="text-sm text-muted-foreground">
                                 {filteredLessons.length} lektioner
                             </p>
                         </div>
                         <div className="flex items-center gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Filtrera klass
                                 </label>
                                 <select
                                     value={filterClass}
                                     onChange={(e) => setFilterClass(e.target.value)}
-                                    className="px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                    className="px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                                 >
                                     <option value="all">Alla klasser</option>
                                     {getUniqueClasses().map(cls => (
@@ -452,13 +480,13 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Filtrera lärare
                                 </label>
                                 <select
                                     value={filterTeacher}
                                     onChange={(e) => setFilterTeacher(e.target.value)}
-                                    className="px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                    className="px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                                 >
                                     <option value="all">Alla lärare</option>
                                     {getUniqueTeachers().map(teacher => (
@@ -473,7 +501,7 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                                     setFilterClass('all');
                                     setFilterTeacher('all');
                                 }}
-                                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                                className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors"
                             >
                                 Stäng
                             </button>
@@ -481,8 +509,8 @@ export default function ScheduleGenerator({ project, onUpdate }: ScheduleGenerat
                     </div>
 
                     {loadingLessons ? (
-                        <div className="animate-pulse space-y-4">
-                            <div className="h-64 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
+                        <div className="space-y-4">
+                            <Skeleton className="h-64 w-full" />
                         </div>
                     ) : (
                         <WeeklyGrid
@@ -520,12 +548,12 @@ function WeeklyGrid({
         <div className="overflow-x-auto">
             <div className="min-w-[800px]">
                 {/* Header */}
-                <div className="grid grid-cols-[80px_repeat(5,1fr)] border-b border-zinc-200 dark:border-zinc-700">
-                    <div className="p-2 bg-zinc-50 dark:bg-zinc-900 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                <div className="grid grid-cols-[80px_repeat(5,1fr)] border-b border-border">
+                    <div className="p-2 bg-muted text-sm font-medium text-muted-foreground">
                         Tid
                     </div>
                     {[1, 2, 3, 4, 5].map(day => (
-                        <div key={day} className="p-2 bg-zinc-50 dark:bg-zinc-900 text-center text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        <div key={day} className="p-2 bg-muted text-center text-sm font-medium text-muted-foreground">
                             {DAY_NAMES[day]}
                         </div>
                     ))}
@@ -534,10 +562,10 @@ function WeeklyGrid({
                 {/* Grid */}
                 <div className="grid grid-cols-[80px_repeat(5,1fr)]">
                     {/* Time labels */}
-                    <div className="border-r border-zinc-200 dark:border-zinc-700">
+                    <div className="border-r border-border">
                         {hours.map(hour => (
-                            <div key={hour} className="h-[60px] border-b border-zinc-100 dark:border-zinc-800 flex items-start justify-end pr-2 pt-1">
-                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                            <div key={hour} className="h-[60px] border-b border-border flex items-start justify-end pr-2 pt-1">
+                                <span className="text-xs text-muted-foreground">
                                     {hour.toString().padStart(2, '0')}:00
                                 </span>
                             </div>
@@ -546,10 +574,10 @@ function WeeklyGrid({
 
                     {/* Day columns */}
                     {[1, 2, 3, 4, 5].map(day => (
-                        <div key={day} className="relative border-r border-zinc-200 dark:border-zinc-700">
+                        <div key={day} className="relative border-r border-border">
                             {/* Hour lines */}
                             {hours.map(hour => (
-                                <div key={hour} className="h-[60px] border-b border-zinc-100 dark:border-zinc-800" />
+                                <div key={hour} className="h-[60px] border-b border-border" />
                             ))}
 
                             {/* Lessons */}
@@ -567,24 +595,24 @@ function WeeklyGrid({
                                         }}
                                         title={`${lesson.courseName}\n${lesson.classCode}\n${lesson.teacherName || 'Ingen lärare'}\n${lesson.roomNumber || 'Inget rum'}`}
                                     >
-                                        <div className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                                        <div className="text-xs font-medium text-foreground truncate">
                                             {lesson.courseCode}
                                         </div>
-                                        <div className="text-xs text-zinc-600 dark:text-zinc-400 truncate">
+                                        <div className="text-xs text-muted-foreground truncate">
                                             {lesson.classCode}
                                         </div>
                                         {lesson.teacherName && (
-                                            <div className="text-xs text-blue-600 dark:text-blue-400 truncate font-medium">
+                                            <div className="text-xs text-primary truncate font-medium">
                                                 {lesson.teacherName}
                                             </div>
                                         )}
                                         {height > 50 && (
                                             <>
-                                                <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                                                <div className="text-xs text-muted-foreground truncate">
                                                     {formatTime(lesson.startTime)}-{formatTime(lesson.endTime)}
                                                 </div>
                                                 {lesson.roomNumber && (
-                                                    <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+                                                    <div className="text-xs text-muted-foreground truncate">
                                                         {lesson.roomNumber}
                                                     </div>
                                                 )}

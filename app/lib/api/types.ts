@@ -5,6 +5,7 @@ export interface CourseAssignment {
     id?: string; // Course instance ID
     courseCode: string;
     courseName: string;
+    subject?: string | null; // Skolverket subject for room allowedSubjects matching
     points: number;
     category: 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE' | 'GYMNASIEARBETE';
     year: 1 | 2 | 3;
@@ -40,6 +41,8 @@ export interface Project {
     latestLunchTime?: string; // TIME format: "HH:MM:SS"
     shortestBreakBetweenLessons?: number; // minutes
     longestBreakBetweenLessons?: number; // minutes
+    teacherBreakMinutes?: number; // minutes between a teacher's lessons (default 15)
+    fullTimeServicePoints?: number; // service points that count as 100% tjänst (default 600)
     createdAt: string;
     updatedAt: string;
 }
@@ -102,6 +105,8 @@ export interface CreateProjectRequest {
     latestLunchTime?: string; // TIME format: "HH:MM:SS"
     shortestBreakBetweenLessons?: number; // minutes
     longestBreakBetweenLessons?: number; // minutes
+    teacherBreakMinutes?: number; // minutes
+    fullTimeServicePoints?: number; // points
 }
 
 export interface CreateClassRequest {
@@ -206,9 +211,22 @@ export interface ProjectScheduleCalculation {
 }
 
 // Generated schedule types
-export type ScheduleStatus = 'draft' | 'approved' | 'archived' | 'failed';
+// ADR-0008: lifecycle is draft → active → superseded. `failed` is set when solver returns no schedule.
+// `approved`/`archived` are legacy aliases kept for backward compatibility with old data.
+export type ScheduleStatus = 'draft' | 'active' | 'superseded' | 'failed' | 'approved' | 'archived';
 export type SolverStatus = 'OPTIMAL' | 'FEASIBLE' | 'INFEASIBLE' | 'TIMEOUT' | 'ERROR';
 export type TermType = 'fall' | 'spring';
+
+// Preflight warnings produced by the backend before the solver runs.
+export type PreflightSeverity = 'warning' | 'error';
+export interface PreflightWarning {
+    severity: PreflightSeverity;
+    type: string;
+    message: string;
+    courseInstanceId?: string;
+    teacherId?: string;
+    classId?: string;
+}
 
 export interface GeneratedSchedule {
     id: string;
@@ -264,6 +282,7 @@ export interface GenerateScheduleResponse {
         solverTimeMs: number;
         totalConflicts: number;
     };
+    preflight: PreflightWarning[];
 }
 
 export interface ScheduleWithLessons {
