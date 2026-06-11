@@ -28,6 +28,8 @@ export const projects = pgTable('projects', {
     latestLunchTime: time('latest_lunch_time'), // Latest lunch time (e.g., "13:30:00")
     shortestBreakBetweenLessons: integer('shortest_break_between_lessons'), // Shortest break between lessons in minutes (e.g., 5)
     longestBreakBetweenLessons: integer('longest_break_between_lessons'), // Longest break between lessons in minutes (e.g., 15)
+    teacherBreakMinutes: integer('teacher_break_minutes').notNull().default(15), // Minimum break between a teacher's lessons in minutes
+    fullTimeServicePoints: integer('full_time_service_points').notNull().default(600), // Service points that count as 100% tjänst (varies per school: 600 or 700 is typical)
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -86,6 +88,7 @@ export const courseInstances = pgTable('course_instances', {
     roomId: uuid('room_id').references(() => rooms.id, { onDelete: 'set null' }), // NULL if no room assigned yet
     courseCode: text('course_code').notNull(),
     courseName: text('course_name').notNull(),
+    subject: text('subject'), // Subject from Skolverket (e.g., "fysik", "matematik"). Used for room subject-matching. NULL = not yet populated.
     points: integer('points').notNull(),
     category: text('category').notNull(), // FOUNDATIONAL_SUBJECTS, PROGRAMME_SPECIFIC_SUBJECTS, ORIENTATION, INDIVIDUAL_CHOICE, GYMNASIEARBETE
     year: integer('year').notNull(), // 1, 2, or 3
