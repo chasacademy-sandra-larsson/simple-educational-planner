@@ -47,8 +47,8 @@ class ScheduleSolver:
         self.teachers = {t['id']: t for t in input_data['teachers']}
         self.rooms = {r['id']: r for r in input_data['rooms']}
 
-        # Time slot configuration
-        self.slot_duration = 15  # 15-minute increments
+        # Time slot configuration — 5-min slots (ADR-0004) for tighter rounding
+        self.slot_duration = 5
         self.days = list(range(1, 6))  # Monday=1 to Friday=5
         self.num_days = 5
 
@@ -62,6 +62,8 @@ class ScheduleSolver:
         self.earliest_lunch = self.settings.get('earliestLunchTime', 11 * 60 + 30)  # 11:30
         self.latest_lunch = self.settings.get('latestLunchTime', 13 * 60 + 30)  # 13:30
         self.break_between_lessons = self.settings.get('shortestBreakBetweenLessons', 5)
+        self.teacher_break = self.settings.get('teacherBreakMinutes', 15)
+        self.full_time_points = self.settings.get('fullTimeServicePoints', 600)
 
         # Round to slot_duration increments (use round for nearest, not floor)
         self.min_lesson_duration = max(self.slot_duration,
@@ -73,7 +75,7 @@ class ScheduleSolver:
         self.latest_end = self.settings['latestLessonEnd']
         self.day_length = self.latest_end - self.earliest_start
 
-        # Generate all possible start times (in 15-min increments)
+        # Generate all possible start times (in slot_duration increments)
         self.start_times = []
         t = self.earliest_start
         while t + self.slot_duration <= self.latest_end:
@@ -99,7 +101,15 @@ class ScheduleSolver:
 
         Strategy: Calculate the ideal duration based on minutesPerWeek / lessonsPerWeek,
         then clamp to [minLessonDuration, maxLessonDuration] and round to slot_duration.
+
+        Pseudo-courses (courseCode prefix '_', e.g. mentor time) bypass clamping and
+        use their lessonDuration directly — mentor time is 30 min which is below the
+        normal minimum.
         """
+        if course.get('courseCode', '').startswith('_'):
+            d = course.get('lessonDuration', self.default_lesson_duration)
+            return int(round(d / self.slot_duration) * self.slot_duration)
+
         minutes_per_week = course.get('minutesPerWeek', 0)
         lessons_per_week = course.get('lessonsPerWeek', 1)
 
@@ -112,7 +122,7 @@ class ScheduleSolver:
         # Clamp to min/max
         duration = max(self.min_lesson_duration, min(self.max_lesson_duration, ideal_duration))
 
-        # Round to nearest slot_duration (15 min)
+        # Round to nearest slot_duration
         duration = round(duration / self.slot_duration) * self.slot_duration
 
         # Ensure within bounds after rounding
@@ -134,10 +144,11 @@ class ScheduleSolver:
                     'classId': course['classId'],
                     'courseCode': course['courseCode'],
                     'courseName': course['courseName'],
+                    'subject': course.get('subject'),
                     'duration': duration,
                     'lessonIndex': i + 1,
-                    'preferredTeacherId': course.get('preferredTeacherId'),
-                    'preferredRoomId': course.get('preferredRoomId'),
+                    'teacherId': course.get('teacherId'),
+                    'roomId': course.get('roomId'),  # Locked room (None = solver chooses)
                 })
         return lessons
 
@@ -211,7 +222,7 @@ class ScheduleSolver:
 
         print(f"[Python Solver] Created {len(self.interval_vars)} interval variables", file=sys.stderr)
 
-        # Constraint: No class double-booking using AddNoOverlap
+        # Build per-class lesson lists
         lessons_by_class: Dict[str, List[int]] = {}
         for lesson in self.lesson_info:
             idx = lesson['index']
@@ -222,12 +233,75 @@ class ScheduleSolver:
                 lessons_by_class[class_id] = []
             lessons_by_class[class_id].append(idx)
 
+        # Per-class lunch intervals: each class gets its own lunch in the window each day.
+        # Different classes can have lunch at different times (spreads cafeteria load).
+        lunch_window_starts: List[int] = []
+        t = self.earliest_lunch
+        while t + self.lunch_duration <= self.latest_lunch:
+            lunch_window_starts.append(t)
+            t += self.slot_duration
+
+        if not lunch_window_starts:
+            print(f"[Python Solver] WARNING: Lunch window {minutes_to_time(self.earliest_lunch)}-{minutes_to_time(self.latest_lunch)} too narrow for lunch_duration={self.lunch_duration}", file=sys.stderr)
+
+        self.class_lunch_intervals: Dict = {}  # (class_id, day) -> IntervalVar
+        relative_lunch_starts = [s - self.earliest_start for s in lunch_window_starts]
+        for class_id in lessons_by_class.keys():
+            for day in self.days:
+                if not relative_lunch_starts:
+                    continue
+                lunch_start_in_day = self.model.NewIntVarFromDomain(
+                    cp_model.Domain.FromValues(relative_lunch_starts),
+                    f"lunch_start_{class_id[:8]}_d{day}"
+                )
+                lunch_time = self.model.NewIntVar(0, max_time, f"lunch_time_{class_id[:8]}_d{day}")
+                self.model.Add(lunch_time == (day - 1) * self.day_length + lunch_start_in_day)
+                lunch_interval = self.model.NewIntervalVar(
+                    lunch_time, self.lunch_duration, lunch_time + self.lunch_duration,
+                    f"lunch_int_{class_id[:8]}_d{day}"
+                )
+                self.class_lunch_intervals[(class_id, day)] = lunch_interval
+
+        # Constraint: No class double-booking. Class lunches participate in the no-overlap
+        # so lessons can never overlap a class's own lunch.
         for class_id, indices in lessons_by_class.items():
-            if len(indices) > 1:
-                intervals = [self.interval_vars[idx] for idx in indices]
+            intervals = [self.interval_vars[idx] for idx in indices]
+            for day in self.days:
+                if (class_id, day) in self.class_lunch_intervals:
+                    intervals.append(self.class_lunch_intervals[(class_id, day)])
+            if len(intervals) > 1:
                 self.model.AddNoOverlap(intervals)
 
-        print(f"[Python Solver] Added no-overlap constraints for {len(lessons_by_class)} classes", file=sys.stderr)
+        print(f"[Python Solver] Added no-overlap constraints for {len(lessons_by_class)} classes (incl. {len(self.class_lunch_intervals)} class-lunch intervals)", file=sys.stderr)
+
+        # Constraint: Each course instance spreads lessons across different days
+        # (max 1 lesson/day/courseInstance, > 5 lessons/week → INFEASIBLE)
+        lessons_by_course_instance: Dict[str, List[int]] = {}
+        for lesson in self.lesson_info:
+            idx = lesson['index']
+            if idx not in self.day_vars:
+                continue
+            cid = lesson['courseInstanceId']
+            if cid not in lessons_by_course_instance:
+                lessons_by_course_instance[cid] = []
+            lessons_by_course_instance[cid].append(idx)
+
+        all_different_added = 0
+        for cid, indices in lessons_by_course_instance.items():
+            if len(indices) <= 1:
+                continue
+            if len(indices) > 5:
+                print(f"[Python Solver] ERROR: Course instance {cid[:8]}... has {len(indices)} lessons/week, max 5 allowed", file=sys.stderr)
+                # Add a contradictory constraint so the model is provably INFEASIBLE
+                false_var = self.model.NewBoolVar(f"course_too_many_lessons_{cid[:8]}")
+                self.model.Add(false_var == 0)
+                self.model.Add(false_var == 1)
+                continue
+            day_vars_for_course = [self.day_vars[idx] for idx in indices]
+            self.model.AddAllDifferent(day_vars_for_course)
+            all_different_added += 1
+
+        print(f"[Python Solver] Added AllDifferent on days for {all_different_added} course instances", file=sys.stderr)
 
         # Constraint: No teacher double-booking
         lessons_by_teacher: Dict[str, List[int]] = {}
@@ -235,7 +309,7 @@ class ScheduleSolver:
             idx = lesson['index']
             if idx not in self.interval_vars:
                 continue
-            teacher_id = lesson.get('preferredTeacherId')
+            teacher_id = lesson.get('teacherId')
             if teacher_id:
                 if teacher_id not in lessons_by_teacher:
                     lessons_by_teacher[teacher_id] = []
@@ -248,68 +322,71 @@ class ScheduleSolver:
 
         print(f"[Python Solver] Added no-overlap constraints for {len(lessons_by_teacher)} teachers", file=sys.stderr)
 
-        # Constraint: No room double-booking
-        lessons_by_room: Dict[str, List[int]] = {}
+        # Per-lesson room assignment with subject matching.
+        # Each lesson chooses exactly one room from the set of valid rooms.
+        # Subject matching: room.allowedSubjects ⊇ {course.subject}, or room.allowedSubjects = None (any subject).
+        # Locked room: if lesson has a roomId, that's the only valid choice.
+        self.lesson_in_room: Dict[int, Dict[str, Any]] = {}  # idx -> {room_id: BoolVar}
+        room_intervals: Dict[str, List[Any]] = {rid: [] for rid in self.rooms.keys()}
+
+        invalid_lessons = 0
         for lesson in self.lesson_info:
             idx = lesson['index']
             if idx not in self.interval_vars:
                 continue
-            room_id = lesson.get('preferredRoomId')
-            if room_id:
-                if room_id not in lessons_by_room:
-                    lessons_by_room[room_id] = []
-                lessons_by_room[room_id].append(idx)
+            locked_room = lesson.get('roomId')
+            subject = lesson.get('subject')
+            # Determine valid rooms for this lesson
+            if locked_room:
+                valid = [locked_room] if locked_room in self.rooms else []
+            elif subject is None:
+                # No subject (e.g. mentor time) → any room is OK
+                valid = list(self.rooms.keys())
+            else:
+                valid = []
+                for rid, room in self.rooms.items():
+                    allowed = room.get('allowedSubjects')
+                    if allowed is None or subject in allowed:
+                        valid.append(rid)
 
-        for room_id, indices in lessons_by_room.items():
-            if len(indices) > 1:
-                intervals = [self.interval_vars[idx] for idx in indices]
+            if not valid:
+                invalid_lessons += 1
+                # Force infeasibility for this lesson explicitly
+                no_room = self.model.NewBoolVar(f"no_valid_room_{idx}")
+                self.model.Add(no_room == 0)
+                self.model.Add(no_room == 1)
+                continue
+
+            self.lesson_in_room[idx] = {}
+            flags = []
+            for rid in self.rooms.keys():
+                flag = self.model.NewBoolVar(f"in_room_{idx}_{rid[:8]}")
+                if rid not in valid:
+                    self.model.Add(flag == 0)
+                self.lesson_in_room[idx][rid] = flag
+                flags.append(flag)
+                opt_interval = self.model.NewOptionalIntervalVar(
+                    self.time_vars[idx],
+                    lesson['duration'],
+                    self.time_vars[idx] + lesson['duration'],
+                    flag,
+                    f"opt_int_{idx}_{rid[:8]}"
+                )
+                room_intervals[rid].append(opt_interval)
+            self.model.AddExactlyOne(flags)
+
+        print(f"[Python Solver] Set up room assignment for {len(self.lesson_in_room)} lessons across {len(self.rooms)} rooms", file=sys.stderr)
+        if invalid_lessons > 0:
+            print(f"[Python Solver] WARNING: {invalid_lessons} lessons have no valid rooms — model will be INFEASIBLE", file=sys.stderr)
+
+        # No-overlap per room via optional intervals (only active ones count)
+        for rid, intervals in room_intervals.items():
+            if len(intervals) > 1:
                 self.model.AddNoOverlap(intervals)
 
-        print(f"[Python Solver] Added no-overlap constraints for {len(lessons_by_room)} rooms", file=sys.stderr)
+        print(f"[Python Solver] Added no-overlap constraints for {len(self.rooms)} rooms via optional intervals", file=sys.stderr)
 
-        # Constraint: Lunch break - protect a "core lunch period" where no lessons can be scheduled
-        # The core lunch is centered in the lunch window with duration = lunch_duration
-        # Example: lunch window 11:00-13:00 with 45 min lunch → core lunch 11:37-12:22 (centered)
-        # We'll use a simpler approach: no lesson can START during the core lunch period
-        lunch_window_duration = self.latest_lunch - self.earliest_lunch
-        if lunch_window_duration > self.lunch_duration:
-            # Core lunch starts after a buffer from earliest_lunch
-            buffer = (lunch_window_duration - self.lunch_duration) // 2
-            core_lunch_start = self.earliest_lunch + buffer
-            core_lunch_end = core_lunch_start + self.lunch_duration
-        else:
-            # Lunch window is smaller than lunch duration, use entire window
-            core_lunch_start = self.earliest_lunch
-            core_lunch_end = self.latest_lunch
-
-        print(f"[Python Solver] Core lunch period: {minutes_to_time(core_lunch_start)} - {minutes_to_time(core_lunch_end)}", file=sys.stderr)
-
-        lunch_constraints_added = 0
-        for class_id, indices in lessons_by_class.items():
-            for idx in indices:
-                if idx not in self.start_vars:
-                    continue
-                lesson = self.lesson_info[idx]
-                duration = lesson['duration']
-
-                # Lesson must not overlap with core lunch period
-                # This means: lesson must end before core_lunch_start OR start after core_lunch_end
-                ends_before_lunch = self.model.NewBoolVar(f"ends_before_lunch_{idx}")
-                starts_after_lunch = self.model.NewBoolVar(f"starts_after_lunch_{idx}")
-
-                # Lesson ends before core lunch starts
-                self.model.Add(self.start_vars[idx] + duration <= core_lunch_start).OnlyEnforceIf(ends_before_lunch)
-                self.model.Add(self.start_vars[idx] + duration > core_lunch_start).OnlyEnforceIf(ends_before_lunch.Not())
-
-                # Lesson starts after core lunch ends
-                self.model.Add(self.start_vars[idx] >= core_lunch_end).OnlyEnforceIf(starts_after_lunch)
-                self.model.Add(self.start_vars[idx] < core_lunch_end).OnlyEnforceIf(starts_after_lunch.Not())
-
-                # Must satisfy one of the conditions
-                self.model.AddBoolOr([ends_before_lunch, starts_after_lunch])
-                lunch_constraints_added += 1
-
-        print(f"[Python Solver] Added {lunch_constraints_added} lunch break constraints", file=sys.stderr)
+        # (Lunch is handled via per-class lunch intervals above, not a global core-lunch window.)
 
         # Constraint: Minimum break between consecutive lessons for same class
         # We use the interval's end time + break_between_lessons as the effective "size" for spacing
@@ -349,8 +426,8 @@ class ScheduleSolver:
 
             print(f"[Python Solver] Added {break_constraints_added} break-between-lessons constraints for classes", file=sys.stderr)
 
-        # Constraint: Minimum 15-minute break between consecutive lessons for same teacher
-        teacher_break_duration = 15  # minutes
+        # Constraint: Minimum break between consecutive lessons for same teacher
+        teacher_break_duration = self.teacher_break  # minutes (from project setting)
         teacher_break_constraints_added = 0
         for teacher_id, indices in lessons_by_teacher.items():
             if len(indices) <= 1:
@@ -384,44 +461,116 @@ class ScheduleSolver:
                     self.model.AddBoolOr([t1_before_t2, t2_before_t1, same_day_t.Not()])
                     teacher_break_constraints_added += 1
 
-        print(f"[Python Solver] Added {teacher_break_constraints_added} break-between-lessons constraints for teachers (15 min)", file=sys.stderr)
+        print(f"[Python Solver] Added {teacher_break_constraints_added} break-between-lessons constraints for teachers ({teacher_break_duration} min)", file=sys.stderr)
 
-        # Optimization: Penalize single-lesson days for teachers
-        # This helps part-time teachers by consolidating lessons to fewer days
-        # We use a soft constraint approach: penalize days where a teacher has exactly 1 lesson
-        single_lesson_day_penalties = []
-
+        # Hard constraint: part-time teachers get guaranteed free days via step function.
+        # 50–79% → 2 free days, 80% → 1, 81–100% → 0, <50% → 3 free days.
+        teacher_index = {t['id']: t for t in self.input.get('teachers', [])}
+        free_days_constraints_added = 0
         for teacher_id, indices in lessons_by_teacher.items():
-            if len(indices) <= 1:
-                continue  # Only one lesson total, can't optimize
-
+            teacher = teacher_index.get(teacher_id)
+            if not teacher:
+                continue  # Teacher not in input (filtered or mentor without distribution)
+            service_points = teacher.get('servicePoints', self.full_time_points)
+            pct = (service_points / self.full_time_points) * 100 if self.full_time_points > 0 else 100
+            pct_floor = int(pct)
+            if pct_floor < 50:
+                free_days = 3
+            elif pct_floor < 80:
+                free_days = 2
+            elif pct_floor == 80:
+                free_days = 1
+            else:
+                free_days = 0
+            if free_days <= 0:
+                continue
+            work_days = self.num_days - free_days
+            # For each day, is the teacher active that day? (≥1 lesson)
+            active_day_vars = []
             for day in self.days:
-                # Count lessons on this day for this teacher
-                lesson_on_day_vars = []
+                lessons_on_day = []
                 for idx in indices:
                     if idx not in self.day_vars:
                         continue
-                    is_on_day = self.model.NewBoolVar(f"lesson_{idx}_on_day_{day}_opt")
-                    self.model.Add(self.day_vars[idx] == day).OnlyEnforceIf(is_on_day)
-                    self.model.Add(self.day_vars[idx] != day).OnlyEnforceIf(is_on_day.Not())
-                    lesson_on_day_vars.append(is_on_day)
+                    on_day = self.model.NewBoolVar(f"freeday_lesson_{idx}_d{day}")
+                    self.model.Add(self.day_vars[idx] == day).OnlyEnforceIf(on_day)
+                    self.model.Add(self.day_vars[idx] != day).OnlyEnforceIf(on_day.Not())
+                    lessons_on_day.append(on_day)
+                if not lessons_on_day:
+                    continue
+                active = self.model.NewBoolVar(f"active_{teacher_id[:8]}_d{day}")
+                self.model.AddMaxEquality(active, lessons_on_day)
+                active_day_vars.append(active)
+            if active_day_vars:
+                self.model.Add(sum(active_day_vars) <= work_days)
+                free_days_constraints_added += 1
 
-                if len(lesson_on_day_vars) >= 2:
-                    # Create a variable for "exactly one lesson on this day"
-                    # This is true when sum == 1
-                    count_on_day = self.model.NewIntVar(0, len(lesson_on_day_vars), f"count_{teacher_id[:8]}_day_{day}")
-                    self.model.Add(count_on_day == sum(lesson_on_day_vars))
+        print(f"[Python Solver] Added free-day step-function constraints for {free_days_constraints_added} part-time teachers", file=sys.stderr)
 
-                    # Penalty variable: 1 if exactly one lesson, 0 otherwise
-                    is_single = self.model.NewBoolVar(f"single_{teacher_id[:8]}_day_{day}")
-                    self.model.Add(count_on_day == 1).OnlyEnforceIf(is_single)
-                    self.model.Add(count_on_day != 1).OnlyEnforceIf(is_single.Not())
-                    single_lesson_day_penalties.append(is_single)
+        # Objective: minimize class gap minutes (span - lesson_minutes - lunch_duration per class per day).
+        # This is a span approximation; it minimizes lessons being far apart, not just gaps > 20 min.
+        # Use INFEASIBLE-safe upper bounds: span fits in day_length minutes per class/day.
+        class_gap_terms = []
+        for class_id, indices in lessons_by_class.items():
+            for day in self.days:
+                # Day-presence flag and conditional start/end per lesson on this day
+                lesson_on_day_flags = []
+                first_starts = []
+                last_ends = []
+                lesson_duration_on_day_terms = []
+                for idx in indices:
+                    if idx not in self.day_vars or idx not in self.start_vars:
+                        continue
+                    duration = self.lesson_info[idx]['duration']
+                    on_day = self.model.NewBoolVar(f"gap_lesson_{idx}_d{day}")
+                    self.model.Add(self.day_vars[idx] == day).OnlyEnforceIf(on_day)
+                    self.model.Add(self.day_vars[idx] != day).OnlyEnforceIf(on_day.Not())
+                    lesson_on_day_flags.append(on_day)
 
-        # Minimize single-lesson days
-        if single_lesson_day_penalties:
-            self.model.Minimize(sum(single_lesson_day_penalties))
-            print(f"[Python Solver] Added optimization: minimize single-lesson days ({len(single_lesson_day_penalties)} penalty variables)", file=sys.stderr)
+                    # Conditional start: when on_day=1 use real start, else day_length+1 (so min ignores it)
+                    cond_start = self.model.NewIntVar(self.earliest_start, self.latest_end + 1, f"cond_start_{idx}_d{day}")
+                    self.model.Add(cond_start == self.start_vars[idx]).OnlyEnforceIf(on_day)
+                    self.model.Add(cond_start == self.latest_end + 1).OnlyEnforceIf(on_day.Not())
+                    first_starts.append(cond_start)
+
+                    cond_end = self.model.NewIntVar(self.earliest_start - 1, self.latest_end, f"cond_end_{idx}_d{day}")
+                    self.model.Add(cond_end == self.start_vars[idx] + duration).OnlyEnforceIf(on_day)
+                    self.model.Add(cond_end == self.earliest_start - 1).OnlyEnforceIf(on_day.Not())
+                    last_ends.append(cond_end)
+
+                    # Lesson duration only counts if on_day
+                    dur_term = self.model.NewIntVar(0, duration, f"dur_{idx}_d{day}")
+                    self.model.Add(dur_term == duration).OnlyEnforceIf(on_day)
+                    self.model.Add(dur_term == 0).OnlyEnforceIf(on_day.Not())
+                    lesson_duration_on_day_terms.append(dur_term)
+
+                if not lesson_on_day_flags:
+                    continue
+
+                # has_any_lesson on day
+                has_any = self.model.NewBoolVar(f"has_any_{class_id[:8]}_d{day}")
+                self.model.AddMaxEquality(has_any, lesson_on_day_flags)
+
+                # min_start / max_end (only meaningful when has_any=1)
+                min_start = self.model.NewIntVar(self.earliest_start, self.latest_end + 1, f"min_start_{class_id[:8]}_d{day}")
+                self.model.AddMinEquality(min_start, first_starts)
+                max_end = self.model.NewIntVar(self.earliest_start - 1, self.latest_end, f"max_end_{class_id[:8]}_d{day}")
+                self.model.AddMaxEquality(max_end, last_ends)
+
+                # Gap = (max_end - min_start) - sum(lesson_durations).
+                # When lunch lies inside the span, it adds a constant ~lunchDuration to every
+                # active day's gap — that constant doesn't change the minimization order. When
+                # lunch lies outside the span (e.g. early or late), the formula reflects the
+                # true gap minutes between lessons.
+                # Only counts when has_any=1; for empty days gap=0.
+                gap_term = self.model.NewIntVar(0, self.day_length, f"gap_{class_id[:8]}_d{day}")
+                self.model.Add(gap_term == max_end - min_start - sum(lesson_duration_on_day_terms)).OnlyEnforceIf(has_any)
+                self.model.Add(gap_term == 0).OnlyEnforceIf(has_any.Not())
+                class_gap_terms.append(gap_term)
+
+        if class_gap_terms:
+            self.model.Minimize(sum(class_gap_terms))
+            print(f"[Python Solver] Objective: minimize class gaps ({len(class_gap_terms)} terms)", file=sys.stderr)
 
         # Diagnostic: Check if scheduling is feasible
         total_lessons = len(self.interval_vars)
@@ -519,7 +668,7 @@ class ScheduleSolver:
         # Check teacher load
         lessons_per_teacher = {}
         for lesson in self.lesson_info:
-            tid = lesson.get('preferredTeacherId')
+            tid = lesson.get('teacherId')
             if tid:
                 lessons_per_teacher[tid] = lessons_per_teacher.get(tid, 0) + 1
 
@@ -561,7 +710,7 @@ class ScheduleSolver:
         teacher_courses = {}  # Track courses per teacher to avoid double counting
         
         for course in self.courses:
-            tid = course.get('preferredTeacherId')
+            tid = course.get('teacherId')
             if tid:
                 course_id = course['courseInstanceId']
                 original_minutes = course.get('minutesPerWeek', 0)
@@ -582,7 +731,7 @@ class ScheduleSolver:
         # Check if same teacher teaches too many different classes
         teacher_classes = {}
         for lesson in self.lesson_info:
-            tid = lesson.get('preferredTeacherId')
+            tid = lesson.get('teacherId')
             cid = lesson['classId']
             if tid:
                 if tid not in teacher_classes:
@@ -651,11 +800,22 @@ class ScheduleSolver:
                 start = self.solver.Value(self.start_vars[idx])
                 duration = lesson['duration']
 
+                # Read the chosen room from the per-lesson room assignment vars.
+                # Falls back to locked roomId if assignment wasn't set up (no valid rooms case).
+                chosen_room = None
+                if idx in self.lesson_in_room:
+                    for rid, flag in self.lesson_in_room[idx].items():
+                        if self.solver.Value(flag) == 1:
+                            chosen_room = rid
+                            break
+                if chosen_room is None:
+                    chosen_room = lesson.get('roomId')
+
                 lessons.append({
                     'courseInstanceId': lesson['courseInstanceId'],
                     'classId': lesson['classId'],
-                    'teacherId': lesson.get('preferredTeacherId'),
-                    'roomId': lesson.get('preferredRoomId'),
+                    'teacherId': lesson.get('teacherId'),
+                    'roomId': chosen_room,
                     'dayOfWeek': day,
                     'startTime': minutes_to_time(start),
                     'endTime': minutes_to_time(start + duration),

@@ -9,7 +9,9 @@ import {
     projectClasses,
     courseInstances,
     classCurricula,
+    classMentors,
     teachers,
+    teacherServiceDistributions,
     rooms,
     termDates,
 } from '../db/schema';
@@ -40,6 +42,8 @@ const DEFAULT_SETTINGS: SolverProjectSettings = {
     earliestLunchTime: 11 * 60 + 30, // 11:30
     latestLunchTime: 13 * 60 + 30, // 13:30
     shortestBreakBetweenLessons: 5, // 5 minutes
+    teacherBreakMinutes: 15, // 15 minutes between a teacher's lessons
+    fullTimeServicePoints: 600, // 100% tjänst = 600 points
 };
 
 interface LoadOptions {
@@ -115,6 +119,8 @@ export async function loadSolverData(options: LoadOptions): Promise<SolverInput 
             ? timeToMinutes(project.latestLunchTime)
             : DEFAULT_SETTINGS.latestLunchTime,
         shortestBreakBetweenLessons: project.shortestBreakBetweenLessons || DEFAULT_SETTINGS.shortestBreakBetweenLessons,
+        teacherBreakMinutes: project.teacherBreakMinutes || DEFAULT_SETTINGS.teacherBreakMinutes,
+        fullTimeServicePoints: project.fullTimeServicePoints || DEFAULT_SETTINGS.fullTimeServicePoints,
     };
 
     // 3. Load term dates for calculating lessons per week
@@ -252,26 +258,74 @@ export async function loadSolverData(options: LoadOptions): Promise<SolverInput 
                 classId: instance.classId,
                 courseCode: instance.courseCode,
                 courseName: instance.courseName,
+                subject: instance.subject,
                 points: instance.points,
                 lessonsPerWeek: Math.ceil(schedule.lessonsPerWeek), // Round up for scheduling
                 minutesPerWeek: schedule.minutesPerWeek, // Original minutes per week (for diagnostics)
                 lessonDuration,
-                preferredTeacherId: instance.teacherId,
-                preferredRoomId: instance.roomId,
+                teacherId: instance.teacherId,
+                roomId: instance.roomId,
             });
         }
     }
 
-    // 8. Load teachers
+    // 7b. Mentor time as a pseudo-course: 30 min/week per class, mentor is the teacher, room=free.
+    //     classCode prefix "_MENT_" marks it as pseudo so preflight/UI can recognize it.
+    //     Subject is null so the solver treats it as "any room allowed".
+    const mentorMinutes = project.mentorTimePerWeek || 30;
+    const mentorsForClasses = await db.select()
+        .from(classMentors)
+        .where(inArray(classMentors.classId, classIds));
+
+    // One pseudo-course per (class, primary mentor). If a class has multiple mentors, use the primary one.
+    const primaryMentorByClass = new Map<string, string>();
+    for (const m of mentorsForClasses) {
+        if (m.isPrimary === 1 || !primaryMentorByClass.has(m.classId)) {
+            primaryMentorByClass.set(m.classId, m.teacherId);
+        }
+    }
+    for (const [classId, mentorTeacherId] of primaryMentorByClass) {
+        solverCourses.push({
+            courseInstanceId: `_MENT_${classId}`,
+            classId,
+            courseCode: '_MENT_',
+            courseName: 'Mentorstid',
+            subject: null,
+            points: 0,
+            lessonsPerWeek: 1,
+            minutesPerWeek: mentorMinutes,
+            lessonDuration: mentorMinutes,
+            teacherId: mentorTeacherId,
+            roomId: null,
+        });
+    }
+
+    // 8. Load teachers — only those with a service distribution > 0 for the active academic year.
+    //    See docs/SCHEDULER-V1-PLAN.md "Lärare och tjänstefördelning".
     const teachersData = await db.select()
         .from(teachers)
         .where(eq(teachers.projectId, projectId));
 
-    const solverTeachers: SolverTeacher[] = teachersData.map(t => ({
-        id: t.id,
-        name: t.name,
-        subjects: t.subject ? [t.subject] : undefined,
-    }));
+    const distributions = await db.select()
+        .from(teacherServiceDistributions)
+        .where(and(
+            eq(teacherServiceDistributions.projectId, projectId),
+            eq(teacherServiceDistributions.academicYear, academicYear),
+        ));
+
+    const distributionByTeacher = new Map(distributions.map(d => [d.teacherId, d]));
+
+    const solverTeachers: SolverTeacher[] = [];
+    for (const t of teachersData) {
+        const dist = distributionByTeacher.get(t.id);
+        if (!dist || dist.servicePoints <= 0) continue;
+        solverTeachers.push({
+            id: t.id,
+            name: t.name,
+            subjects: t.subject ? [t.subject] : undefined,
+            servicePoints: dist.servicePoints,
+        });
+    }
 
     // 9. Load rooms
     const roomsData = await db.select()

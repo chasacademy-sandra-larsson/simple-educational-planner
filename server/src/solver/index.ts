@@ -12,9 +12,11 @@ import {
     ScheduledLessonResult,
 } from './types';
 import { loadSolverData, getAvailableAcademicYears } from './data-loader';
+import { runPreflight } from './preflight';
 
 // Re-export for convenience
-export { loadSolverData, getAvailableAcademicYears };
+export { loadSolverData, getAvailableAcademicYears, runPreflight };
+export type { PreflightWarning, PreflightSeverity } from './preflight';
 export * from './types';
 
 // Path to Python solver script

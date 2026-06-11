@@ -15,12 +15,13 @@ export interface SolverCourse {
     classId: string;
     courseCode: string;
     courseName: string;
+    subject: string | null; // Skolverket subject for room allowedSubjects matching. NULL = not populated yet (preflight will flag).
     points: number;
     lessonsPerWeek: number; // Number of lessons needed per week (may be rounded up)
     minutesPerWeek: number; // Original minutes per week (before rounding lessons)
     lessonDuration: number; // Duration in minutes
-    preferredTeacherId: string | null;
-    preferredRoomId: string | null;
+    teacherId: string | null;
+    roomId: string | null; // NULL = solver chooses; non-null = locked to this room
 }
 
 export interface SolverClass {
@@ -32,7 +33,8 @@ export interface SolverClass {
 export interface SolverTeacher {
     id: string;
     name: string;
-    subjects?: string[]; // Subjects they can teach
+    subjects?: string[]; // Subjects they can teach (authorization, not subject of a specific lesson)
+    servicePoints: number; // Tjänstegrad in points for the active academic year. Drives workDaysPerWeek step function.
 }
 
 export interface SolverRoom {
@@ -53,6 +55,8 @@ export interface SolverProjectSettings {
     earliestLunchTime: number; // Minutes from midnight
     latestLunchTime: number; // Minutes from midnight
     shortestBreakBetweenLessons: number;
+    teacherBreakMinutes: number; // Minimum break between a teacher's lessons (typically 15)
+    fullTimeServicePoints: number; // Service points that count as 100% tjänst (600 or 700 typically)
 }
 
 export interface SolverInput {
