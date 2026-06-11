@@ -1,0 +1,71 @@
+{
+    "projectId": "00000000-0000-0000-0000-000000000001",
+    "academicYear": "2026/2027",
+    "termType": "fall",
+    "specificTerm": "term1",
+    "settings": {
+        "earliestLessonStart": 480,
+        "latestLessonEnd": 1020,
+        "defaultLessonDuration": 60,
+        "minLessonDuration": 40,
+        "maxLessonDuration": 90,
+        "lunchDuration": 45,
+        "earliestLunchTime": 690,
+        "latestLunchTime": 810,
+        "shortestBreakBetweenLessons": 5,
+        "teacherBreakMinutes": 15,
+        "fullTimeServicePoints": 600
+    },
+    "classes": [
+        { "id": "c-te26", "classCode": "TE26" }
+    ],
+    "teachers": [
+        { "id": "t-anna", "name": "Anna",  "servicePoints": 600 },
+        { "id": "t-bjorn", "name": "Björn", "servicePoints": 480 }
+    ],
+    "rooms": [
+        { "id": "r-a101", "roomNumber": "A101", "capacity": 32, "allowedSubjects": null },
+        { "id": "r-lab1", "roomNumber": "LAB1", "capacity": 32, "allowedSubjects": ["fysik"] }
+    ],
+    "courses": [
+        {
+            "courseInstanceId": "ci-mat",
+            "classId": "c-te26",
+            "courseCode": "MATMAT01c",
+            "courseName": "Matematik 1c",
+            "subject": "matematik",
+            "points": 100,
+            "lessonsPerWeek": 3,
+            "minutesPerWeek": 195,
+            "lessonDuration": 65,
+            "teacherId": "t-anna",
+            "roomId": null
+        },
+        {
+            "courseInstanceId": "ci-fys",
+            "classId": "c-te26",
+            "courseCode": "FYSFYS01a",
+            "courseName": "Fysik 1a",
+            "subject": "fysik",
+            "points": 100,
+            "lessonsPerWeek": 2,
+            "minutesPerWeek": 130,
+            "lessonDuration": 65,
+            "teacherId": "t-bjorn",
+            "roomId": null
+        },
+        {
+            "courseInstanceId": "_MENT_c-te26",
+            "classId": "c-te26",
+            "courseCode": "_MENT_",
+            "courseName": "Mentorstid",
+            "subject": null,
+            "points": 0,
+            "lessonsPerWeek": 1,
+            "minutesPerWeek": 30,
+            "lessonDuration": 30,
+            "teacherId": "t-anna",
+            "roomId": null
+        }
+    ]
+}

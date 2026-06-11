@@ -148,8 +148,8 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create a new project
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { 
-            name, 
+        const {
+            name,
             description,
             earliestLessonStart,
             latestLessonEnd,
@@ -159,7 +159,9 @@ router.post('/', async (req: AuthRequest, res: Response) => {
             earliestLunchTime,
             latestLunchTime,
             shortestBreakBetweenLessons,
-            longestBreakBetweenLessons
+            longestBreakBetweenLessons,
+            teacherBreakMinutes,
+            fullTimeServicePoints,
         } = req.body;
 
         const [newProject] = await db.insert(projects).values({
@@ -175,6 +177,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
             latestLunchTime: latestLunchTime || null,
             shortestBreakBetweenLessons: shortestBreakBetweenLessons || null,
             longestBreakBetweenLessons: longestBreakBetweenLessons || null,
+            teacherBreakMinutes: teacherBreakMinutes || 15,
+            fullTimeServicePoints: fullTimeServicePoints || 600,
         }).returning();
 
         res.status(201).json(newProject);
@@ -187,8 +191,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 // Update a project
 router.put('/:id', async (req: AuthRequest, res: Response) => {
     try {
-        const { 
-            name, 
+        const {
+            name,
             description,
             earliestLessonStart,
             latestLessonEnd,
@@ -198,7 +202,9 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
             earliestLunchTime,
             latestLunchTime,
             shortestBreakBetweenLessons,
-            longestBreakBetweenLessons
+            longestBreakBetweenLessons,
+            teacherBreakMinutes,
+            fullTimeServicePoints,
         } = req.body;
 
         const [updatedProject] = await db.update(projects)
@@ -214,6 +220,8 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
                 latestLunchTime: latestLunchTime || null,
                 shortestBreakBetweenLessons: shortestBreakBetweenLessons || null,
                 longestBreakBetweenLessons: longestBreakBetweenLessons || null,
+                ...(teacherBreakMinutes !== undefined && { teacherBreakMinutes }),
+                ...(fullTimeServicePoints !== undefined && { fullTimeServicePoints }),
                 updatedAt: new Date(),
             })
             .where(and(
@@ -433,6 +441,7 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
                         classId: classId,
                         courseCode: course.courseCode,
                         courseName: course.courseName,
+                        subject: course.subject ?? null,
                         points: course.points,
                         category: course.category,
                         // Preserve year and terms if they exist, otherwise use course values
@@ -466,6 +475,7 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
 async function fetchCoursesFromSkolverket(programCode: string, orientationCode: string): Promise<{
     courseCode: string;
     courseName: string;
+    subject: string | null;
     points: number;
     category: string;
     year: number;
@@ -486,6 +496,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
         const courses: {
             courseCode: string;
             courseName: string;
+            subject: string | null;
             points: number;
             category: string;
             year: number;
@@ -506,6 +517,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
                         courses.push({
                             courseCode: course.code,
                             courseName: courseName,
+                            subject: subject.name ? String(subject.name).toLowerCase() : null,
                             points: parseInt(course.points) || 0,
                             category: category,
                             year: 1, // Default to year 1, will be distributed later
@@ -540,6 +552,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
         courses.push({
             courseCode: 'INDIVIDUAL_CHOICE_1',
             courseName: 'Individuellt val 1',
+            subject: null,
             points: 100,
             category: 'INDIVIDUAL_CHOICE',
             year: 3,
@@ -548,6 +561,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
         courses.push({
             courseCode: 'INDIVIDUAL_CHOICE_2',
             courseName: 'Individuellt val 2',
+            subject: null,
             points: 100,
             category: 'INDIVIDUAL_CHOICE',
             year: 3,
@@ -558,6 +572,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
         courses.push({
             courseCode: 'GYMNASIEARBETE',
             courseName: 'Gymnasiearbete',
+            subject: null,
             points: 100,
             category: 'GYMNASIEARBETE',
             year: 3,
@@ -619,6 +634,7 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
                 courses.push({
                     courseCode: `PROGRAMFORDJUPNING_${i + 1}`,
                     courseName: `Programfördjupning ${i + 1}`,
+                    subject: null,
                     points: pointsNeeded,
                     category: 'ORIENTATION',
                     year: i < 2 ? 2 : 3,
@@ -769,6 +785,7 @@ router.post('/:id/initialize-curricula', async (req: AuthRequest, res: Response)
                             classId: cls.id,
                             courseCode: course.courseCode,
                             courseName: course.courseName,
+                            subject: course.subject ?? null,
                             points: course.points,
                             category: course.category,
                             year: course.year,

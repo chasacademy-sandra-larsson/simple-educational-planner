@@ -20,6 +20,7 @@ import {
     loadSolverData,
     getAvailableAcademicYears,
     preflightCheck,
+    runPreflight,
 } from '../solver';
 
 const router = Router();
@@ -78,7 +79,13 @@ router.post('/projects/:id/schedules/generate', async (req: AuthRequest, res: Re
         // Preflight check (warnings only, don't block)
         const preflight = preflightCheck(solverInput);
         if (!preflight.valid) {
-            console.warn('[Schedule API] Preflight warnings:', preflight.issues);
+            console.warn('[Schedule API] Preflight (legacy) warnings:', preflight.issues);
+        }
+
+        // New v1 preflight: structured per-constraint checks.
+        const preflightWarnings = runPreflight(solverInput);
+        if (preflightWarnings.length > 0) {
+            console.warn(`[Schedule API] Preflight produced ${preflightWarnings.length} warnings (${preflightWarnings.filter(w => w.severity === 'error').length} errors)`);
         }
 
         // Generate the schedule
@@ -129,6 +136,7 @@ router.post('/projects/:id/schedules/generate', async (req: AuthRequest, res: Re
                 solverTimeMs: result.solverTimeMs,
                 totalConflicts: result.totalConflicts,
             },
+            preflight: preflightWarnings,
         });
     } catch (error) {
         console.error('Generate schedule error:', error);
@@ -293,19 +301,20 @@ router.delete('/projects/:id/schedules/:scheduleId', async (req: AuthRequest, re
 });
 
 // PATCH /projects/:id/schedules/:scheduleId/status - Update schedule status
+// Statuses (ADR-0008): draft | active | superseded | failed
+// Setting a schedule to 'active' supersedes any other 'active' schedule for the same (project, academicYear, termType).
 router.patch('/projects/:id/schedules/:scheduleId/status', async (req: AuthRequest, res: Response) => {
     try {
         const { id: projectId, scheduleId } = req.params;
         const { status } = req.body as { status: string };
 
-        // Validate status
-        const validStatuses = ['draft', 'approved', 'archived'];
+        const validStatuses = ['draft', 'active', 'superseded', 'failed'];
         if (!status || !validStatuses.includes(status)) {
             return res.status(400).json({ error: `status must be one of: ${validStatuses.join(', ')}` });
         }
 
-        // Verify project ownership
-        const [schedule] = await db.select()
+        // Verify project ownership and fetch the target schedule
+        const [row] = await db.select()
             .from(generatedSchedules)
             .innerJoin(projects, eq(generatedSchedules.projectId, projects.id))
             .where(and(
@@ -315,11 +324,24 @@ router.patch('/projects/:id/schedules/:scheduleId/status', async (req: AuthReque
             ))
             .limit(1);
 
-        if (!schedule) {
+        if (!row) {
             return res.status(404).json({ error: 'Schedule not found' });
         }
 
-        // Update status
+        const targetSchedule = row.generated_schedules;
+
+        // If activating, supersede any existing active schedule for the same (project, academicYear, termType).
+        if (status === 'active') {
+            await db.update(generatedSchedules)
+                .set({ status: 'superseded', updatedAt: new Date() })
+                .where(and(
+                    eq(generatedSchedules.projectId, projectId),
+                    eq(generatedSchedules.academicYear, targetSchedule.academicYear),
+                    eq(generatedSchedules.termType, targetSchedule.termType),
+                    eq(generatedSchedules.status, 'active'),
+                ));
+        }
+
         const [updated] = await db.update(generatedSchedules)
             .set({ status, updatedAt: new Date() })
             .where(eq(generatedSchedules.id, scheduleId))
