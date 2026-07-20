@@ -2,44 +2,34 @@
 
 import { useState, useEffect } from 'react';
 import { ProjectList } from '@/app/components/ProjectList';
-import { OnboardingWizard } from '@/app/components/OnboardingWizard';
-import { ScheduleView } from '@/app/components/ScheduleView';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/app/lib/api';
 import type { Project } from '@/app/lib/api/types';
- //import GlobalHeader from '@/app/components/global-header';
-import { LogOut, Plus, Calendar, Settings, Home } from 'lucide-react';
+import { LogOut, Calendar } from 'lucide-react';
 
 
 export default function DashboardPage() {
 
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
 
-    const [currentView, setCurrentView] = useState('home');
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [showForm, setShowForm] = useState(false);
-    const [newProject, setNewProject] = useState({ name: '', description: '' });
-    const [creating, setCreating] = useState(false);
-    const [createError, setCreateError] = useState('');
+    const [autoOpenCreate, setAutoOpenCreate] = useState(false);
 
     useEffect(() => {
-
         setMounted(true);
         const currentUser = api.auth.getCurrentUser();
         setUser(currentUser);
         fetchProjects();
 
-        // Check if we should open new project form
-        if (searchParams.get('newProject') === 'true') {
-            setShowForm(true);
+        // Öppna skapa-dialogen direkt om vi kom hit via "Nytt projekt..."
+        if (new URLSearchParams(window.location.search).get('newProject') === 'true') {
+            setAutoOpenCreate(true);
         }
-    }, [router, searchParams]);
+    }, []);
 
     const fetchProjects = async () => {
         try {
@@ -77,36 +67,21 @@ export default function DashboardPage() {
     };
 
     const handleCreateProject = async (projectData: { name: string; description?: string }) => {
-        setCreating(true);
-        setCreateError('');
-
         try {
-            await api.projects.create({ name: projectData.name, description: projectData.description || '' });
+            const created = await api.projects.create({ name: projectData.name, description: projectData.description || '' });
             await fetchProjects();
-        } catch (err) {
-            if (err instanceof ApiError) {
-                setCreateError(err.message);
-            } else {
-                setCreateError('Kunde inte skapa projektet');
+            // Nyskapat projekt öppnas direkt i arbetsytan
+            if (created?.id) {
+                router.push(`/projects/${created.id}`);
             }
-        } finally {
-            setCreating(false);
+        } catch (err) {
+            // Kastas vidare så att ProjectList kan visa felet i dialogen
+            throw err;
         }
     };
 
     const handleSelectProject = (project: Project) => {
-        setSelectedProject(project);
-        setCurrentView('onboarding');
-    };
-
-    const handleOnboardingComplete = () => {
-        // Refresh projects to get updated progress
-        fetchProjects();
-        setCurrentView('schedule');
-    };
-
-    const handleEditConfiguration = () => {
-        setCurrentView('onboarding');
+        router.push(`/projects/${project.id}`);
     };
 
     const formatDate = (dateString: string) => {
@@ -117,94 +92,40 @@ export default function DashboardPage() {
         });
     };
 
-    // Calculate project progress (mock calculation based on classes)
-    const getProjectProgress = (project: Project) => {
-        // This is a simplified progress calculation
-        // In a real app, you'd calculate based on actual completion status
-        return Math.floor(Math.random() * 60) + 20; // Mock: 20-80%
-    };
-
-    const getProgressStatus = (progress: number): { text: string; color: string } => {
-        if (progress < 30) return { text: 'Kom igång', color: 'text-orange-600 dark:text-orange-400' };
-        if (progress < 60) return { text: 'Pågående', color: 'text-blue-600 dark:text-blue-400' };
-        if (progress < 90) return { text: 'Nästan klart', color: 'text-green-600 dark:text-green-400' };
-        return { text: 'Klart', color: 'text-green-600 dark:text-green-400' };
-    };
-
     if (!mounted || !user) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
         );
     }
 
     return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-background flex">
     {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-200">
+      <aside className="w-64 bg-card border-r border-border flex flex-col">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <h2 className="font-semibold">Schemaläggning</h2>
-              <p className="text-xs text-gray-500">Gymnasieskola</p>
+              <p className="text-xs text-muted-foreground">Gymnasieskola</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          <button
-            onClick={() => setCurrentView('home')}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition ${
-              currentView === 'home'
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Home className="w-5 h-5" />
-            <span>Hem</span>
-          </button>
-           {selectedProject && (
-            <>
-              <button
-                onClick={() => setCurrentView('onboarding')}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition ${
-                  currentView === 'onboarding'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <Settings className="w-5 h-5" />
-                <span>Inställningar</span>
-              </button>
-              {getProjectProgress(selectedProject) >= 90 && (
-                <button
-                  onClick={() => setCurrentView('schedule')}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition ${
-                    currentView === 'schedule'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Calendar className="w-5 h-5" />
-                  <span>Schema</span>
-                </button>
-              )}
-            </>
-          )} 
-        </nav>
+        <div className="flex-1" />
 
-        <div className="p-4 border-t border-gray-200">
-          <div className="px-4 py-3 bg-gray-50 rounded-lg mb-3">
-            <p className="text-sm text-gray-900">{user.name}</p>
-            <p className="text-xs text-gray-500">{user.email}</p>
+        <div className="p-4 border-t border-border">
+          <div className="px-4 py-3 bg-muted rounded-lg mb-3">
+            <p className="text-sm text-foreground">{user.name}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
           </div>
           <button
             onClick={() => router.push('/auth/login')}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 rounded-lg transition"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-foreground hover:bg-muted rounded-lg transition"
           >
             <LogOut className="w-5 h-5" />
             <span>Logga ut</span>
@@ -214,45 +135,21 @@ export default function DashboardPage() {
       <main className="flex-1">
         {/* Error State */}
         {error && (
-          <div className="p-4 m-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="p-4 m-4 bg-destructive/10 border border-destructive rounded-lg">
+            <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
-        {currentView === 'home' && (
-          <ProjectList
-            projects={projects}
-            loading={loading}
-            error={error}
-            onCreateProject={handleCreateProject}
-            onSelectProject={handleSelectProject}
-            onDeleteProject={handleDeleteProject}
-            getProjectProgress={getProjectProgress}
-            formatDate={formatDate}
-          />
-        )}
-        {currentView === 'onboarding' && selectedProject && (
-          <OnboardingWizard
-            project={{
-              id: selectedProject.id,
-              name: selectedProject.name,
-              term: selectedProject.description?.includes('Höst') ? 'Hösttermin' : selectedProject.description?.includes('Vår') ? 'Vårtermin' : 'Hösttermin',
-              year: new Date(selectedProject.createdAt).getFullYear().toString()
-            } as any}
-            onComplete={handleOnboardingComplete}
-          />
-        )}
-        {currentView === 'schedule' && selectedProject && (
-          <ScheduleView 
-            project={{
-              id: selectedProject.id,
-              name: selectedProject.name,
-              term: selectedProject.description?.includes('Höst') ? 'Hösttermin' : selectedProject.description?.includes('Vår') ? 'Vårtermin' : 'Hösttermin',
-              year: new Date(selectedProject.createdAt).getFullYear().toString()
-            } as any}
-            onEditConfiguration={handleEditConfiguration}
-          />
-        )}
+        <ProjectList
+          projects={projects}
+          loading={loading}
+          error={error}
+          onCreateProject={handleCreateProject}
+          onSelectProject={handleSelectProject}
+          onDeleteProject={handleDeleteProject}
+          formatDate={formatDate}
+          autoOpenCreate={autoOpenCreate}
+        />
       </main>
 
      </div>
