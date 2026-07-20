@@ -15,7 +15,13 @@ import { api, ApiError } from '@/app/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Zap, RefreshCw } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Zap, RefreshCw, Users, DoorOpen, Settings } from 'lucide-react';
+import TeachersPanel from '@/app/components/panels/teachers-panel';
+import RoomsPanel from '@/app/components/panels/rooms-panel';
+import SettingsPanel from '@/app/components/panels/settings-panel';
+
+type PanelId = 'teachers' | 'rooms' | 'settings';
 
 interface ControlRoomProps {
     project: ProjectWithDetails;
@@ -138,8 +144,17 @@ export default function ControlRoom({ project, teachers, rooms }: ControlRoomPro
     const [activating, setActivating] = useState(false);
     const [error, setError] = useState('');
     const [preflightWarnings, setPreflightWarnings] = useState<PreflightWarning[]>([]);
+    const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
 
     const classes = useMemo(() => project.classes || [], [project.classes]);
+
+    // Djuplänkar: /projects/[id]?panel=teachers|rooms|settings öppnar rätt drawer
+    useEffect(() => {
+        const panel = new URLSearchParams(window.location.search).get('panel');
+        if (panel === 'teachers' || panel === 'rooms' || panel === 'settings') {
+            setOpenPanel(panel);
+        }
+    }, []);
 
     // --- data loading -------------------------------------------------------
 
@@ -454,6 +469,35 @@ export default function ControlRoom({ project, teachers, rooms }: ControlRoomPro
                             )}
                         </div>
                     </div>
+
+                    <div className="rounded-xl border border-border bg-card overflow-hidden">
+                        <div className="px-3 py-2 border-b border-border">
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Hantera</h3>
+                        </div>
+                        <div className="p-1.5 space-y-0.5">
+                            <button
+                                onClick={() => setOpenPanel('teachers')}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                Lärare & tjänstefördelning
+                            </button>
+                            <button
+                                onClick={() => setOpenPanel('rooms')}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                                <DoorOpen className="w-4 h-4 text-muted-foreground" />
+                                Salar
+                            </button>
+                            <button
+                                onClick={() => setOpenPanel('settings')}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                                <Settings className="w-4 h-4 text-muted-foreground" />
+                                Inställningar
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Centrum: veckoschema */}
@@ -578,6 +622,43 @@ export default function ControlRoom({ project, teachers, rooms }: ControlRoomPro
                     )}
                 </div>
             </div>
+
+            {/* ---- Resurs-drawers (Fas 2, ADR-0009) ---- */}
+            <Sheet open={openPanel === 'teachers'} onOpenChange={(open) => !open && setOpenPanel(null)}>
+                <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Lärare & tjänstefördelning</SheetTitle>
+                        <SheetDescription>Ändringar sparas direkt.</SheetDescription>
+                    </SheetHeader>
+                    <div className="px-4 pb-8">
+                        <TeachersPanel />
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            <Sheet open={openPanel === 'rooms'} onOpenChange={(open) => !open && setOpenPanel(null)}>
+                <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Salar</SheetTitle>
+                        <SheetDescription>Ändringar sparas direkt.</SheetDescription>
+                    </SheetHeader>
+                    <div className="px-4 pb-8">
+                        <RoomsPanel />
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            <Sheet open={openPanel === 'settings'} onOpenChange={(open) => !open && setOpenPanel(null)}>
+                <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Inställningar</SheetTitle>
+                        <SheetDescription>Tider, luncher, raster och termindatum.</SheetDescription>
+                    </SheetHeader>
+                    <div className="px-4 pb-8">
+                        <SettingsPanel />
+                    </div>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

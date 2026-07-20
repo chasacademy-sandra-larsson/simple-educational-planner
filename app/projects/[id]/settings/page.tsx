@@ -1,24 +1,16 @@
 "use client";
 
-import TimeSettingsForm from '@/app/components/time-settings-form';
-import TermDatesForm from '@/app/components/term-dates-form';
-import { useProject } from '../ProjectContext';
+// Djuplänk (Fas 2, ADR-0009): inställningarna bor nu som drawer i kontrollrummet.
+import { useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function SettingsPage() {
-    const { project, handleProjectUpdate, fetchProject } = useProject();
+export default function SettingsRedirect() {
+    const router = useRouter();
+    const params = useParams();
 
-    if (!project) return null;
+    useEffect(() => {
+        router.replace(`/projects/${params.id}?panel=settings`);
+    }, [router, params.id]);
 
-    return (
-        <div className="space-y-6">
-            <TimeSettingsForm
-                project={project}
-                onUpdate={handleProjectUpdate}
-            />
-            <TermDatesForm
-                project={project}
-                onUpdate={() => fetchProject()}
-            />
-        </div>
-    );
+    return null;
 }

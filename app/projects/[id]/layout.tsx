@@ -17,21 +17,16 @@ function ProjectLayout({ children }: { children: ReactNode }) {
         if (pathname.endsWith('/classes')) return 'classes';
         if (pathname.endsWith('/schedule')) return 'schedule';
         if (pathname.endsWith('/scheduling')) return 'scheduling';
-        if (pathname.endsWith('/teachers')) return 'teachers';
-        if (pathname.endsWith('/rooms')) return 'rooms';
-        if (pathname.endsWith('/settings')) return 'settings';
         return 'summary';
     };
     const activeTab = getActiveTab();
 
+    // Lärare, salar och inställningar hanteras som drawers i kontrollrummet (Fas 2, ADR-0009).
     const navItems = [
         { value: 'summary', label: 'Kontrollrum', icon: '📊', href: `/projects/${projectId}` },
         { value: 'classes', label: 'Klasser', icon: '👥', href: `/projects/${projectId}/classes` },
         { value: 'schedule', label: 'Schema', icon: '📅', href: `/projects/${projectId}/schedule` },
         { value: 'scheduling', label: 'Schemaläggning', icon: '⚙️', href: `/projects/${projectId}/scheduling` },
-        { value: 'teachers', label: 'Lärare', icon: '👨‍🏫', href: `/projects/${projectId}/teachers` },
-        { value: 'rooms', label: 'Salar', icon: '🏫', href: `/projects/${projectId}/rooms` },
-        { value: 'settings', label: 'Inställningar', icon: '⚙️', href: `/projects/${projectId}/settings` },
     ];
 
     if (loading) {

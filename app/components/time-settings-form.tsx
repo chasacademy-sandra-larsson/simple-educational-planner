@@ -9,6 +9,22 @@ interface TimeSettingsFormProps {
     onUpdate: (updatedProject: Project) => void;
 }
 
+// Speglar solverns DEFAULT_SETTINGS (server/src/solver/data-loader.ts).
+// Ett osatt fält är inte "Ej angivet" — solvern använder dessa värden.
+const DEFAULTS = {
+    earliestLessonStart: '08:00',
+    latestLessonEnd: '17:00',
+    defaultLessonDuration: 60,
+    mentorTimePerWeek: 30,
+    lunchDuration: 45,
+    earliestLunchTime: '11:30',
+    latestLunchTime: '13:30',
+    shortestBreakBetweenLessons: 5,
+    longestBreakBetweenLessons: 30,
+    teacherBreakMinutes: 15,
+    fullTimeServicePoints: 600,
+} as const;
+
 export default function TimeSettingsForm({ project, onUpdate }: TimeSettingsFormProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -112,130 +128,73 @@ export default function TimeSettingsForm({ project, onUpdate }: TimeSettingsForm
         setError('');
     };
 
+    // Läsvy: visar effektiva värden. Osatta fält visas med solverns standard
+    // och "(standard)"-markering — de är förvalda beslut, inte saknad data.
     if (!isEditing) {
+        const row = (label: string, value: string, isDefault: boolean) => (
+            <div className="flex items-baseline justify-between gap-4 py-1.5">
+                <span className="text-sm text-muted-foreground">{label}</span>
+                <span className="text-sm text-foreground tabular-nums whitespace-nowrap">
+                    {value}
+                    {isDefault && <span className="text-muted-foreground font-normal"> (standard)</span>}
+                </span>
+            </div>
+        );
+
         return (
             <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                 <div className="p-6">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-1">
                         <h2 className="text-xl font-semibold text-foreground">
                             Tidsinställningar
                         </h2>
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                            className="px-3 py-1.5 text-sm border border-border rounded-lg text-foreground hover:bg-muted transition-colors"
                         >
-                            Redigera
+                            Avancerat – redigera
                         </button>
                     </div>
+                    <p className="text-xs text-muted-foreground mb-4">
+                        Standardvärdena fungerar för de flesta skolor — ändra bara det som avviker hos er.
+                    </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Lesson Times */}
-                        <div className="space-y-4">
-                            <h3 className="font-medium text-foreground">Lektioner</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Tidigast start
-                                </label>
-                                <p className="text-foreground">
-                                    {project.earliestLessonStart ? timeToInput(project.earliestLessonStart) : 'Ej angivet'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Senast slut
-                                </label>
-                                <p className="text-foreground">
-                                    {project.latestLessonEnd ? timeToInput(project.latestLessonEnd) : 'Ej angivet'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Standard längd (minuter)
-                                </label>
-                                <p className="text-foreground">
-                                    {project.defaultLessonDuration ? `${project.defaultLessonDuration} min` : 'Ej angivet'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Lunch */}
-                        <div className="space-y-4">
-                            <h3 className="font-medium text-foreground">Lunch</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Längd (minuter)
-                                </label>
-                                <p className="text-foreground">
-                                    {project.lunchDuration ? `${project.lunchDuration} min` : 'Ej angivet'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Tidigast lunch
-                                </label>
-                                <p className="text-foreground">
-                                    {project.earliestLunchTime ? timeToInput(project.earliestLunchTime) : 'Ej angivet'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Senast lunch
-                                </label>
-                                <p className="text-foreground">
-                                    {project.latestLunchTime ? timeToInput(project.latestLunchTime) : 'Ej angivet'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Breaks */}
-                        <div className="space-y-4">
-                            <h3 className="font-medium text-foreground">Raster</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Kortast rast (minuter)
-                                </label>
-                                <p className="text-foreground">
-                                    {project.shortestBreakBetweenLessons ? `${project.shortestBreakBetweenLessons} min` : 'Ej angivet'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Längst rast (minuter)
-                                </label>
-                                <p className="text-foreground">
-                                    {project.longestBreakBetweenLessons ? `${project.longestBreakBetweenLessons} min` : 'Ej angivet'}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Other */}
-                        <div className="space-y-4">
-                            <h3 className="font-medium text-foreground">Övrigt</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Mentorstid per vecka (minuter)
-                                </label>
-                                <p className="text-foreground">
-                                    {project.mentorTimePerWeek ? `${project.mentorTimePerWeek} min` : 'Ej angivet'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Lärar-rast mellan lektioner (minuter)
-                                </label>
-                                <p className="text-foreground">
-                                    {project.teacherBreakMinutes ? `${project.teacherBreakMinutes} min` : '15 min (standard)'}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                                    Heltidstjänst i poäng/läsår
-                                </label>
-                                <p className="text-foreground">
-                                    {project.fullTimeServicePoints ? `${project.fullTimeServicePoints} poäng` : '600 poäng (standard)'}
-                                </p>
-                            </div>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-1 divide-border">
+                        {row(
+                            'Lektionstid',
+                            `${project.earliestLessonStart ? timeToInput(project.earliestLessonStart) : DEFAULTS.earliestLessonStart}–${project.latestLessonEnd ? timeToInput(project.latestLessonEnd) : DEFAULTS.latestLessonEnd}`,
+                            !project.earliestLessonStart && !project.latestLessonEnd,
+                        )}
+                        {row(
+                            'Standardlektion',
+                            `${project.defaultLessonDuration ?? DEFAULTS.defaultLessonDuration} min`,
+                            !project.defaultLessonDuration,
+                        )}
+                        {row(
+                            'Lunch',
+                            `${project.lunchDuration ?? DEFAULTS.lunchDuration} min inom ${project.earliestLunchTime ? timeToInput(project.earliestLunchTime) : DEFAULTS.earliestLunchTime}–${project.latestLunchTime ? timeToInput(project.latestLunchTime) : DEFAULTS.latestLunchTime}`,
+                            !project.lunchDuration && !project.earliestLunchTime && !project.latestLunchTime,
+                        )}
+                        {row(
+                            'Kortast rast',
+                            `${project.shortestBreakBetweenLessons ?? DEFAULTS.shortestBreakBetweenLessons} min`,
+                            !project.shortestBreakBetweenLessons,
+                        )}
+                        {row(
+                            'Mentorstid/vecka',
+                            `${project.mentorTimePerWeek ?? DEFAULTS.mentorTimePerWeek} min`,
+                            !project.mentorTimePerWeek,
+                        )}
+                        {row(
+                            'Lärar-rast',
+                            `${project.teacherBreakMinutes ?? DEFAULTS.teacherBreakMinutes} min`,
+                            !project.teacherBreakMinutes,
+                        )}
+                        {row(
+                            'Heltidstjänst',
+                            `${project.fullTimeServicePoints ?? DEFAULTS.fullTimeServicePoints} poäng/läsår`,
+                            !project.fullTimeServicePoints,
+                        )}
                     </div>
                 </div>
             </div>
