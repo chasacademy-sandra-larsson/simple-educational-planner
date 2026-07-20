@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, DoorOpen, Upload, AlertCircle, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Room {
   id: string;
@@ -92,7 +93,7 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
         }
       } catch (error) {
         console.error('Import error:', error);
-        alert('Kunde inte importera filen. Kontrollera formatet.');
+        toast.error('Kunde inte importera filen. Kontrollera formatet.');
       }
     };
     reader.readAsText(file);
@@ -102,7 +103,7 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
     <div>
       <div className="mb-6">
         <h2 className="text-2xl mb-2">Salar och Faciliteter</h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Skapa salar manuellt eller importera från fil
         </p>
       </div>
@@ -116,9 +117,9 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
               setShowImport(false);
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-              showAddRoom 
-                ? 'bg-blue-100 text-blue-700 border-2 border-blue-300' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+              showAddRoom
+                ? 'bg-accent text-primary border-2 border-primary'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
           >
             <Plus className="w-4 h-4" />
@@ -130,9 +131,9 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
               setShowAddRoom(false);
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-              showImport 
-                ? 'bg-green-100 text-green-700 border-2 border-green-300' 
-                : 'bg-green-600 text-white hover:bg-green-700'
+              showImport
+                ? 'bg-primary/10 text-primary border-2 border-primary'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
           >
             <Upload className="w-4 h-4" />
@@ -142,15 +143,15 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
 
         {/* Add Room Form - Inline */}
         {showAddRoom && (
-          <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
+          <div className="bg-accent rounded-xl p-6 border-2 border-primary">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Lägg till ny sal</h3>
+              <h3 className="text-lg font-semibold text-foreground">Lägg till ny sal</h3>
               <button
                 onClick={() => {
                   setShowAddRoom(false);
                   setRoomForm({ name: '', capacity: 30, subject: '' });
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -159,23 +160,23 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm mb-2 text-gray-700 font-medium">Salnamn</label>
+                  <label className="block text-sm mb-2 text-foreground font-medium">Salnamn</label>
                   <input
                     type="text"
                     value={roomForm.name}
                     onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
                     placeholder="t.ex. A101 eller Kemisalen"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-2 text-gray-700 font-medium">Kapacitet (antal platser)</label>
+                  <label className="block text-sm mb-2 text-foreground font-medium">Kapacitet (antal platser)</label>
                   <input
                     type="number"
                     value={roomForm.capacity}
                     onChange={(e) => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
                     min="1"
                     max="200"
                   />
@@ -183,13 +184,13 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
               </div>
 
               <div>
-                <label className="block text-sm mb-2 text-gray-700 font-medium">
+                <label className="block text-sm mb-2 text-foreground font-medium">
                   Ämnessal (valfritt)
                 </label>
                 <select
                   value={roomForm.subject}
                   onChange={(e) => setRoomForm({ ...roomForm, subject: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring bg-background"
                 >
                   <option value="">Inget specifikt ämne</option>
                   {SUBJECT_ROOMS.map((subject) => (
@@ -198,7 +199,7 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Välj om salen är kopplad till ett specifikt ämne (t.ex. Kemi, Fysik, Biologi)
                 </p>
               </div>
@@ -209,14 +210,14 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
                     setShowAddRoom(false);
                     setRoomForm({ name: '', capacity: 30, subject: '' });
                   }}
-                  className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  className="px-6 py-2.5 bg-background border border-border text-foreground rounded-lg hover:bg-muted transition"
                 >
                   Avbryt
                 </button>
                 <button
                   onClick={handleAddRoom}
                   disabled={!roomForm.name}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Lägg till sal
                 </button>
@@ -227,25 +228,25 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
 
         {/* Import Form - Inline */}
         {showImport && (
-          <div className="bg-green-50 rounded-xl p-6 border-2 border-green-200">
+          <div className="bg-primary/10 rounded-xl p-6 border-2 border-primary">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Importera salar från fil</h3>
+              <h3 className="text-lg font-semibold text-foreground">Importera salar från fil</h3>
               <button
                 onClick={() => setShowImport(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="bg-white rounded-lg p-4 mb-4 border border-green-200">
+            <div className="bg-card rounded-lg p-4 mb-4 border border-primary">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <AlertCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
-                  <p className="font-medium text-gray-900 mb-1">Format för CSV/TXT-fil:</p>
-                  <p className="text-gray-700 mb-2">Varje rad: <code className="bg-gray-100 px-2 py-0.5 rounded">Salnamn, Kapacitet, Ämne (valfritt)</code></p>
-                  <p className="text-gray-700 mb-2">Exempel:</p>
-                  <div className="bg-gray-50 rounded px-3 py-2 font-mono text-xs text-gray-800">
+                  <p className="font-medium text-foreground mb-1">Format för CSV/TXT-fil:</p>
+                  <p className="text-foreground mb-2">Varje rad: <code className="bg-muted px-2 py-0.5 rounded">Salnamn, Kapacitet, Ämne (valfritt)</code></p>
+                  <p className="text-foreground mb-2">Exempel:</p>
+                  <div className="bg-muted rounded px-3 py-2 font-mono text-xs text-foreground">
                     A101, 30<br/>
                     Kemisalen, 24, Kemi<br/>
                     Fysiksalen, 28, Fysik<br/>
@@ -256,10 +257,10 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
             </div>
 
             <label className="block w-full cursor-pointer">
-              <div className="border-2 border-dashed border-green-300 rounded-xl p-8 text-center hover:border-green-500 hover:bg-green-100/50 transition bg-white">
-                <Upload className="w-12 h-12 text-green-600 mx-auto mb-3" />
-                <p className="text-gray-700 font-medium mb-1">Klicka för att välja fil</p>
-                <p className="text-sm text-gray-600">CSV eller TXT-fil</p>
+              <div className="border-2 border-dashed border-primary rounded-xl p-8 text-center hover:border-primary hover:bg-primary/10 transition bg-card">
+                <Upload className="w-12 h-12 text-primary mx-auto mb-3" />
+                <p className="text-foreground font-medium mb-1">Klicka för att välja fil</p>
+                <p className="text-sm text-muted-foreground">CSV eller TXT-fil</p>
               </div>
               <input
                 type="file"
@@ -273,11 +274,11 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
 
         {/* Summary Card */}
         {rooms.length > 0 && (
-          <div className="bg-purple-50 rounded-xl p-6 border-2 border-purple-200">
+          <div className="bg-accent rounded-xl p-6 border-2 border-border">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Översikt</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="text-lg font-semibold text-foreground mb-1">Översikt</h3>
+                <p className="text-sm text-muted-foreground">
                   {rooms.length} salar • Total kapacitet: {rooms.reduce((sum, r) => sum + r.capacity, 0)} platser
                 </p>
               </div>
@@ -287,31 +288,31 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
 
         {/* Rooms List */}
         {rooms.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
-            <DoorOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600">Inga salar tillagda än</p>
-            <p className="text-sm text-gray-500 mt-1">Använd knapparna ovan för att lägga till salar</p>
+          <div className="text-center py-12 border-2 border-dashed border-border rounded-xl bg-muted">
+            <DoorOpen className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">Inga salar tillagda än</p>
+            <p className="text-sm text-muted-foreground mt-1">Använd knapparna ovan för att lägga till salar</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {rooms.map((room) => (
-              <div key={room.id} className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition">
+              <div key={room.id} className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3 flex-1">
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      room.subject ? 'bg-purple-100' : 'bg-gray-100'
+                      room.subject ? 'bg-accent' : 'bg-muted'
                     }`}>
                       <DoorOpen className={`w-6 h-6 ${
-                        room.subject ? 'text-purple-600' : 'text-gray-600'
+                        room.subject ? 'text-accent-foreground' : 'text-muted-foreground'
                       }`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{room.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <h3 className="font-semibold text-foreground truncate">{room.name}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Kapacitet: {room.capacity} platser
                       </p>
                       {room.subject && (
-                        <span className="inline-block mt-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                        <span className="inline-block mt-2 px-3 py-1 bg-accent text-accent-foreground rounded-full text-xs font-medium">
                           {room.subject}
                         </span>
                       )}
@@ -319,7 +320,7 @@ export function RoomsStep({ data, onChange }: RoomsStepProps) {
                   </div>
                   <button
                     onClick={() => handleDeleteRoom(room.id)}
-                    className="text-gray-400 hover:text-red-600 transition flex-shrink-0 ml-2"
+                    className="text-muted-foreground hover:text-destructive transition flex-shrink-0 ml-2"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

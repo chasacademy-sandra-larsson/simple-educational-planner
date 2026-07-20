@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { ProjectWithDetails, ProjectScheduleCalculation, ClassScheduleInfo, CourseScheduleCalculation } from '@/app/lib/api/types';
 import { api } from '@/app/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface WeeklyScheduleProps {
     project: ProjectWithDetails;
@@ -81,19 +82,17 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
 
     if (loading) {
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div>
-                    <div className="h-64 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
-                </div>
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-64 w-full" />
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                <div className="p-4 bg-destructive/10 border border-destructive rounded-lg text-destructive">
                     {error}
                 </div>
             </div>
@@ -102,9 +101,9 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
 
     if (!scheduleData || scheduleData.classes.length === 0) {
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Schema</h2>
-                <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                <h2 className="text-xl font-semibold text-foreground mb-4">Schema</h2>
+                <div className="text-center py-8 text-muted-foreground">
                     <p>Inga klasser eller kurser har lagts till ännu.</p>
                     <p className="text-sm mt-2">Lägg till klasser och kurser för att se schemaberäkningen.</p>
                 </div>
@@ -120,14 +119,14 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
         <div className="space-y-6">
             {/* Missing term dates warning */}
             {scheduleData.missingTermDates.length > 0 && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-                    <h3 className="font-medium text-amber-800 dark:text-amber-200 mb-2">
+                <div className="bg-accent border border-border rounded-lg p-4">
+                    <h3 className="font-medium text-accent-foreground mb-2">
                         Terminstider saknas
                     </h3>
-                    <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+                    <p className="text-sm text-accent-foreground mb-2">
                         För att beräkna minuter per vecka behöver följande terminstider läggas till under Inställningar:
                     </p>
-                    <ul className="list-disc list-inside text-sm text-amber-700 dark:text-amber-300">
+                    <ul className="list-disc list-inside text-sm text-accent-foreground">
                         {scheduleData.missingTermDates.map(({ year, academicYear }) => (
                             <li key={`${academicYear}-${year}`}>
                                 År {year} ({academicYear})
@@ -138,16 +137,16 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
             )}
 
             {/* Schedule Controls */}
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
                 <div className="flex flex-wrap items-center gap-4 mb-6">
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">
                             Klass
                         </label>
                         <select
                             value={selectedClassId}
                             onChange={(e) => setSelectedClassId(e.target.value)}
-                            className="px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                            className="px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                         >
                             {scheduleData.classes.map(cls => (
                                 <option key={cls.classId} value={cls.classId}>
@@ -157,13 +156,13 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                        <label className="block text-sm font-medium text-muted-foreground mb-1">
                             Termin
                         </label>
                         <select
                             value={selectedTerm}
                             onChange={(e) => setSelectedTerm(e.target.value as TermId)}
-                            className="px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                            className="px-3 py-2 border border-border rounded-lg bg-card text-foreground"
                         >
                             {(Object.keys(TERM_LABELS) as TermId[]).map(term => (
                                 <option key={term} value={term}>
@@ -177,27 +176,27 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                 {/* Summary Stats */}
                 {selectedClass && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <p className="text-sm text-blue-700 dark:text-blue-300">Kurser denna termin</p>
-                            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                        <div className="p-4 bg-accent rounded-lg">
+                            <p className="text-sm text-primary">Kurser denna termin</p>
+                            <p className="text-2xl font-bold text-foreground">
                                 {coursesForTerm.length}
                             </p>
                         </div>
-                        <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                            <p className="text-sm text-purple-700 dark:text-purple-300">Minuter per vecka</p>
-                            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                        <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-accent-foreground">Minuter per vecka</p>
+                            <p className="text-2xl font-bold text-foreground">
                                 {totalMinutesForTerm}
                             </p>
                         </div>
-                        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <p className="text-sm text-green-700 dark:text-green-300">Timmar per vecka</p>
-                            <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                        <div className="p-4 bg-primary/10 rounded-lg">
+                            <p className="text-sm text-primary">Timmar per vecka</p>
+                            <p className="text-2xl font-bold text-foreground">
                                 {formatDuration(totalMinutesForTerm)}
                             </p>
                         </div>
-                        <div className="p-4 bg-zinc-100 dark:bg-zinc-700 rounded-lg">
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">Lektionslängd</p>
-                            <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm text-muted-foreground">Lektionslängd</p>
+                            <p className="text-2xl font-bold text-foreground">
                                 {scheduleData.defaultLessonDuration} min
                             </p>
                         </div>
@@ -205,58 +204,58 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                 )}
 
                 {/* Courses List */}
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                     Kursfördelning - {TERM_LABELS[selectedTerm]}
                 </h3>
 
                 {coursesForTerm.length === 0 ? (
-                    <p className="text-zinc-500 dark:text-zinc-400 text-center py-4">
+                    <p className="text-muted-foreground text-center py-4">
                         Inga kurser denna termin
                     </p>
                 ) : (
                     <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-                        <table className="min-w-full divide-y divide-zinc-300 dark:divide-zinc-700">
-                            <thead className="bg-zinc-50 dark:bg-zinc-900">
+                        <table className="min-w-full divide-y divide-border">
+                            <thead className="bg-muted">
                                 <tr>
-                                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:pl-6">
+                                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6">
                                         Kurs
                                     </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                                         Poäng
                                     </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                                         Terminer
                                     </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                                         Veckor
                                     </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                                         Min/vecka
                                     </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-foreground">
                                         Lektioner/vecka
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-800">
+                            <tbody className="divide-y divide-border bg-card">
                                 {coursesForTerm.map((course) => (
                                     <tr key={course.courseCode}>
                                         <td className="py-4 pl-4 pr-3 text-sm sm:pl-6">
-                                            <div className="font-medium text-zinc-900 dark:text-zinc-100">{course.courseName}</div>
-                                            <div className="text-zinc-500 dark:text-zinc-400">{course.courseCode}</div>
+                                            <div className="font-medium text-foreground">{course.courseName}</div>
+                                            <div className="text-muted-foreground">{course.courseCode}</div>
                                         </td>
-                                        <td className="px-3 py-4 text-sm text-zinc-700 dark:text-zinc-300">
+                                        <td className="px-3 py-4 text-sm text-muted-foreground">
                                             {course.points}p
                                         </td>
-                                        <td className="px-3 py-4 text-sm text-zinc-700 dark:text-zinc-300">
+                                        <td className="px-3 py-4 text-sm text-muted-foreground">
                                             <div className="flex flex-wrap gap-1">
                                                 {course.terms.map(term => (
                                                     <span
                                                         key={term}
                                                         className={`px-2 py-0.5 text-xs rounded ${
                                                             ['term1', 'term3', 'term5'].includes(term)
-                                                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                                                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                                                ? 'bg-accent text-accent-foreground'
+                                                                : 'bg-primary/10 text-primary'
                                                         }`}
                                                     >
                                                         {term.replace('term', 'T')}
@@ -264,32 +263,32 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                                                 ))}
                                             </div>
                                         </td>
-                                        <td className="px-3 py-4 text-sm text-zinc-700 dark:text-zinc-300">
+                                        <td className="px-3 py-4 text-sm text-muted-foreground">
                                             {course.totalWeeks > 0 ? course.totalWeeks : '-'}
                                         </td>
-                                        <td className="px-3 py-4 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                        <td className="px-3 py-4 text-sm font-medium text-foreground">
                                             {course.minutesPerWeek > 0 ? course.minutesPerWeek : '-'}
                                         </td>
-                                        <td className="px-3 py-4 text-sm text-zinc-700 dark:text-zinc-300">
+                                        <td className="px-3 py-4 text-sm text-muted-foreground">
                                             {course.lessonsPerWeek > 0 ? course.lessonsPerWeek : '-'}
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
-                            <tfoot className="bg-zinc-50 dark:bg-zinc-900">
+                            <tfoot className="bg-muted">
                                 <tr>
-                                    <td className="py-3.5 pl-4 pr-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:pl-6">
+                                    <td className="py-3.5 pl-4 pr-3 text-sm font-semibold text-foreground sm:pl-6">
                                         Totalt
                                     </td>
-                                    <td className="px-3 py-3.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <td className="px-3 py-3.5 text-sm font-semibold text-foreground">
                                         {coursesForTerm.reduce((sum, c) => sum + c.points, 0)}p
                                     </td>
-                                    <td className="px-3 py-3.5 text-sm text-zinc-700 dark:text-zinc-300"></td>
-                                    <td className="px-3 py-3.5 text-sm text-zinc-700 dark:text-zinc-300"></td>
-                                    <td className="px-3 py-3.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <td className="px-3 py-3.5 text-sm text-muted-foreground"></td>
+                                    <td className="px-3 py-3.5 text-sm text-muted-foreground"></td>
+                                    <td className="px-3 py-3.5 text-sm font-semibold text-foreground">
                                         {totalMinutesForTerm} min
                                     </td>
-                                    <td className="px-3 py-3.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    <td className="px-3 py-3.5 text-sm font-semibold text-foreground">
                                         {coursesForTerm.reduce((sum, c) => sum + c.lessonsPerWeek, 0).toFixed(1)}
                                     </td>
                                 </tr>
@@ -300,11 +299,11 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
             </div>
 
             {/* Weekly Schedule Grid */}
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+            <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                     Veckoschema (mall)
                 </h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                     Detta är en översikt över tillgängliga tider. Faktisk schemaläggning kommer i nästa version.
                 </p>
 
@@ -312,11 +311,11 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                     <div className="min-w-[800px]">
                         {/* Header */}
                         <div className="grid grid-cols-6 gap-1 mb-1">
-                            <div className="p-2 bg-zinc-100 dark:bg-zinc-700 rounded font-medium text-zinc-600 dark:text-zinc-400 text-sm">
+                            <div className="p-2 bg-muted rounded font-medium text-muted-foreground text-sm">
                                 Tid
                             </div>
                             {WEEKDAYS.map(day => (
-                                <div key={day} className="p-2 bg-zinc-100 dark:bg-zinc-700 rounded font-medium text-zinc-900 dark:text-zinc-100 text-center text-sm">
+                                <div key={day} className="p-2 bg-muted rounded font-medium text-foreground text-center text-sm">
                                     {day}
                                 </div>
                             ))}
@@ -325,7 +324,7 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                         {/* Time slots */}
                         {timeSlots.map((time, index) => (
                             <div key={time} className="grid grid-cols-6 gap-1 mb-1">
-                                <div className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded text-zinc-600 dark:text-zinc-400 text-sm">
+                                <div className="p-2 bg-muted rounded text-muted-foreground text-sm">
                                     {time}
                                 </div>
                                 {WEEKDAYS.map(day => {
@@ -340,8 +339,8 @@ export default function WeeklySchedule({ project }: WeeklyScheduleProps) {
                                             key={`${time}-${day}`}
                                             className={`p-2 rounded text-sm text-center ${
                                                 isLunchTime
-                                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border border-dashed border-yellow-300 dark:border-yellow-700'
-                                                    : 'bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer'
+                                                    ? 'bg-accent text-accent-foreground border border-dashed border-border'
+                                                    : 'bg-card border border-border hover:bg-accent cursor-pointer'
                                             }`}
                                         >
                                             {isLunchTime ? 'Lunch' : ''}

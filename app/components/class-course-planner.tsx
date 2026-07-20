@@ -72,13 +72,13 @@ export default function ClassCoursePlanner({ classId, programCode, orientationCo
         <div className="space-y-4">
             {/* Edit/View Mode Toggle */}
             {!isEditing && hasCurriculum && (
-                <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="text-sm text-blue-900 dark:text-blue-100">
+                <div className="flex justify-between items-center p-3 bg-accent dark:bg-accent/20 rounded-lg border border-primary dark:border-primary/50">
+                    <div className="text-sm text-primary dark:text-primary">
                         <strong>View Mode:</strong> Drag & drop is disabled. Click Edit to make changes.
                     </div>
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+                        className="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm rounded transition-colors"
                     >
                         Edit
                     </button>
@@ -94,7 +94,7 @@ export default function ClassCoursePlanner({ classId, programCode, orientationCo
 
             {/* Messages */}
             {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
+                <div className="p-3 bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 dark:border-destructive/50 rounded text-sm text-destructive dark:text-destructive">
                     {error}
                 </div>
             )}
@@ -106,11 +106,11 @@ export default function ClassCoursePlanner({ classId, programCode, orientationCo
 
             {/* Apply Button - only show in edit mode */}
             {isEditing && (
-                <div className="flex justify-end pt-4 border-t border-zinc-200 dark:border-zinc-600">
+                <div className="flex justify-end pt-4 border-t border-border dark:border-border">
                     <button
                         onClick={handleApplyCourses}
                         disabled={saving}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg font-medium transition-colors"
+                        className="px-6 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/60 text-primary-foreground rounded-lg font-medium transition-colors"
                     >
                         {saving ? 'Applying...' : 'Apply Courses'}
                     </button>

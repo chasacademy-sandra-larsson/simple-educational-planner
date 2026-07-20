@@ -161,46 +161,46 @@ export default function CoursePlanner({
     }
 
     if (loading) {
-        return <div className="mt-4 text-zinc-500">Loading courses...</div>;
+        return <div className="mt-4 text-muted-foreground">Loading courses...</div>;
     }
 
     if (error) {
-        return <div className="mt-4 text-red-500">{error}</div>;
+        return <div className="mt-4 text-destructive">{error}</div>;
     }
 
     if (courses.length === 0) {
-        return <div className="mt-4 text-zinc-500">No courses found for this program.</div>;
+        return <div className="mt-4 text-muted-foreground">No courses found for this program.</div>;
     }
 
     const content = (
         <div className="mt-8 w-full">
             <div className={`mb-6 p-4 rounded-lg border transition-colors ${isValidTotal
-                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                ? "bg-primary/10 border-primary"
+                : "bg-accent border-primary"
                 }`}>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div className="text-sm">
-                        <p className={isValidTotal ? "text-green-900 dark:text-green-100" : "text-blue-900 dark:text-blue-100"}>
+                        <p className={isValidTotal ? "text-primary" : "text-primary"}>
                             <strong>Course Planning:</strong> {readOnly ? 'Viewing assigned courses' : 'Drag and drop courses to assign them to Year 1, 2, or 3'}.
                         </p>
-                        <p className={`text-xs mt-1 ${isValidTotal ? "text-green-700 dark:text-green-300" : "text-blue-700 dark:text-blue-300"}`}>
+                        <p className={`text-xs mt-1 ${isValidTotal ? "text-primary" : "text-primary"}`}>
                             (Includes 200 points for Individual Choice)
                         </p>
                     </div>
                     <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${isValidTotal
-                        ? "bg-green-100 dark:bg-green-900/40 border-green-300 dark:border-green-700 text-green-800 dark:text-green-100"
-                        : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100"
+                        ? "bg-primary/10 border-primary text-primary"
+                        : "bg-card border-border text-foreground"
                         }`}>
                         <span className="font-semibold">Total Points:</span>
                         <span className={`font-bold ${isValidTotal
-                            ? "text-green-700 dark:text-green-300"
-                            : totalPoints > 2500 ? "text-red-600 dark:text-red-400" : "text-zinc-900 dark:text-zinc-100"
+                            ? "text-primary"
+                            : totalPoints > 2500 ? "text-destructive" : "text-foreground"
                             }`}>
                             {totalPoints}
                         </span>
-                        <span className="text-zinc-400 dark:text-zinc-500">/ 2500</span>
+                        <span className="text-muted-foreground">/ 2500</span>
                         {isValidTotal && (
-                            <svg className="w-5 h-5 text-green-600 dark:text-green-400 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-primary ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                         )}
@@ -208,7 +208,7 @@ export default function CoursePlanner({
                 </div>
             </div>
 
-            <h2 className="text-xl font-semibold mb-6 text-zinc-900 dark:text-zinc-100">
+            <h2 className="text-xl font-semibold mb-6 text-foreground">
                 Course Planning
             </h2>
 
@@ -270,15 +270,15 @@ function UnassignedCoursesByCategory({ courses, readOnly = false }: UnassignedCo
     return (
         <div
             ref={setNodeRef}
-            className="rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 p-6 flex flex-col h-full"
+            className="rounded-xl border-2 border-dashed border-border bg-muted p-6 flex flex-col h-full"
         >
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
                 Unassigned Courses
             </h3>
 
             <div className="space-y-4 flex-1 overflow-y-auto">
                 {courses.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-400 dark:text-zinc-600 text-sm">
+                    <div className="text-center py-8 text-muted-foreground text-sm">
                         All courses assigned
                     </div>
                 ) : (
@@ -288,7 +288,7 @@ function UnassignedCoursesByCategory({ courses, readOnly = false }: UnassignedCo
 
                             return (
                                 <div key={category} className="mb-4">
-                                    <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide mb-2">
+                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                                         {CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS]}
                                     </h4>
                                     <div className="space-y-2">
@@ -327,18 +327,18 @@ function DropZone({ yearId, label, courses, totalPoints, readOnly = false }: Dro
         rounded-xl border-2 border-dashed p-6 flex flex-col
         transition-all duration-200
         ${isUnassigned
-                    ? "border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/50 h-full"
-                    : "border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10 flex-1"
+                    ? "border-border bg-muted h-full"
+                    : "border-primary bg-accent flex-1"
                 }
       `}
         >
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-lg font-semibold text-foreground">
                     {label}
                 </h3>
                 {!isUnassigned && (
-                    <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                        <span className="text-blue-600 dark:text-blue-400 font-bold">
+                    <div className="text-sm font-medium text-muted-foreground">
+                        <span className="text-primary font-bold">
                             {totalPoints}
                         </span>{" "}
                         points
@@ -348,7 +348,7 @@ function DropZone({ yearId, label, courses, totalPoints, readOnly = false }: Dro
 
             <div className="space-y-2 flex-1 overflow-y-auto">
                 {courses.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-400 dark:text-zinc-600 text-sm">
+                    <div className="text-center py-8 text-muted-foreground text-sm">
                         {isUnassigned ? "All courses assigned" : "Drop courses here"}
                     </div>
                 ) : (
@@ -404,23 +404,23 @@ function CourseCard({ course, isDragging = false, readOnly = false }: CourseCard
         p-3 rounded-lg border ${readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}
         transition-all duration-200
         ${isDragging
-                    ? "bg-white dark:bg-zinc-800 border-blue-400 dark:border-blue-600 shadow-lg scale-105"
+                    ? "bg-card border-primary shadow-lg scale-105"
                     : readOnly
-                        ? "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700"
-                        : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md"
+                        ? "bg-card border-border"
+                        : "bg-card border-border hover:border-primary hover:shadow-md"
                 }
       `}
         >
             <div className="flex justify-between items-start gap-3">
                 <div className="flex-1 min-w-0">
-                    <div className="text-xs font-mono text-zinc-500 dark:text-zinc-400 mb-1">
+                    <div className="text-xs font-mono text-muted-foreground mb-1">
                         {course.courseCode}
                     </div>
-                    <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    <div className="text-sm font-medium text-foreground truncate">
                         {course.name}
                     </div>
                 </div>
-                <div className="flex-shrink-0 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                <div className="flex-shrink-0 text-sm font-semibold text-primary">
                     {course.points}p
                 </div>
             </div>

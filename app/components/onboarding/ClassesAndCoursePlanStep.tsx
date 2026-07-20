@@ -408,25 +408,25 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
     return (
       <div>
         {/* Course Planning Sub-guide */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 mb-6">
+        <div className="bg-accent rounded-xl p-6 border-2 border-primary mb-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex-1">
-              <h2 className="text-lg font-medium text-gray-900 mb-1">Kursplaneringsguide</h2>
-              <p className="text-sm text-gray-600">
+              <h2 className="text-lg font-medium text-foreground mb-1">Kursplaneringsguide</h2>
+              <p className="text-sm text-muted-foreground">
                 {editingClassId ? 'Redigerar' : 'Skapar'} kursplan för {tempClassData.name || 'ny klass'}
               </p>
             </div>
             <button
               onClick={cancelPlanning}
-              className="text-gray-600 hover:text-gray-900 text-sm px-4 py-2 rounded-lg hover:bg-white/50 transition"
+              className="text-muted-foreground hover:text-foreground text-sm px-4 py-2 rounded-lg hover:bg-card/50 transition"
             >
               Avbryt
             </button>
           </div>
           
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-gray-700">Substeg {planningStep} av {PLANNING_STEPS.length}</p>
-            <p className="text-sm font-medium text-gray-900">{PLANNING_STEPS[planningStep - 1]}</p>
+            <p className="text-sm text-foreground">Substeg {planningStep} av {PLANNING_STEPS.length}</p>
+            <p className="text-sm font-medium text-foreground">{PLANNING_STEPS[planningStep - 1]}</p>
           </div>
           
           <div className="flex items-center gap-1">
@@ -435,10 +435,10 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 key={index}
                 className={`h-2.5 flex-1 rounded-full transition-all ${
                   index + 1 < planningStep
-                    ? 'bg-green-500'
+                    ? 'bg-primary/100'
                     : index + 1 === planningStep
-                    ? 'bg-blue-600'
-                    : 'bg-white/50'
+                    ? 'bg-primary'
+                    : 'bg-card/50'
                 }`}
               />
             ))}
@@ -446,20 +446,20 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
         </div>
 
         {/* Info Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="bg-accent border border-primary rounded-lg p-4 mb-6">
           <div className="flex items-center gap-3 text-sm">
-            <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
-            <p className="text-blue-900">
+            <Info className="w-5 h-5 text-primary flex-shrink-0" />
+            <p className="text-foreground">
               <span className="font-medium">Ditt arbete sparas automatiskt.</span> Du kan avbryta och fortsätta senare.
             </p>
           </div>
         </div>
 
         {/* Planning Content */}
-        <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
+        <div className="bg-card rounded-xl border border-border p-8 shadow-sm">
           <div className="mb-6">
             <h3 className="text-xl mb-2">{PLANNING_STEPS[planningStep - 1]}</h3>
-            <p className="text-gray-600 text-sm">
+            <p className="text-muted-foreground text-sm">
               {planningStep === 1 && 'Ange grundläggande information om klassen'}
               {planningStep === 2 && 'Välj vilket nationellt program klassen ska följa'}
               {planningStep === 3 && 'Välj inriktning för programmet'}
@@ -478,34 +478,34 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
               {planningStep === 1 && (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm mb-2 text-gray-700">Klassnamn</label>
+                    <label className="block text-sm mb-2 text-foreground">Klassnamn</label>
                     <input
                       type="text"
                       value={tempClassData.name}
                       onChange={(e) => setTempClassData({ ...tempClassData, name: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="t.ex. TE26A"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm mb-2 text-gray-700">Startår</label>
+                      <label className="block text-sm mb-2 text-foreground">Startår</label>
                       <input
                         type="number"
                         value={tempClassData.startYear}
                         onChange={(e) => setTempClassData({ ...tempClassData, startYear: parseInt(e.target.value) })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                         min="2020"
                         max="2030"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm mb-2 text-gray-700">Antal elever</label>
+                      <label className="block text-sm mb-2 text-foreground">Antal elever</label>
                       <input
                         type="number"
                         value={tempClassData.students}
                         onChange={(e) => setTempClassData({ ...tempClassData, students: parseInt(e.target.value) })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                         min="1"
                       />
                     </div>
@@ -518,14 +518,14 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2">Välj program från Skolverket</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Välj vilket nationellt program klassen ska följa
                     </p>
                   </div>
                   {isLoadingPrograms ? (
                     <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                      <span className="ml-3 text-gray-600">Laddar program från Skolverket...</span>
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <span className="ml-3 text-muted-foreground">Laddar program från Skolverket...</span>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
@@ -535,23 +535,23 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                           onClick={() => handleProgramSelect(program)}
                           className={`p-4 border-2 rounded-xl text-left transition-all ${
                             tempClassData.program === program.code
-                              ? 'border-blue-600 bg-blue-50'
-                              : 'border-gray-200 hover:border-blue-300'
+                              ? 'border-primary bg-accent'
+                              : 'border-border hover:border-primary'
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                              tempClassData.program === program.code ? 'bg-blue-600' : 'bg-gray-100'
+                              tempClassData.program === program.code ? 'bg-primary' : 'bg-muted'
                             }`}>
                               <span className={`text-lg ${
-                                tempClassData.program === program.code ? 'text-white' : 'text-gray-600'
+                                tempClassData.program === program.code ? 'text-primary-foreground' : 'text-muted-foreground'
                               }`}>
                                 {program.code}
                               </span>
                             </div>
                             <div>
                               <p className="font-medium">{program.name}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-muted-foreground">
                                 Gymnasieprogram
                               </p>
                             </div>
@@ -568,23 +568,23 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2">Välj inriktning</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Välj inriktning för {selectedProgram.name}
                     </p>
                   </div>
                   {isLoadingOrientations ? (
                     <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                      <span className="ml-3 text-gray-600">Laddar inriktningar...</span>
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <span className="ml-3 text-muted-foreground">Laddar inriktningar...</span>
                     </div>
                   ) : selectedProgram.specializations.length === 0 ? (
                     <div className="text-center py-8">
-                      <AlertCircle className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-                      <p className="text-gray-600">Inga inriktningar hittades för detta program.</p>
-                      <p className="text-sm text-gray-500 mt-1">Du kan fortsätta utan inriktning.</p>
+                      <AlertCircle className="w-8 h-8 text-accent-foreground mx-auto mb-2" />
+                      <p className="text-muted-foreground">Inga inriktningar hittades för detta program.</p>
+                      <p className="text-sm text-muted-foreground mt-1">Du kan fortsätta utan inriktning.</p>
                       <button
                         onClick={() => setTempClassData({ ...tempClassData, specialization: 'Ingen specifik inriktning' })}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
                       >
                         Fortsätt utan inriktning
                       </button>
@@ -597,12 +597,12 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                           onClick={() => setTempClassData({ ...tempClassData, specialization: spec.name })}
                           className={`p-4 border-2 rounded-xl text-left transition-all ${
                             tempClassData.specialization === spec.name
-                              ? 'border-blue-600 bg-blue-50'
-                              : 'border-gray-200 hover:border-blue-300'
+                              ? 'border-primary bg-accent'
+                              : 'border-border hover:border-primary'
                           }`}
                         >
                           <p className="font-medium">{spec.name}</p>
-                          <p className="text-sm text-gray-500">{spec.code}</p>
+                          <p className="text-sm text-muted-foreground">{spec.code}</p>
                         </button>
                       ))}
                     </div>
@@ -613,17 +613,17 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
               {/* Step 4: Confirm */}
               {planningStep === 4 && (
                 <div className="space-y-6">
-                  <div className="bg-blue-50 rounded-xl p-6">
+                  <div className="bg-accent rounded-xl p-6">
                     <h3 className="text-lg mb-4 flex items-center gap-2">
-                      <Check className="w-5 h-5 text-blue-600" />
+                      <Check className="w-5 h-5 text-primary" />
                       Bekräfta kursplan
                     </h3>
                     <div className="space-y-2 text-sm">
-                      <p><span className="text-gray-600">Klass:</span> <span className="font-medium">{tempClassData.name}</span></p>
-                      <p><span className="text-gray-600">Startår:</span> <span className="font-medium">{tempClassData.startYear}</span></p>
-                      <p><span className="text-gray-600">Elever:</span> <span className="font-medium">{tempClassData.students}</span></p>
-                      <p><span className="text-gray-600">Program:</span> <span className="font-medium">{tempClassData.programName}</span></p>
-                      <p><span className="text-gray-600">Inriktning:</span> <span className="font-medium">{tempClassData.specialization}</span></p>
+                      <p><span className="text-muted-foreground">Klass:</span> <span className="font-medium">{tempClassData.name}</span></p>
+                      <p><span className="text-muted-foreground">Startår:</span> <span className="font-medium">{tempClassData.startYear}</span></p>
+                      <p><span className="text-muted-foreground">Elever:</span> <span className="font-medium">{tempClassData.students}</span></p>
+                      <p><span className="text-muted-foreground">Program:</span> <span className="font-medium">{tempClassData.programName}</span></p>
+                      <p><span className="text-muted-foreground">Inriktning:</span> <span className="font-medium">{tempClassData.specialization}</span></p>
                     </div>
                   </div>
                 </div>
@@ -634,7 +634,7 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2">Välj programlängd</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Hur många terminer ska programmet vara?
                     </p>
                   </div>
@@ -643,29 +643,29 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                       onClick={() => setTempClassData({ ...tempClassData, termCount: 6 })}
                       className={`p-6 border-2 rounded-xl transition-all ${
                         tempClassData.termCount === 6
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-blue-300'
+                          ? 'border-primary bg-accent'
+                          : 'border-border hover:border-primary'
                       }`}
                     >
                       <Calendar className={`w-8 h-8 mx-auto mb-2 ${
-                        tempClassData.termCount === 6 ? 'text-blue-600' : 'text-gray-400'
+                        tempClassData.termCount === 6 ? 'text-primary' : 'text-muted-foreground'
                       }`} />
                       <p className="font-medium text-center">6 terminer</p>
-                      <p className="text-sm text-gray-600 text-center mt-1">3 år (standard)</p>
+                      <p className="text-sm text-muted-foreground text-center mt-1">3 år (standard)</p>
                     </button>
                     <button
                       onClick={() => setTempClassData({ ...tempClassData, termCount: 4 })}
                       className={`p-6 border-2 rounded-xl transition-all ${
                         tempClassData.termCount === 4
-                          ? 'border-blue-600 bg-blue-50'
-                          : 'border-gray-200 hover:border-blue-300'
+                          ? 'border-primary bg-accent'
+                          : 'border-border hover:border-primary'
                       }`}
                     >
                       <Calendar className={`w-8 h-8 mx-auto mb-2 ${
-                        tempClassData.termCount === 4 ? 'text-blue-600' : 'text-gray-400'
+                        tempClassData.termCount === 4 ? 'text-primary' : 'text-muted-foreground'
                       }`} />
                       <p className="font-medium text-center">4 terminer</p>
-                      <p className="text-sm text-gray-600 text-center mt-1">2 år</p>
+                      <p className="text-sm text-muted-foreground text-center mt-1">2 år</p>
                     </button>
                   </div>
                 </div>
@@ -676,29 +676,29 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2 flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-blue-600" />
+                      <BookOpen className="w-5 h-5 text-primary" />
                       Gymnasiegemensamma ämnen
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Dessa kurser är obligatoriska för alla gymnasieprogram och är redan förvalda
                     </p>
                   </div>
 
                   {isLoadingCourses ? (
                     <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                      <span className="ml-3 text-gray-600">Laddar kurser från Skolverket...</span>
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <span className="ml-3 text-muted-foreground">Laddar kurser från Skolverket...</span>
                     </div>
                   ) : (
                     <>
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                      <div className="bg-primary/10 border border-primary rounded-xl p-4 mb-4">
                         <div className="flex items-start gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                           <div>
-                            <p className="text-sm font-medium text-green-900 mb-1">
+                            <p className="text-sm font-medium text-foreground mb-1">
                               Automatiskt tillagt enligt Skolverkets riktlinjer
                             </p>
-                            <p className="text-xs text-green-700">
+                            <p className="text-xs text-foreground">
                               Dessa kurser ingår i alla gymnasieprogram och kan inte tas bort
                             </p>
                           </div>
@@ -706,36 +706,36 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                       </div>
 
                       {gymnasiegemensamma.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+                        <div className="text-center py-8 text-muted-foreground">
+                          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-accent-foreground" />
                           <p>Inga gymnasiegemensamma kurser hittades för detta program.</p>
                           <p className="text-sm mt-1">Skolverkets API kanske inte returnerade data.</p>
                         </div>
                       ) : (
-                        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-3 max-h-96 overflow-y-auto">
+                        <div className="bg-card border border-border rounded-xl p-6 space-y-3 max-h-96 overflow-y-auto">
                           {gymnasiegemensamma.map((course) => (
                             <div
                               key={course.code}
-                              className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
+                              className="flex items-center justify-between bg-muted p-4 rounded-lg border border-border"
                             >
                               <div className="flex items-center gap-3 flex-1">
-                                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                  <Check className="w-4 h-4 text-green-600" />
+                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <Check className="w-4 h-4 text-primary" />
                                 </div>
                                 <div>
                                   <p className="font-medium">{course.name}</p>
-                                  <p className="text-sm text-gray-600">{course.code}</p>
+                                  <p className="text-sm text-muted-foreground">{course.code}</p>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-medium text-blue-600">{course.points}p</p>
+                                <p className="font-medium text-primary">{course.points}p</p>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-700">
+                      <div className="bg-accent rounded-lg p-4">
+                        <p className="text-sm text-foreground">
                           <span className="font-medium">Totalt:</span> {gymnasiegemensamma.reduce((sum, c) => sum + c.points, 0)} poäng
                         </p>
                       </div>
@@ -749,29 +749,29 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2 flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-blue-600" />
+                      <GraduationCap className="w-5 h-5 text-primary" />
                       Programgemensamma ämnen
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Dessa kurser är obligatoriska för {tempClassData.programName} och är redan förvalda
                     </p>
                   </div>
 
                   {isLoadingCourses ? (
                     <div className="flex items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                      <span className="ml-3 text-gray-600">Laddar kurser...</span>
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <span className="ml-3 text-muted-foreground">Laddar kurser...</span>
                     </div>
                   ) : (
                     <>
-                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                      <div className="bg-primary/10 border border-primary rounded-xl p-4 mb-4">
                         <div className="flex items-start gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                           <div>
-                            <p className="text-sm font-medium text-green-900 mb-1">
+                            <p className="text-sm font-medium text-foreground mb-1">
                               Automatiskt tillagt för {tempClassData.programName}
                             </p>
-                            <p className="text-xs text-green-700">
+                            <p className="text-xs text-foreground">
                               Dessa kurser är programspecifika och kan inte tas bort
                             </p>
                           </div>
@@ -779,35 +779,35 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                       </div>
 
                       {programgemensamma.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
+                        <div className="text-center py-8 text-muted-foreground">
+                          <AlertCircle className="w-8 h-8 mx-auto mb-2 text-accent-foreground" />
                           <p>Inga programgemensamma kurser hittades.</p>
                         </div>
                       ) : (
-                        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-3 max-h-96 overflow-y-auto">
+                        <div className="bg-card border border-border rounded-xl p-6 space-y-3 max-h-96 overflow-y-auto">
                           {programgemensamma.map((course) => (
                             <div
                               key={course.code}
-                              className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200"
+                              className="flex items-center justify-between bg-muted p-4 rounded-lg border border-border"
                             >
                               <div className="flex items-center gap-3 flex-1">
-                                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                  <Check className="w-4 h-4 text-green-600" />
+                                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                  <Check className="w-4 h-4 text-primary" />
                                 </div>
                                 <div>
                                   <p className="font-medium">{course.name}</p>
-                                  <p className="text-sm text-gray-600">{course.code}</p>
+                                  <p className="text-sm text-muted-foreground">{course.code}</p>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className="font-medium text-blue-600">{course.points}p</p>
+                                <p className="font-medium text-primary">{course.points}p</p>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-700">
+                      <div className="bg-accent rounded-lg p-4">
+                        <p className="text-sm text-foreground">
                           <span className="font-medium">Totalt:</span> {programgemensamma.reduce((sum, c) => sum + c.points, 0)} poäng
                         </p>
                       </div>
@@ -821,22 +821,22 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2 flex items-center gap-2">
-                      <Target className="w-5 h-5 text-blue-600" />
+                      <Target className="w-5 h-5 text-primary" />
                       Planera programfördjupning
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Välj 4 kurser som programfördjupning ({programfördjupning.length}/4 valda)
                     </p>
                   </div>
 
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Sök efter kurser..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
 
@@ -850,19 +850,19 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                           disabled={!isSelected && programfördjupning.length >= 4}
                           className={`p-4 border-2 rounded-lg text-left transition-all ${
                             isSelected
-                              ? 'border-blue-600 bg-blue-50'
-                              : 'border-gray-200 hover:border-blue-300'
+                              ? 'border-primary bg-accent'
+                              : 'border-border hover:border-primary'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-medium">{course.name}</p>
-                              <p className="text-sm text-gray-600">{course.code}</p>
+                              <p className="text-sm text-muted-foreground">{course.code}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-blue-600">{course.points}p</p>
+                              <p className="font-medium text-primary">{course.points}p</p>
                               {isSelected && (
-                                <Check className="w-5 h-5 text-blue-600 ml-auto mt-1" />
+                                <Check className="w-5 h-5 text-primary ml-auto mt-1" />
                               )}
                             </div>
                           </div>
@@ -878,22 +878,22 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 <div className="space-y-4">
                   <div className="mb-4">
                     <h3 className="text-lg mb-2">Planera kurser över terminer</h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Välj vilka terminer varje kurs ska läsas. Kurser kan vara 1-3 terminer långa.
                     </p>
                   </div>
 
-                  <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                  <div className="bg-accent rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-700">
+                      <p className="text-sm text-foreground">
                         <span className="font-medium">Totalt poäng:</span> {getTotalPoints()} / 2500
                       </p>
                       <div className={`px-3 py-1 rounded-full text-sm ${
                         getTotalPoints() === 2500
-                          ? 'bg-green-100 text-green-700'
+                          ? 'bg-primary/10 text-foreground'
                           : getTotalPoints() > 2500
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-yellow-100 text-yellow-700'
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-accent text-accent-foreground'
                       }`}>
                         {getTotalPoints() === 2500
                           ? 'Perfekt!'
@@ -905,34 +905,34 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                     </div>
                   </div>
 
-                  <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="border border-border rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-muted">
                           <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
                               Kurs
                             </th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
                               Poäng
                             </th>
                             {Array.from({ length: tempClassData.termCount || 6 }, (_, i) => (
-                              <th key={i} className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                              <th key={i} className="px-4 py-3 text-center text-sm font-medium text-foreground">
                                 T{i + 1}
                               </th>
                             ))}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-border">
                           {[...gymnasiegemensamma, ...programgemensamma, ...programfördjupning].map((course) => {
                             const selectedTerms = termPlanning[course.code] || [];
                             return (
-                              <tr key={course.code} className="hover:bg-gray-50">
+                              <tr key={course.code} className="hover:bg-muted">
                                 <td className="px-4 py-3 text-sm">
                                   <p className="font-medium">{course.name}</p>
-                                  <p className="text-gray-600 text-xs">{course.code}</p>
+                                  <p className="text-muted-foreground text-xs">{course.code}</p>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-blue-600 font-medium">
+                                <td className="px-4 py-3 text-sm text-primary font-medium">
                                   {course.points}p
                                 </td>
                                 {Array.from({ length: tempClassData.termCount || 6 }, (_, i) => {
@@ -945,8 +945,8 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                                         disabled={!isSelected && selectedTerms.length >= 3}
                                         className={`w-8 h-8 rounded-lg transition-all ${
                                           isSelected
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 hover:bg-gray-200'
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted hover:bg-muted'
                                         } disabled:opacity-30 disabled:cursor-not-allowed`}
                                       >
                                         {isSelected && <Check className="w-4 h-4 mx-auto" />}
@@ -967,10 +967,10 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
           </div>
 
           {/* Planning Navigation */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between pt-6 border-t border-border">
             <button
               onClick={handlePlanningBack}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              className="flex items-center gap-2 px-4 py-2 text-foreground hover:bg-muted rounded-lg transition"
             >
               <ChevronLeft className="w-4 h-4" />
               {planningStep === 1 ? 'Avbryt' : 'Tillbaka'}
@@ -983,7 +983,7 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                 (planningStep === 3 && !tempClassData.specialization) ||
                 (planningStep === 8 && programfördjupning.length !== 4)
               }
-              className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {planningStep === 9 ? 'Slutför kursplan' : 'Nästa'}
               <ChevronRight className="w-4 h-4" />
@@ -999,18 +999,18 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
     <div>
       <div className="mb-6">
         <h2 className="text-2xl mb-2">Klasser och kursplanering</h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Skapa klasser och planera deras kursplaner enligt Skolverkets riktlinjer
         </p>
       </div>
 
       {classes.length === 0 ? (
-        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl">
-          <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600 mb-4">Inga klasser tillagda än</p>
+        <div className="text-center py-12 border-2 border-dashed border-border rounded-xl">
+          <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">Inga klasser tillagda än</p>
           <button
             onClick={startNewClass}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition shadow-sm"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition shadow-sm"
           >
             <Plus className="w-5 h-5" />
             Skapa första klassen
@@ -1027,33 +1027,33 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
               const isComplete = hasEnoughCourses && hasEnoughPoints;
 
               return (
-                <div key={classItem.id} className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow">
+                <div key={classItem.id} className="border border-border rounded-xl p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-xl">{classItem.name}</h3>
                         <div className={`p-1 rounded-full ${
-                          isComplete ? 'bg-green-100' : 'bg-yellow-100'
+                          isComplete ? 'bg-primary/10' : 'bg-accent'
                         }`}>
                           {isComplete ? (
-                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                            <CheckCircle2 className="w-5 h-5 text-primary" />
                           ) : (
-                            <AlertCircle className="w-5 h-5 text-yellow-600" />
+                            <AlertCircle className="w-5 h-5 text-accent-foreground" />
                           )}
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">
+                      <p className="text-sm text-muted-foreground mb-1">
                         {classItem.programName}
                         {classItem.specialization && ` • ${classItem.specialization}`}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {classItem.startYear} - {classItem.endYear} • {classItem.students} elever • {classItem.termCount} terminer
                       </p>
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-600">
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className="text-xs text-muted-foreground">
                           {classItem.courses.length} kurser • {totalPoints} poäng
                           <span className={`ml-2 ${
-                            isComplete ? 'text-green-600' : 'text-yellow-600'
+                            isComplete ? 'text-primary' : 'text-accent-foreground'
                           }`}>
                             {isComplete ? '• Komplett' : '• Inkomplett'}
                           </span>
@@ -1063,19 +1063,19 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
                     <div className="flex gap-2">
                       <button
                         onClick={() => editClass(classItem)}
-                        className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition"
+                        className="text-primary hover:bg-accent p-2 rounded-lg transition"
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => deleteClass(classItem.id)}
-                        className="text-gray-400 hover:text-red-600 p-2 rounded-lg transition"
+                        className="text-muted-foreground hover:text-destructive p-2 rounded-lg transition"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => duplicateClass(classItem)}
-                        className="text-gray-400 hover:text-blue-600 p-2 rounded-lg transition"
+                        className="text-muted-foreground hover:text-primary p-2 rounded-lg transition"
                       >
                         <Copy className="w-5 h-5" />
                       </button>
@@ -1088,7 +1088,7 @@ export function ClassesAndCoursePlanStep({ data, onChange }: ClassesAndCoursePla
 
           <button
             onClick={startNewClass}
-            className="w-full border-2 border-dashed border-gray-300 rounded-xl p-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 transition flex items-center justify-center gap-2"
+            className="w-full border-2 border-dashed border-border rounded-xl p-4 text-muted-foreground hover:border-primary hover:text-primary transition flex items-center justify-center gap-2"
           >
             <Plus className="w-5 h-5" />
             Lägg till klass

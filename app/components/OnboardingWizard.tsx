@@ -437,26 +437,26 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
   // Show loading state while fetching data
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Laddar projektdata...</p>
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Laddar projektdata...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-card border-b border-border px-8 py-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl mb-1">{project.name}</h1>
-              <p className="text-sm text-gray-600">Konfigurera ditt schema steg för steg</p>
+              <p className="text-sm text-muted-foreground">Konfigurera ditt schema steg för steg</p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Sparkles className="w-4 h-4" />
               Guidad tur
             </div>
@@ -481,10 +481,10 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
                     <div
                       className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all mb-3 ${
                         isCompleted
-                          ? 'bg-green-500 text-white group-hover:bg-green-600'
+                          ? 'bg-primary/10 text-primary group-hover:bg-primary/20'
                           : isCurrent
-                          ? 'bg-blue-600 text-white ring-4 ring-blue-100'
-                          : 'bg-gray-200 text-gray-400 group-hover:bg-gray-300'
+                          ? 'bg-primary text-primary-foreground ring-4 ring-ring'
+                          : 'bg-muted text-muted-foreground group-hover:bg-muted/80'
                       }`}
                     >
                       {isCompleted ? (
@@ -495,7 +495,7 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
                     </div>
                     <p
                       className={`text-sm font-medium transition-colors ${
-                        isCurrent || isCompleted ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600'
+                        isCurrent || isCompleted ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
                       }`}
                     >
                       {step.title}
@@ -505,7 +505,7 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
                     <div className="flex-1 h-0.5 mx-4 -mt-9">
                       <div
                         className={`h-full transition-all ${
-                          isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                          isCompleted ? 'bg-primary' : 'bg-muted'
                         }`}
                       />
                     </div>
@@ -520,7 +520,7 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
       {/* Step Content */}
       <div className="p-8">
         <div className="max-w-5xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
             {currentStep === 1 && (
               <ClassesAndCoursePlanStep
                 data={wizardData.classes}
@@ -557,42 +557,42 @@ export function OnboardingWizard({ project, onComplete }: OnboardingWizardProps)
 
             {/* Validation Error */}
             {validationError && (
-              <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="mt-6 bg-destructive/10 border-2 border-destructive rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium text-red-900">Ofullständig konfiguration</p>
-                  <p className="text-sm text-red-700 mt-1">{validationError}</p>
+                  <p className="font-medium text-destructive">Ofullständig konfiguration</p>
+                  <p className="text-sm text-destructive mt-1">{validationError}</p>
                 </div>
               </div>
             )}
 
             {/* Save Error */}
             {saveError && (
-              <div className="mt-6 bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="mt-6 bg-destructive/10 border-2 border-destructive rounded-xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="font-medium text-red-900">Kunde inte spara</p>
-                  <p className="text-sm text-red-700 mt-1">{saveError}</p>
+                  <p className="font-medium text-destructive">Kunde inte spara</p>
+                  <p className="text-sm text-destructive mt-1">{saveError}</p>
                 </div>
               </div>
             )}
 
             {/* Navigation */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
               <button
                 onClick={handleBack}
                 disabled={currentStep === 1}
-                className="px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 text-foreground hover:bg-muted rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Tillbaka
               </button>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 Steg {currentStep} av {STEPS.length}
               </div>
               <button
                 onClick={handleNext}
                 disabled={isSaving}
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-6 py-2.5 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
                   <>

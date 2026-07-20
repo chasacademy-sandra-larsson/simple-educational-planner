@@ -1,9 +1,17 @@
 "use client";
 
 import { useState } from 'react';
+import { Plus, X } from 'lucide-react';
 import { api, ApiError } from '@/app/lib/api';
 import type { CreateRoomRequest } from '@/app/lib/api/types';
 import { useProject } from '../ProjectContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function RoomsPage() {
     const { projectId, rooms, fetchRooms } = useProject();
@@ -34,127 +42,104 @@ export default function RoomsPage() {
         }
     };
 
+    const resetForm = () => {
+        setShowRoomForm(false);
+        setNewRoom({ roomNumber: '', roomType: '', capacity: undefined, notes: '' });
+        setRoomError('');
+    };
+
     return (
         <div>
             {/* Create Room Form */}
             <div className="mb-6">
                 {!showRoomForm ? (
-                    <button
+                    <Button
+                        variant="outline"
+                        className="w-full h-auto p-4 border-2 border-dashed"
                         onClick={() => setShowRoomForm(true)}
-                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
                     >
-                        <div className="flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span className="font-medium">Lägg till sal</span>
-                        </div>
-                    </button>
+                        <Plus className="w-5 h-5" />
+                        Lägg till sal
+                    </Button>
                 ) : (
-                    <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Lägg till ny sal</h4>
-                            <button
-                                onClick={() => {
-                                    setShowRoomForm(false);
-                                    setNewRoom({ roomNumber: '', roomType: '', capacity: undefined, notes: '' });
-                                    setRoomError('');
-                                }}
-                                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {roomError && (
-                            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
-                                {roomError}
+                    <Card>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle>Lägg till ny sal</CardTitle>
+                                <Button variant="ghost" size="icon-sm" onClick={resetForm}>
+                                    <X className="w-4 h-4" />
+                                </Button>
                             </div>
-                        )}
+                        </CardHeader>
+                        <CardContent>
+                            {roomError && (
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertDescription>{roomError}</AlertDescription>
+                                </Alert>
+                            )}
 
-                        <form onSubmit={handleCreateRoom} className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Salsnummer *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={newRoom.roomNumber}
-                                        onChange={(e) => setNewRoom({ ...newRoom, roomNumber: e.target.value })}
-                                        required
-                                        className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
-                                        placeholder="t.ex. A101"
+                            <form onSubmit={handleCreateRoom} className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="roomNumber">Salsnummer *</Label>
+                                        <Input
+                                            id="roomNumber"
+                                            value={newRoom.roomNumber}
+                                            onChange={(e) => setNewRoom({ ...newRoom, roomNumber: e.target.value })}
+                                            required
+                                            placeholder="t.ex. A101"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="roomType">Typ</Label>
+                                        <select
+                                            id="roomType"
+                                            value={newRoom.roomType}
+                                            onChange={(e) => setNewRoom({ ...newRoom, roomType: e.target.value })}
+                                            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                                        >
+                                            <option value="">Välj typ</option>
+                                            <option value="Klassrum">Klassrum</option>
+                                            <option value="Laboratorium">Laboratorium</option>
+                                            <option value="Datorsal">Datorsal</option>
+                                            <option value="Idrottshall">Idrottshall</option>
+                                            <option value="Aula">Aula</option>
+                                            <option value="Övrigt">Övrigt</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="capacity">Kapacitet</Label>
+                                    <Input
+                                        id="capacity"
+                                        type="number"
+                                        min="1"
+                                        value={newRoom.capacity || ''}
+                                        onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value ? parseInt(e.target.value) : undefined })}
+                                        placeholder="Max antal elever"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                        Typ
-                                    </label>
-                                    <select
-                                        value={newRoom.roomType}
-                                        onChange={(e) => setNewRoom({ ...newRoom, roomType: e.target.value })}
-                                        className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
-                                    >
-                                        <option value="">Välj typ</option>
-                                        <option value="Klassrum">Klassrum</option>
-                                        <option value="Laboratorium">Laboratorium</option>
-                                        <option value="Datorsal">Datorsal</option>
-                                        <option value="Idrottshall">Idrottshall</option>
-                                        <option value="Aula">Aula</option>
-                                        <option value="Övrigt">Övrigt</option>
-                                    </select>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="roomNotes">Anteckningar</Label>
+                                    <Textarea
+                                        id="roomNotes"
+                                        value={newRoom.notes}
+                                        onChange={(e) => setNewRoom({ ...newRoom, notes: e.target.value })}
+                                        rows={2}
+                                        placeholder="Ytterligare information..."
+                                    />
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Kapacitet
-                                </label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={newRoom.capacity || ''}
-                                    onChange={(e) => setNewRoom({ ...newRoom, capacity: e.target.value ? parseInt(e.target.value) : undefined })}
-                                    className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
-                                    placeholder="Max antal elever"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    Anteckningar
-                                </label>
-                                <textarea
-                                    value={newRoom.notes}
-                                    onChange={(e) => setNewRoom({ ...newRoom, notes: e.target.value })}
-                                    rows={2}
-                                    className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 resize-none"
-                                    placeholder="Ytterligare information..."
-                                />
-                            </div>
-                            <div className="flex gap-2 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowRoomForm(false);
-                                        setNewRoom({ roomNumber: '', roomType: '', capacity: undefined, notes: '' });
-                                        setRoomError('');
-                                    }}
-                                    className="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700"
-                                >
-                                    Avbryt
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={creatingRoom}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded"
-                                >
-                                    {creatingRoom ? 'Lägger till...' : 'Lägg till sal'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                                <div className="flex gap-2 pt-2">
+                                    <Button type="button" variant="outline" onClick={resetForm}>
+                                        Avbryt
+                                    </Button>
+                                    <Button type="submit" disabled={creatingRoom}>
+                                        {creatingRoom ? 'Lägger till...' : 'Lägg till sal'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
 
@@ -162,35 +147,28 @@ export default function RoomsPage() {
             {rooms.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {rooms.map((room) => (
-                        <div
-                            key={room.id}
-                            className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
-                        >
-                            <div className="flex items-start justify-between">
-                                <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                                    {room.roomNumber}
+                        <Card key={room.id} size="sm">
+                            <CardHeader>
+                                <div className="flex items-start justify-between">
+                                    <CardTitle>{room.roomNumber}</CardTitle>
+                                    {room.roomType && (
+                                        <Badge variant="secondary">{room.roomType}</Badge>
+                                    )}
                                 </div>
-                                {room.roomType && (
-                                    <span className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">
-                                        {room.roomType}
-                                    </span>
+                                {room.capacity && (
+                                    <CardDescription>Kapacitet: {room.capacity}</CardDescription>
                                 )}
-                            </div>
-                            {room.capacity && (
-                                <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                                    Kapacitet: {room.capacity}
-                                </div>
-                            )}
+                            </CardHeader>
                             {room.notes && (
-                                <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">
-                                    {room.notes}
-                                </div>
+                                <CardContent>
+                                    <p className="text-xs text-muted-foreground">{room.notes}</p>
+                                </CardContent>
                             )}
-                        </div>
+                        </Card>
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-12 text-zinc-500 dark:text-zinc-500">
+                <div className="text-center py-12 text-muted-foreground">
                     Inga salar tillagda ännu.
                 </div>
             )}

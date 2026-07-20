@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { TermDates, CreateTermDatesRequest, ProjectWithDetails } from '@/app/lib/api/types';
 import { api, ApiError } from '@/app/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TermDatesFormProps {
     project: ProjectWithDetails;
@@ -173,11 +174,9 @@ export default function TermDatesForm({ project, onUpdate }: TermDatesFormProps)
 
     if (loading) {
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-zinc-200 dark:bg-zinc-700 rounded w-1/3"></div>
-                    <div className="h-32 bg-zinc-200 dark:bg-zinc-700 rounded"></div>
-                </div>
+            <div className="rounded-xl border bg-card p-6 space-y-4">
+                <Skeleton className="h-6 w-1/3" />
+                <Skeleton className="h-32 w-full" />
             </div>
         );
     }
@@ -185,14 +184,14 @@ export default function TermDatesForm({ project, onUpdate }: TermDatesFormProps)
     if (isEditing) {
         const termNames = getTermNames(formData.year as GymnasiumYear);
         return (
-            <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+            <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                 <div className="p-6">
-                    <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-6">
+                    <h2 className="text-xl font-semibold text-foreground mb-6">
                         {getExistingTermDates(formData.academicYear, formData.year as GymnasiumYear) ? 'Redigera' : 'Skapa'} terminstider
                     </h2>
 
                     {error && (
-                        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+                        <div className="mb-4 p-4 bg-destructive/10 border border-destructive rounded-lg text-destructive">
                             {error}
                         </div>
                     )}
@@ -200,80 +199,80 @@ export default function TermDatesForm({ project, onUpdate }: TermDatesFormProps)
                     <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Läsår
                                 </label>
-                                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                <p className="text-lg font-semibold text-foreground">
                                     {formData.academicYear}
                                 </p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">
                                     Gymnasieår
                                 </label>
-                                <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                <p className="text-lg font-semibold text-foreground">
                                     År {formData.year}
                                 </p>
                             </div>
                         </div>
 
                         {/* Fall Term */}
-                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-4">
+                        <div className="p-4 bg-accent rounded-lg border border-border">
+                            <h3 className="font-medium text-accent-foreground mb-4">
                                 {termNames.fall} - Hösttermin
                             </h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                                         Startdatum
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.fallTermStart}
                                         onChange={(e) => setFormData({ ...formData, fallTermStart: e.target.value })}
-                                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                                         Slutdatum
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.fallTermEnd}
                                         onChange={(e) => setFormData({ ...formData, fallTermEnd: e.target.value })}
-                                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                                     />
                                 </div>
                             </div>
                         </div>
 
                         {/* Spring Term */}
-                        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                            <h3 className="font-medium text-green-900 dark:text-green-100 mb-4">
+                        <div className="p-4 bg-primary/10 rounded-lg border border-border">
+                            <h3 className="font-medium text-primary mb-4">
                                 {termNames.spring} - Vårtermin
                             </h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                                         Startdatum
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.springTermStart}
                                         onChange={(e) => setFormData({ ...formData, springTermStart: e.target.value })}
-                                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                                         Slutdatum
                                     </label>
                                     <input
                                         type="date"
                                         value={formData.springTermEnd}
                                         onChange={(e) => setFormData({ ...formData, springTermEnd: e.target.value })}
-                                        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                        className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                                     />
                                 </div>
                             </div>
@@ -283,14 +282,14 @@ export default function TermDatesForm({ project, onUpdate }: TermDatesFormProps)
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {saving ? 'Sparar...' : 'Spara'}
                             </button>
                             <button
                                 onClick={() => setIsEditing(false)}
                                 disabled={saving}
-                                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors disabled:opacity-50"
+                                className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50"
                             >
                                 Avbryt
                             </button>
@@ -302,59 +301,59 @@ export default function TermDatesForm({ project, onUpdate }: TermDatesFormProps)
     }
 
     return (
-        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
             <div className="p-6">
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 mb-6">
+                <h2 className="text-xl font-semibold text-foreground mb-6">
                     Terminstider
                 </h2>
 
                 {error && (
-                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200">
+                    <div className="mb-4 p-4 bg-destructive/10 border border-destructive rounded-lg text-destructive">
                         {error}
                     </div>
                 )}
 
                 {success && (
-                    <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-800 dark:text-green-200">
+                    <div className="mb-4 p-4 bg-primary/10 border border-primary rounded-lg text-primary">
                         {success}
                     </div>
                 )}
 
                 {academicYears.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                    <div className="text-center py-8 text-muted-foreground">
                         <p>Inga klasser har lagts till ännu.</p>
                         <p className="text-sm mt-2">Lägg till klasser för att kunna ställa in terminstider.</p>
                     </div>
                 ) : (
                     <div className="space-y-6">
                         {academicYears.map(academicYear => (
-                            <div key={academicYear} className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-                                <div className="bg-zinc-50 dark:bg-zinc-900 px-4 py-3 border-b border-zinc-200 dark:border-zinc-700">
-                                    <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+                            <div key={academicYear} className="border border-border rounded-lg overflow-hidden">
+                                <div className="bg-muted px-4 py-3 border-b border-border">
+                                    <h3 className="font-semibold text-foreground">
                                         Läsår {academicYear}
                                     </h3>
                                 </div>
-                                <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                <div className="divide-y divide-border">
                                     {([1, 2, 3] as GymnasiumYear[]).map(gymYear => {
                                         const existing = getExistingTermDates(academicYear, gymYear);
                                         const termNames = getTermNames(gymYear);
                                         return (
                                             <div key={gymYear} className="p-4">
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <h4 className="font-medium text-zinc-900 dark:text-zinc-100">
+                                                    <h4 className="font-medium text-foreground">
                                                         År {gymYear}
                                                     </h4>
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={() => handleStartEdit(academicYear, gymYear)}
-                                                            className="text-sm px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                                            className="text-sm px-3 py-1 bg-accent text-primary rounded hover:bg-accent/80 transition-colors"
                                                         >
                                                             {existing ? 'Redigera' : 'Lägg till'}
                                                         </button>
                                                         {existing && (
                                                             <button
                                                                 onClick={() => handleDelete(existing.id)}
-                                                                className="text-sm px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                                                                className="text-sm px-3 py-1 bg-destructive/10 text-destructive rounded hover:bg-destructive/20 transition-colors"
                                                             >
                                                                 Ta bort
                                                             </button>
@@ -363,21 +362,21 @@ export default function TermDatesForm({ project, onUpdate }: TermDatesFormProps)
                                                 </div>
                                                 {existing ? (
                                                     <div className="grid grid-cols-2 gap-4 text-sm">
-                                                        <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded">
-                                                            <span className="text-amber-700 dark:text-amber-300 font-medium">{termNames.fall}:</span>
-                                                            <span className="text-zinc-700 dark:text-zinc-300 ml-2">
+                                                        <div className="p-2 bg-accent rounded">
+                                                            <span className="text-accent-foreground font-medium">{termNames.fall}:</span>
+                                                            <span className="text-muted-foreground ml-2">
                                                                 {formatDate(existing.fallTermStart)} - {formatDate(existing.fallTermEnd)}
                                                             </span>
                                                         </div>
-                                                        <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
-                                                            <span className="text-green-700 dark:text-green-300 font-medium">{termNames.spring}:</span>
-                                                            <span className="text-zinc-700 dark:text-zinc-300 ml-2">
+                                                        <div className="p-2 bg-primary/10 rounded">
+                                                            <span className="text-primary font-medium">{termNames.spring}:</span>
+                                                            <span className="text-muted-foreground ml-2">
                                                                 {formatDate(existing.springTermStart)} - {formatDate(existing.springTermEnd)}
                                                             </span>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                                    <p className="text-sm text-muted-foreground">
                                                         Terminstider ej inställda
                                                     </p>
                                                 )}

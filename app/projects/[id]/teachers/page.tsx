@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { Plus, X, Eye, Check } from 'lucide-react';
 import { api, ApiError } from '@/app/lib/api';
 import type { CreateTeacherRequest } from '@/app/lib/api/types';
 import { useProject } from '../ProjectContext';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 // Helper: extract subject from course code/name
 function extractSubject(courseCode: string, courseName: string): string {
@@ -224,19 +233,19 @@ export default function TeachersPage() {
     return (
         <div>
             {/* Teacher Capacity Settings */}
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+            <div className="mb-6 p-4 bg-accent rounded-lg border border-primary">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                     Tjänstegrad och lärarebehov
                 </h3>
 
                 <div className="mb-4">
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                         Tjänstegrad (genomsnittspoäng per lärare / per år)
                     </label>
                     <select
                         value={teacherCapacity}
                         onChange={(e) => setTeacherCapacity(Number(e.target.value))}
-                        className="w-full max-w-xs px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                        className="w-full max-w-xs px-3 py-2 rounded border border-border bg-background text-foreground"
                     >
                         {[400, 450, 500, 550, 600, 650, 700, 750, 800].map(v => (
                             <option key={v} value={v}>{v} p/år</option>
@@ -245,17 +254,17 @@ export default function TeachersPage() {
                 </div>
 
                 {/* Summary */}
-                <div className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 mb-4">
+                <div className="p-4 bg-card rounded-lg border border-border mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Totala poäng</div>
-                            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                            <div className="text-sm text-muted-foreground">Totala poäng</div>
+                            <div className="text-2xl font-bold text-foreground">
                                 {totalPoints.toLocaleString('sv-SE')}
                             </div>
                         </div>
                         <div>
-                            <div className="text-sm text-zinc-600 dark:text-zinc-400">Tjänstegrad</div>
-                            <div className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                            <div className="text-sm text-muted-foreground">Tjänstegrad</div>
+                            <div className="text-2xl font-bold text-foreground">
                                 {teacherCapacity} p/år
                             </div>
                         </div>
@@ -277,7 +286,7 @@ export default function TeachersPage() {
                     />
                 ) : sortedAcademicYears.length > 0 ? (
                     <div className="space-y-6">
-                        <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        <h4 className="text-lg font-semibold text-foreground">
                             Ämnen som behöver anställas per läsår:
                         </h4>
                         {sortedAcademicYears.map(academicYear => {
@@ -295,38 +304,38 @@ export default function TeachersPage() {
                             const teachersNeeded = teacherCapacity > 0 ? Math.ceil(yearPoints / teacherCapacity) : 0;
 
                             return (
-                                <div key={academicYear} className="p-5 bg-white dark:bg-zinc-800 rounded-lg border-2 border-zinc-200 dark:border-zinc-700 shadow-sm">
-                                    <div className="mb-4 pb-3 border-b-2 border-zinc-300 dark:border-zinc-600">
+                                <div key={academicYear} className="p-5 bg-card rounded-lg border-2 border-border shadow-sm">
+                                    <div className="mb-4 pb-3 border-b-2 border-border">
                                         <div className="flex items-center justify-between">
-                                            <h5 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Läsår {academicYear}</h5>
+                                            <h5 className="text-xl font-bold text-foreground">Läsår {academicYear}</h5>
                                             {existingDistributions[academicYear] && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded-full">
+                                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full">
                                                     <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                                     Tjänstefördelning
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                                        <div className="text-sm text-muted-foreground mt-1">
                                             {subjects.reduce((sum, s) => sum + s.courseCount, 0)} kurser över {subjects.length} ämnen
                                         </div>
                                     </div>
 
-                                    <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
-                                        <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
+                                    <div className="mb-4 p-3 bg-accent rounded border border-primary">
+                                        <div className="text-sm font-semibold text-muted-foreground mb-2">
                                             Lärare som behöver för läsår {academicYear}
                                         </div>
-                                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{teachersNeeded} lärare</div>
-                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{yearPoints.toLocaleString('sv-SE')} poäng</div>
+                                        <div className="text-xl font-bold text-primary">{teachersNeeded} lärare</div>
+                                        <div className="text-xs text-muted-foreground mt-1">{yearPoints.toLocaleString('sv-SE')} poäng</div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {subjects.map(({ subject, courses, totalPoints: subjectPoints, courseCount }) => (
-                                            <div key={subject} className="p-3 bg-zinc-50 dark:bg-zinc-700/50 rounded border border-zinc-200 dark:border-zinc-600">
-                                                <div className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">{subject}</div>
-                                                <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-2">
+                                            <div key={subject} className="p-3 bg-muted rounded border border-border">
+                                                <div className="font-semibold text-foreground mb-2">{subject}</div>
+                                                <div className="text-xs text-muted-foreground mb-2">
                                                     {subjectPoints} poäng &bull; {courseCount} kurs{courseCount !== 1 ? 'er' : ''}
                                                 </div>
-                                                <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1">
+                                                <ul className="text-xs text-muted-foreground space-y-1">
                                                     {courses.map(course => (
                                                         <li key={`${course.code}-${course.year}-${course.classStartYear}`} className="truncate">
                                                             &bull; {course.name}
@@ -338,21 +347,21 @@ export default function TeachersPage() {
                                     </div>
 
                                     {/* Service distribution button */}
-                                    <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
+                                    <div className="mt-4 pt-4 border-t border-border">
                                         {existingDistributions[academicYear] ? (
                                             <div className="space-y-3">
-                                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                                                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                                                <div className="p-3 bg-primary/10 rounded-lg border border-primary">
+                                                    <div className="flex items-center gap-2 text-primary">
                                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                                         <span className="font-medium">Tjänstefördelning skapad</span>
                                                     </div>
-                                                    <div className="text-sm text-green-600 dark:text-green-500 mt-1">
+                                                    <div className="text-sm text-primary mt-1">
                                                         {existingDistributions[academicYear]?.count} lärare tilldelade
                                                     </div>
                                                 </div>
                                                 <button
                                                     onClick={() => loadAssignmentsForYear(academicYear)}
-                                                    className="w-full p-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-200 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                                    className="w-full p-3 bg-muted hover:bg-muted/80 text-muted-foreground rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                                 >
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -366,7 +375,7 @@ export default function TeachersPage() {
                                                 onClick={async () => {
                                                     try {
                                                         if (teachers.length === 0) {
-                                                            alert('Du måste skapa lärare först innan du kan skapa tjänstefördelning.');
+                                                            toast.warning('Du måste skapa lärare först innan du kan skapa tjänstefördelning.');
                                                             return;
                                                         }
                                                         await api.serviceDistributions.createForAllTeachers(projectId, academicYear, teacherCapacity);
@@ -374,10 +383,10 @@ export default function TeachersPage() {
                                                         await loadAssignmentsForYear(academicYear);
                                                     } catch (err: any) {
                                                         const msg = err instanceof ApiError ? err.message : err?.message || 'Okänt fel';
-                                                        alert(`Kunde inte skapa tjänstefördelning: ${msg}`);
+                                                        toast.error(`Kunde inte skapa tjänstefördelning: ${msg}`);
                                                     }
                                                 }}
-                                                className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                                                className="w-full p-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                             >
                                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -391,7 +400,7 @@ export default function TeachersPage() {
                         })}
                     </div>
                 ) : totalPoints === 0 ? (
-                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-yellow-800 dark:text-yellow-200">
+                    <div className="p-3 bg-accent border border-border rounded text-sm text-accent-foreground">
                         Inga kurser planerade ännu. Planera kurser för klasserna för att se lärarebehovet.
                     </div>
                 ) : null}
@@ -400,58 +409,52 @@ export default function TeachersPage() {
             {/* Create Teacher Form */}
             <div className="mb-6">
                 {!showTeacherForm ? (
-                    <button
-                        onClick={() => setShowTeacherForm(true)}
-                        className="w-full p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group"
-                    >
-                        <div className="flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            <span className="font-medium">Lägg till lärare</span>
-                        </div>
-                    </button>
+                    <Button variant="outline" className="w-full h-auto p-4 border-2 border-dashed" onClick={() => setShowTeacherForm(true)}>
+                        <Plus className="w-5 h-5" />
+                        Lägg till lärare
+                    </Button>
                 ) : (
-                    <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
-                        <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Lägg till lärare</h4>
-                            <button
-                                onClick={() => { setShowTeacherForm(false); setNewTeacher({ name: '', email: '', subject: '', notes: '' }); setTeacherError(''); }}
-                                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        {teacherError && (
-                            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">{teacherError}</div>
-                        )}
-                        <form onSubmit={handleCreateTeacher} className="space-y-3">
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Namn *</label>
-                                <input type="text" value={newTeacher.name} onChange={(e) => setNewTeacher({ ...newTeacher, name: e.target.value })} required className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100" placeholder="Lärarens namn" />
+                    <Card>
+                        <CardHeader>
+                            <div className="flex justify-between items-center">
+                                <CardTitle>Lägg till lärare</CardTitle>
+                                <Button variant="ghost" size="icon-sm" onClick={() => { setShowTeacherForm(false); setNewTeacher({ name: '', email: '', subject: '', notes: '' }); setTeacherError(''); }}>
+                                    <X className="w-4 h-4" />
+                                </Button>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">E-post</label>
-                                    <input type="email" value={newTeacher.email} onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })} className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100" placeholder="email@example.com" />
+                        </CardHeader>
+                        <CardContent>
+                            {teacherError && (
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertDescription>{teacherError}</AlertDescription>
+                                </Alert>
+                            )}
+                            <form onSubmit={handleCreateTeacher} className="space-y-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="teacherName">Namn *</Label>
+                                    <Input id="teacherName" value={newTeacher.name} onChange={(e) => setNewTeacher({ ...newTeacher, name: e.target.value })} required placeholder="Lärarens namn" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Ämne</label>
-                                    <input type="text" value={newTeacher.subject} onChange={(e) => setNewTeacher({ ...newTeacher, subject: e.target.value })} className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100" placeholder="t.ex. Matematik" />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="teacherEmail">E-post</Label>
+                                        <Input id="teacherEmail" type="email" value={newTeacher.email} onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })} placeholder="email@example.com" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="teacherSubject">Ämne</Label>
+                                        <Input id="teacherSubject" value={newTeacher.subject} onChange={(e) => setNewTeacher({ ...newTeacher, subject: e.target.value })} placeholder="t.ex. Matematik" />
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Anteckningar</label>
-                                <textarea value={newTeacher.notes} onChange={(e) => setNewTeacher({ ...newTeacher, notes: e.target.value })} rows={2} className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 resize-none" placeholder="Ytterligare information..." />
-                            </div>
-                            <div className="flex gap-2 pt-2">
-                                <button type="button" onClick={() => { setShowTeacherForm(false); setNewTeacher({ name: '', email: '', subject: '', notes: '' }); setTeacherError(''); }} className="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700">Avbryt</button>
-                                <button type="submit" disabled={creatingTeacher} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded">{creatingTeacher ? 'Lägger till...' : 'Lägg till lärare'}</button>
-                            </div>
-                        </form>
-                    </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="teacherNotes">Anteckningar</Label>
+                                    <Textarea id="teacherNotes" value={newTeacher.notes} onChange={(e) => setNewTeacher({ ...newTeacher, notes: e.target.value })} rows={2} placeholder="Ytterligare information..." />
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                    <Button type="button" variant="outline" onClick={() => { setShowTeacherForm(false); setNewTeacher({ name: '', email: '', subject: '', notes: '' }); setTeacherError(''); }}>Avbryt</Button>
+                                    <Button type="submit" disabled={creatingTeacher}>{creatingTeacher ? 'Lägger till...' : 'Lägg till lärare'}</Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
                 )}
             </div>
 
@@ -459,16 +462,20 @@ export default function TeachersPage() {
             {teachers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {teachers.map(teacher => (
-                        <div key={teacher.id} className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors">
-                            <div className="font-medium text-zinc-900 dark:text-zinc-100">{teacher.name}</div>
-                            {teacher.email && <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{teacher.email}</div>}
-                            {teacher.subject && <div className="text-sm text-blue-600 dark:text-blue-400 mt-1">{teacher.subject}</div>}
-                            {teacher.notes && <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-2">{teacher.notes}</div>}
-                        </div>
+                        <Card key={teacher.id} size="sm">
+                            <CardHeader>
+                                <CardTitle>{teacher.name}</CardTitle>
+                                {teacher.email && <CardDescription>{teacher.email}</CardDescription>}
+                            </CardHeader>
+                            <CardContent>
+                                {teacher.subject && <Badge variant="secondary">{teacher.subject}</Badge>}
+                                {teacher.notes && <p className="text-xs text-muted-foreground mt-2">{teacher.notes}</p>}
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-12 text-zinc-500 dark:text-zinc-500">
+                <div className="text-center py-12 text-muted-foreground">
                     Inga lärare tillagda ännu. Klicka på &quot;Lägg till lärare&quot; ovan för att börja.
                 </div>
             )}
@@ -499,44 +506,37 @@ function AssignmentView({
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <h4 className="text-lg font-semibold">
                     Tjänstefördelning för läsår {academicYear}
                 </h4>
-                <button onClick={onBack} className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300">
-                    Tillbaka
-                </button>
+                <Button variant="outline" onClick={onBack}>Tillbaka</Button>
             </div>
 
             {vacantCourses.length > 0 && (
-                <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400 font-medium mb-2">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        {vacantCourses.length} vakanta kurser ({vacantPoints} p)
-                    </div>
-                    <div className="text-sm text-orange-600 dark:text-orange-500">Dessa kurser saknar lärare:</div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                        {vacantCourses.map(c => (
-                            <span key={c.code} className="px-2 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 text-xs rounded">
-                                {c.name} ({c.points}p)
-                            </span>
-                        ))}
-                    </div>
-                </div>
+                <Alert>
+                    <AlertTitle>{vacantCourses.length} vakanta kurser ({vacantPoints} p)</AlertTitle>
+                    <AlertDescription>
+                        <p className="mb-2">Dessa kurser saknar lärare:</p>
+                        <div className="flex flex-wrap gap-2">
+                            {vacantCourses.map(c => (
+                                <Badge key={c.code} variant="outline">{c.name} ({c.points}p)</Badge>
+                            ))}
+                        </div>
+                    </AlertDescription>
+                </Alert>
             )}
 
             {/* Progress bar */}
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg">
+            <div className="p-4 bg-muted rounded-lg">
                 <div className="flex justify-between text-sm mb-2">
-                    <span className="text-zinc-600 dark:text-zinc-400">Tilldelat: {assignedPoints}p / {totalPoints}p</span>
-                    <span className={vacantPoints === 0 ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}>
+                    <span className="text-muted-foreground">Tilldelat: {assignedPoints}p / {totalPoints}p</span>
+                    <span className={vacantPoints === 0 ? 'text-primary' : 'text-accent-foreground'}>
                         {vacantPoints === 0 ? 'Alla kurser tilldelade!' : `${vacantPoints}p kvar att tilldela`}
                     </span>
                 </div>
-                <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                     <div
-                        className={`h-2 rounded-full ${vacantPoints === 0 ? 'bg-green-500' : 'bg-blue-500'}`}
+                        className={`h-2 rounded-full ${vacantPoints === 0 ? 'bg-primary' : 'bg-primary'}`}
                         style={{ width: `${totalPoints > 0 ? (assignedPoints / totalPoints) * 100 : 0}%` }}
                     />
                 </div>
@@ -552,21 +552,21 @@ function AssignmentView({
                     const pointsDifference = assignedCoursesPoints - assignment.capacity;
 
                     return (
-                        <div key={assignment.id} className="p-4 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <div key={assignment.id} className="p-4 bg-card rounded-lg border border-border">
                             <div className="mb-3">
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Lärares namn</label>
+                                <label className="block text-sm font-medium text-muted-foreground mb-1">Lärares namn</label>
                                 <input
                                     type="text"
                                     value={assignment.name}
                                     onChange={(e) => setTeacherAssignments(prev => prev.map(a => a.id === assignment.id ? { ...a, name: e.target.value } : a))}
-                                    className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                    className="w-full px-3 py-2 rounded border border-border bg-background text-foreground"
                                     placeholder="Lärarens namn"
                                 />
                             </div>
 
                             <div className="flex items-center justify-between mb-3">
-                                <h5 className="font-semibold text-zinc-900 dark:text-zinc-100">Lärare {index + 1}</h5>
-                                <button onClick={() => setTeacherAssignments(prev => prev.filter(a => a.id !== assignment.id))} className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">
+                                <h5 className="font-semibold text-foreground">Lärare {index + 1}</h5>
+                                <button onClick={() => setTeacherAssignments(prev => prev.filter(a => a.id !== assignment.id))} className="text-destructive hover:text-destructive/80">
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -575,19 +575,19 @@ function AssignmentView({
 
                             {/* Points feedback */}
                             <div className={`mb-3 p-3 rounded-lg border-2 ${
-                                pointsDifference === 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                                    : pointsDifference > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
-                                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                                pointsDifference === 0 ? 'bg-primary/10 border-primary'
+                                    : pointsDifference > 0 ? 'bg-destructive/10 border-destructive'
+                                        : 'bg-accent border-border'
                             }`}>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tjänstegrad: {assignment.capacity} poäng</div>
-                                        <div className="text-sm text-zinc-600 dark:text-zinc-400">Tilldelade kurser: {assignedCoursesPoints} poäng</div>
+                                        <div className="text-sm font-medium text-muted-foreground">Tjänstegrad: {assignment.capacity} poäng</div>
+                                        <div className="text-sm text-muted-foreground">Tilldelade kurser: {assignedCoursesPoints} poäng</div>
                                     </div>
                                     <div className={`text-lg font-bold ${
-                                        pointsDifference === 0 ? 'text-green-600 dark:text-green-400'
-                                            : pointsDifference > 0 ? 'text-red-600 dark:text-red-400'
-                                                : 'text-yellow-600 dark:text-yellow-400'
+                                        pointsDifference === 0 ? 'text-primary'
+                                            : pointsDifference > 0 ? 'text-destructive'
+                                                : 'text-accent-foreground'
                                     }`}>
                                         {pointsDifference === 0 ? 'Uppfyllt' : pointsDifference > 0 ? `+${pointsDifference} p för mycket` : `${Math.abs(pointsDifference)} p saknas`}
                                     </div>
@@ -596,15 +596,15 @@ function AssignmentView({
 
                             {/* Course selection */}
                             <div>
-                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                <label className="block text-sm font-medium text-muted-foreground mb-2">
                                     Välj kurser för {assignment.name || 'läraren'}:
                                 </label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 border border-zinc-200 dark:border-zinc-700 rounded">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto p-2 border border-border rounded">
                                     {allCoursesForYear.map(course => {
                                         const isVacant = !course.teacherId;
                                         const assignedTeacher = course.teacherId && course.teacherId !== assignment.teacherId ? course.teacherName : null;
                                         return (
-                                            <label key={course.code} className={`flex items-center space-x-2 p-2 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 rounded cursor-pointer ${assignedTeacher ? 'opacity-60' : ''} ${isVacant ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' : ''}`}>
+                                            <label key={course.code} className={`flex items-center space-x-2 p-2 hover:bg-muted rounded cursor-pointer ${assignedTeacher ? 'opacity-60' : ''} ${isVacant ? 'bg-accent border border-border' : ''}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={assignment.courses.includes(course.code)}
@@ -627,15 +627,15 @@ function AssignmentView({
                                                                     ? { ...a, courses: isChecked ? a.courses.filter(c => c !== course.code) : [...a.courses, course.code] }
                                                                     : a
                                                             ));
-                                                            alert('Kunde inte spara ändringen');
+                                                            toast.error('Kunde inte spara ändringen');
                                                         }
                                                     }}
-                                                    className="rounded border-zinc-300 dark:border-zinc-600"
+                                                    className="rounded border-border"
                                                 />
-                                                <span className="text-sm text-zinc-900 dark:text-zinc-100">
+                                                <span className="text-sm text-foreground">
                                                     {course.name} ({course.points} p)
-                                                    {isVacant && <span className="text-xs text-orange-600 dark:text-orange-400 ml-1 font-medium">[VAKANT]</span>}
-                                                    {assignedTeacher && <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">[{assignedTeacher}]</span>}
+                                                    {isVacant && <span className="text-xs text-accent-foreground ml-1 font-medium">[VAKANT]</span>}
+                                                    {assignedTeacher && <span className="text-xs text-primary ml-1">[{assignedTeacher}]</span>}
                                                 </span>
                                             </label>
                                         );
@@ -648,20 +648,20 @@ function AssignmentView({
             </div>
 
             {/* Add teacher button */}
-            <button
+            <Button
+                variant="outline"
+                className="w-full h-auto p-4 border-2 border-dashed"
                 onClick={() => setTeacherAssignments(prev => [...prev, { id: `temp-${Date.now()}`, name: '', capacity: teacherCapacity, courses: [] }])}
-                className="w-full p-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all flex items-center justify-center gap-2 text-zinc-600 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
             >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <Plus className="w-5 h-5" />
                 Lägg till lärare
-            </button>
+            </Button>
 
             {/* Save button */}
             {teacherAssignments.length > 0 && (
-                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-600">
-                    <button
+                <div className="pt-4 border-t border-border">
+                    <Button
+                        className="w-full"
                         onClick={async () => {
                             try {
                                 for (const assignment of teacherAssignments) {
@@ -694,17 +694,16 @@ function AssignmentView({
 
                                     await api.serviceDistributions.update(projectId, assignment.id, courseInstanceIds);
                                 }
-                                alert('Tjänstefördelning sparad!');
+                                toast.success('Tjänstefördelning sparad!');
                                 onBack();
                             } catch (err) {
                                 console.error('Failed to save service distributions:', err);
-                                alert('Kunde inte spara tjänstefördelning.');
+                                toast.error('Kunde inte spara tjänstefördelning.');
                             }
                         }}
-                        className="w-full p-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
                     >
                         Spara tjänstefördelning
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>

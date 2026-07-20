@@ -222,8 +222,8 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
   if (isLoading) {
     return (
       <div className="p-8 flex items-center justify-center">
-        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
-        <span className="ml-3 text-gray-600">Laddar...</span>
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-muted-foreground">Laddar...</span>
       </div>
     );
   }
@@ -231,11 +231,11 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
   return (
     <div className="flex h-full">
       {/* Sidebar - Saved Schedules */}
-      <div className="w-64 bg-gray-50 border-r border-gray-200 p-4">
-        <h3 className="font-semibold text-gray-900 mb-4">Sparade scheman</h3>
+      <div className="w-64 bg-muted border-r border-border p-4">
+        <h3 className="font-semibold text-foreground mb-4">Sparade scheman</h3>
 
         {savedSchedules.length === 0 ? (
-          <p className="text-sm text-gray-500">Inga scheman genererade ännu</p>
+          <p className="text-sm text-muted-foreground">Inga scheman genererade ännu</p>
         ) : (
           <div className="space-y-2">
             {savedSchedules.map((schedule) => (
@@ -244,15 +244,15 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
                 onClick={() => setSelectedScheduleId(schedule.id)}
                 className={`w-full text-left p-3 rounded-lg transition ${
                   selectedScheduleId === schedule.id
-                    ? 'bg-blue-100 border-2 border-blue-500'
-                    : 'bg-white border border-gray-200 hover:border-blue-300'
+                    ? 'bg-accent border-2 border-primary'
+                    : 'bg-card border border-border hover:border-primary'
                 }`}
               >
                 <div className="font-medium text-sm">{schedule.name}</div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {schedule.academicYear} {schedule.termType === 'fall' ? 'HT' : 'VT'}
                 </div>
-                <div className="text-xs text-gray-400 mt-1">
+                <div className="text-xs text-muted-foreground mt-1">
                   {new Date(schedule.createdAt).toLocaleDateString('sv-SE')}
                 </div>
               </button>
@@ -263,7 +263,7 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
         <button
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="w-full mt-4 flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm"
+          className="w-full mt-4 flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition disabled:opacity-50 text-sm"
         >
           {isGenerating ? (
             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -280,7 +280,7 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">{project.name}</h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {viewMode === 'class'
                 ? `Klassschema: ${selectedClass?.classCode || 'Välj klass'}`
                 : `Lärarschema: ${selectedTeacher?.name || 'Välj lärare'}`
@@ -289,11 +289,11 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
             <button
               onClick={() => setViewMode('class')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md transition ${
-                viewMode === 'class' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'class' ? 'bg-card shadow text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <GraduationCap className="w-4 h-4" />
@@ -302,7 +302,7 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
             <button
               onClick={() => setViewMode('teacher')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md transition ${
-                viewMode === 'teacher' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'teacher' ? 'bg-card shadow text-primary' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -313,24 +313,24 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
 
         {/* Messages */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="text-red-800">{error}</span>
+          <div className="bg-destructive/10 border border-destructive rounded-lg p-4 mb-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-destructive" />
+            <span className="text-destructive">{error}</span>
           </div>
         )}
 
         {generationMessage && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center gap-3">
-            <RefreshCw className={`w-5 h-5 text-blue-600 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span className="text-blue-800">{generationMessage}</span>
+          <div className="bg-accent border border-primary rounded-lg p-4 mb-4 flex items-center gap-3">
+            <RefreshCw className={`w-5 h-5 text-primary ${isGenerating ? 'animate-spin' : ''}`} />
+            <span className="text-primary">{generationMessage}</span>
           </div>
         )}
 
         {/* Selector */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="bg-card rounded-lg border border-border p-4 mb-6">
           {viewMode === 'class' ? (
             <div className="flex items-center gap-4 flex-wrap">
-              <label className="text-sm font-medium text-gray-700">Välj klass:</label>
+              <label className="text-sm font-medium text-muted-foreground">Välj klass:</label>
               <div className="flex gap-2 flex-wrap">
                 {classes.map((cls) => (
                   <button
@@ -338,8 +338,8 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
                     onClick={() => setSelectedClassId(cls.id)}
                     className={`px-3 py-1.5 rounded-md text-sm transition ${
                       selectedClassId === cls.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground hover:bg-muted'
                     }`}
                   >
                     {cls.classCode}
@@ -349,11 +349,11 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <label className="text-sm font-medium text-gray-700">Välj lärare:</label>
+              <label className="text-sm font-medium text-muted-foreground">Välj lärare:</label>
               <select
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                className="border border-border rounded-md px-3 py-2 text-sm"
               >
                 {teachers.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>
@@ -367,22 +367,22 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
 
         {/* Schedule Grid */}
         {!selectedScheduleId ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-600 mb-2">Inget schema valt</h3>
-            <p className="text-gray-500 mb-6">
+          <div className="bg-card rounded-lg border border-border p-12 text-center">
+            <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl text-muted-foreground mb-2">Inget schema valt</h3>
+            <p className="text-muted-foreground mb-6">
               Välj ett schema från listan till vänster eller generera ett nytt
             </p>
           </div>
         ) : scheduleGrid && filteredLessons.length > 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-card rounded-lg border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 w-24">Tid</th>
+                  <tr className="bg-muted border-b border-border">
+                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground w-24">Tid</th>
                     {WEEKDAYS.map((day) => (
-                      <th key={day} className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      <th key={day} className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                         {day}
                       </th>
                     ))}
@@ -390,8 +390,8 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
                 </thead>
                 <tbody>
                   {TIME_SLOTS.map((time, timeIndex) => (
-                    <tr key={time} className="border-b border-gray-100">
-                      <td className="px-4 py-2 text-sm text-gray-600 bg-gray-50 font-medium">
+                    <tr key={time} className="border-b border-border">
+                      <td className="px-4 py-2 text-sm text-muted-foreground bg-muted font-medium">
                         {time}
                       </td>
                       {WEEKDAYS.map((day) => {
@@ -405,17 +405,17 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
                             {dayLessons.map((lesson, idx) => (
                               <div
                                 key={`${lesson.id}-${idx}`}
-                                className="p-2 mb-1 rounded text-xs bg-blue-50 border border-blue-200"
+                                className="p-2 mb-1 rounded text-xs bg-accent border border-primary"
                               >
-                                <div className="font-medium text-blue-900">{lesson.courseName}</div>
-                                <div className="text-gray-600 mt-0.5">
+                                <div className="font-medium text-foreground">{lesson.courseName}</div>
+                                <div className="text-muted-foreground mt-0.5">
                                   {lesson.startTime.slice(0, 5)} - {lesson.endTime.slice(0, 5)}
                                 </div>
                                 {viewMode === 'class' && lesson.teacherName && (
-                                  <div className="text-gray-500 mt-0.5">{lesson.teacherName}</div>
+                                  <div className="text-muted-foreground mt-0.5">{lesson.teacherName}</div>
                                 )}
                                 {viewMode === 'teacher' && lesson.classCode && (
-                                  <div className="text-gray-500 mt-0.5">{lesson.classCode}</div>
+                                  <div className="text-muted-foreground mt-0.5">{lesson.classCode}</div>
                                 )}
                               </div>
                             ))}
@@ -429,10 +429,10 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-600 mb-2">Inga lektioner</h3>
-            <p className="text-gray-500">
+          <div className="bg-card rounded-lg border border-border p-12 text-center">
+            <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl text-muted-foreground mb-2">Inga lektioner</h3>
+            <p className="text-muted-foreground">
               {viewMode === 'class'
                 ? `Inga lektioner för ${selectedClass?.classCode || 'vald klass'}`
                 : `Inga lektioner för ${selectedTeacher?.name || 'vald lärare'}`
@@ -444,34 +444,34 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
         {/* Statistics */}
         {filteredLessons.length > 0 && (
           <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-card rounded-lg border border-border p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{filteredLessons.length}</p>
-                  <p className="text-sm text-gray-600">Lektioner/vecka</p>
+                  <p className="text-sm text-muted-foreground">Lektioner/vecka</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-card rounded-lg border border-border p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Grid className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Grid className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
                     {new Set(filteredLessons.map(l => l.courseCode)).size}
                   </p>
-                  <p className="text-sm text-gray-600">Olika kurser</p>
+                  <p className="text-sm text-muted-foreground">Olika kurser</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="bg-card rounded-lg border border-border p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Eye className="w-5 h-5 text-purple-600" />
+                <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <Eye className="w-5 h-5 text-accent-foreground" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -480,7 +480,7 @@ export function ScheduleView({ project, onEditConfiguration }: ScheduleViewProps
                       : new Set(filteredLessons.map(l => l.classId)).size
                     }
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     {viewMode === 'class' ? 'Lärare' : 'Klasser'}
                   </p>
                 </div>

@@ -67,8 +67,8 @@ export default function RegisterPage() {
 
             <AuthCard>
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-800">{error}</p>
+                    <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                        <p className="text-sm text-destructive">{error}</p>
                     </div>
                 )}
 
@@ -147,9 +147,9 @@ export default function RegisterPage() {
                 )}
 
                 <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                         Har du redan ett konto?{' '}
-                        <Link href="/auth/login" className="text-blue-600 hover:underline font-medium">
+                        <Link href="/auth/login" className="text-primary hover:underline font-medium">
                             Logga in
                         </Link>
                     </p>

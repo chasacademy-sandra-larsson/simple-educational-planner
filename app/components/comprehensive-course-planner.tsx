@@ -527,7 +527,7 @@ export default function ComprehensiveCoursePlanner({
 
     if (error && !saving) {
         return (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-800 dark:text-red-200">
+            <div className="p-4 bg-destructive/10 dark:bg-destructive/10 border border-destructive rounded text-destructive">
                 {error}
             </div>
         );
@@ -542,12 +542,12 @@ export default function ComprehensiveCoursePlanner({
                         Steg {getStepNumber(currentStep)} av 7: {getStepTitle(currentStep)}
                     </h3>
                     <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                        Totalt: <span className={`font-bold ${isValidTotal ? 'text-green-600' : 'text-zinc-900 dark:text-zinc-100'}`}>{totalPoints}</span> / 2500 poäng
+                        Totalt: <span className={`font-bold ${isValidTotal ? 'text-primary' : 'text-zinc-900 dark:text-zinc-100'}`}>{totalPoints}</span> / 2500 poäng
                     </div>
                 </div>
                 <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                     <div
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
                         style={{ width: `${((getStepNumber(currentStep) - 1) / 6) * 100}%` }}
                     />
                 </div>
@@ -627,14 +627,14 @@ export default function ComprehensiveCoursePlanner({
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                        className="px-6 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
                     >
                         {saving ? 'Sparar...' : 'Spara kursplan'}
                     </button>
                 ) : (
                     <button
                         onClick={handleNext}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-medium transition-colors"
                     >
                         Nästa
                     </button>
@@ -824,8 +824,8 @@ function CommonSubjectsStep({ courses, selectedCourses, onCoursesChange }: Commo
                                 key={`swedish-group-${index}`}
                                 className={`p-4 rounded-lg border cursor-pointer transition-all ${
                                     isAnySelected || isSelected
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
-                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300'
+                                        ? 'bg-accent dark:bg-accent/20 border-primary'
+                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-primary'
                                 }`}
                                 onClick={() => toggleCourse(representative)}
                             >
@@ -839,11 +839,11 @@ function CommonSubjectsStep({ courses, selectedCourses, onCoursesChange }: Commo
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                        <span className="text-sm font-semibold text-primary dark:text-primary">
                                             {representative.points} poäng
                                         </span>
                                         {(isAnySelected || isSelected) && (
-                                            <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                             </svg>
                                         )}
@@ -861,8 +861,8 @@ function CommonSubjectsStep({ courses, selectedCourses, onCoursesChange }: Commo
                             key={course.courseCode}
                             className={`p-4 rounded-lg border cursor-pointer transition-all ${
                                 isSelected
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
-                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300'
+                                    ? 'bg-accent dark:bg-accent/20 border-primary'
+                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-primary'
                             }`}
                             onClick={() => toggleCourse(course)}
                         >
@@ -876,11 +876,11 @@ function CommonSubjectsStep({ courses, selectedCourses, onCoursesChange }: Commo
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                    <span className="text-sm font-semibold text-primary dark:text-primary">
                                         {course.points} poäng
                                     </span>
                                     {isSelected && (
-                                        <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
                                     )}
@@ -975,8 +975,8 @@ function ProgramSubjectsStep({ courses, selectedCourses, onCoursesChange }: Prog
                             key={course.courseCode}
                             className={`p-4 rounded-lg border transition-all ${
                                 isSelected
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
-                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-blue-300'
+                                    ? 'bg-accent dark:bg-accent/20 border-primary'
+                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 hover:border-primary'
                             } ${isGymnasiearbete ? '' : 'cursor-pointer'}`}
                             onClick={() => !isGymnasiearbete && toggleCourse(course)}
                         >
@@ -990,11 +990,11 @@ function ProgramSubjectsStep({ courses, selectedCourses, onCoursesChange }: Prog
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                    <span className="text-sm font-semibold text-primary dark:text-primary">
                                         {course.points} poäng
                                     </span>
                                     {isSelected && (
-                                        <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
                                     )}
@@ -1113,8 +1113,8 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
             {/* Points Progress */}
             <div className={`p-4 rounded-lg border ${
                 isAtLimit
-                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                    ? 'bg-primary/10 dark:bg-primary/10 border-primary'
+                    : 'bg-accent dark:bg-accent/20 border-primary'
             }`}>
                 <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -1126,7 +1126,7 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                         </span>
                     )}
                     {isAtLimit && (
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                        <span className="text-xs text-primary dark:text-primary font-medium">
                             ✓ Maxgräns uppnådd
                         </span>
                     )}
@@ -1134,7 +1134,7 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                 <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2">
                     <div
                         className={`h-2 rounded-full transition-all duration-300 ${
-                            isAtLimit ? 'bg-green-500' : 'bg-blue-500'
+                            isAtLimit ? 'bg-primary' : 'bg-primary'
                         }`}
                         style={{ width: `${Math.min((currentPoints / targetMax) * 100, 100)}%` }}
                     />
@@ -1160,7 +1160,7 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                         {selectedOrientationCourses.map(course => (
                             <div
                                 key={course.courseCode}
-                                className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 flex items-center justify-between"
+                                className="p-3 bg-accent dark:bg-accent/20 rounded-lg border border-primary flex items-center justify-between"
                             >
                                 <div>
                                     <div className="font-medium text-zinc-900 dark:text-zinc-100">
@@ -1171,12 +1171,12 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                    <span className="text-sm font-semibold text-primary dark:text-primary">
                                         {course.points} poäng
                                     </span>
                                     <button
                                         onClick={() => removeCourse(course.courseCode)}
-                                        className="p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        className="p-1 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded transition-colors"
                                         title="Ta bort kurs"
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1210,7 +1210,7 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                         className={`w-full px-4 py-3 pl-10 rounded-lg border transition-colors ${
                             isAtLimit
                                 ? 'bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
-                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800'
+                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 focus:border-ring focus:ring-2 focus:ring-ring'
                         } text-zinc-900 dark:text-zinc-100`}
                     />
                     <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1244,7 +1244,7 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                                                 className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
                                                     wouldExceed
                                                         ? 'bg-zinc-50 dark:bg-zinc-800/50 cursor-not-allowed opacity-50'
-                                                        : 'hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                                        : 'hover:bg-accent'
                                                 }`}
                                             >
                                                 <div>
@@ -1257,17 +1257,17 @@ function SpecializationStep({ specializationSubjects, selectedCourses, onCourses
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-sm font-semibold ${
-                                                        wouldExceed ? 'text-red-500' : 'text-blue-600 dark:text-blue-400'
+                                                        wouldExceed ? 'text-destructive' : 'text-primary dark:text-primary'
                                                     }`}>
                                                         {course.points} p
                                                     </span>
                                                     {wouldExceed && (
-                                                        <span className="text-xs text-red-500">
+                                                        <span className="text-xs text-destructive">
                                                             Överstiger
                                                         </span>
                                                     )}
                                                     {!wouldExceed && (
-                                                        <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                                         </svg>
                                                     )}
@@ -1362,7 +1362,7 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
 
             <div className={`p-6 rounded-lg border ${
                 gymnasiearbete
-                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                    ? 'bg-primary/10 dark:bg-primary/10 border-primary'
                     : 'bg-zinc-50 dark:bg-zinc-700/50 border-zinc-200 dark:border-zinc-700'
             }`}>
                 <div className="space-y-4">
@@ -1381,17 +1381,17 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
                                         onClick={() => handleTermChange(termId)}
                                         className={`p-4 rounded-lg border-2 transition-all text-left ${
                                             isSelected
-                                                ? 'bg-blue-600 border-blue-600 text-white'
+                                                ? 'bg-primary border-primary text-primary-foreground'
                                                 : isTerm6
-                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-zinc-900 dark:text-zinc-100 hover:border-blue-400'
-                                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:border-blue-300 dark:hover:border-blue-500'
+                                                    ? 'bg-accent dark:bg-accent/20 border-primary text-zinc-900 dark:text-zinc-100 hover:border-primary'
+                                                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:border-primary dark:hover:border-primary'
                                         }`}
                                     >
                                         <div className="font-medium text-sm">
                                             {TERM_LABELS[termId]}
                                         </div>
                                         {isTerm6 && !isSelected && (
-                                            <div className="text-xs mt-1 text-blue-600 dark:text-blue-400">
+                                            <div className="text-xs mt-1 text-primary dark:text-primary">
                                                 (Rekommenderat)
                                             </div>
                                         )}
@@ -1422,7 +1422,7 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
                                 </div>
                                 <button
                                     onClick={handleRemoveGymnasiearbete}
-                                    className="px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-300 dark:border-red-700 rounded-lg transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="px-4 py-2 text-sm text-destructive hover:text-destructive/80 border border-destructive rounded-lg transition-colors hover:bg-destructive/10"
                                 >
                                     Ta bort
                                 </button>
@@ -1433,12 +1433,12 @@ function GymnasiearbeteStep({ selectedCourses, onCoursesChange, numTerms }: Gymn
             </div>
 
             {gymnasiearbete && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="p-4 bg-accent dark:bg-accent/20 rounded-lg border border-primary">
                     <div className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5 text-primary dark:text-primary mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <div className="text-sm text-blue-900 dark:text-blue-100">
+                        <div className="text-sm text-foreground dark:text-foreground">
                             <strong>Gymnasiearbete placerat:</strong> Gymnasiearbetet är nu placerat i {TERM_LABELS[gymnasiearbete.term!]}. 
                             Du kan ändra placeringen senare i steget "Fördela kurser över terminer" om du vill.
                         </div>
@@ -1555,7 +1555,7 @@ function DraggableCourse({ course, termId, isGrouped = false, groupedCourses }: 
                         {displayCodes}
                     </div>
                 </div>
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 ml-2 whitespace-nowrap">
+                <span className="text-xs font-semibold text-primary dark:text-primary ml-2 whitespace-nowrap">
                     {course.points} poäng
                 </span>
             </div>
@@ -1586,10 +1586,10 @@ function DroppableTerm({
             ref={setNodeRef}
             className={`p-4 rounded-lg border transition-colors ${
                 isOver
-                    ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600'
+                    ? 'bg-accent dark:bg-accent/40 border-primary'
                     : isBalanced
-                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                    : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                    ? 'bg-primary/10 dark:bg-primary/10 border-primary'
+                    : 'bg-accent dark:bg-accent/20 border-border'
             }`}
         >
             <div className="flex justify-between items-center mb-3">
@@ -1599,20 +1599,20 @@ function DroppableTerm({
                 <div
                     className={`text-lg font-bold ${
                         isBalanced
-                            ? 'text-green-700 dark:text-green-300'
-                            : 'text-yellow-700 dark:text-yellow-300'
+                            ? 'text-primary'
+                            : 'text-accent-foreground'
                     }`}
                 >
                     {points} poäng
                 </div>
             </div>
             {!isBalanced && points > 0 && (
-                <div className="text-xs text-yellow-600 dark:text-yellow-400 mb-2">
+                <div className="text-xs text-accent-foreground mb-2">
                     {points < 350 ? 'För lite' : 'För mycket'}
                 </div>
             )}
             {isOver && (
-                <div className="text-xs text-blue-600 dark:text-blue-400 mb-2 font-medium">
+                <div className="text-xs text-primary dark:text-primary mb-2 font-medium">
                     Släpp här för att flytta kursen
                 </div>
             )}
@@ -1898,7 +1898,7 @@ function DistributeTermsStep({
                 {/* Gymnasiearbete selection */}
                 <div className={`p-6 rounded-lg border ${
                     gymnasiearbete
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                        ? 'bg-primary/10 dark:bg-primary/10 border-primary'
                         : 'bg-zinc-50 dark:bg-zinc-700/50 border-zinc-200 dark:border-zinc-700'
                 }`}>
                     <div className="space-y-4">
@@ -1920,17 +1920,17 @@ function DistributeTermsStep({
                                             onClick={() => handleGymnasiearbeteTermChange(termId)}
                                             className={`p-4 rounded-lg border-2 transition-all text-left ${
                                                 isSelected
-                                                    ? 'bg-blue-600 border-blue-600 text-white'
+                                                    ? 'bg-primary border-primary text-primary-foreground'
                                                     : isTerm6
-                                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-zinc-900 dark:text-zinc-100 hover:border-blue-400'
-                                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:border-blue-300 dark:hover:border-blue-500'
+                                                        ? 'bg-accent dark:bg-accent/20 border-primary text-zinc-900 dark:text-zinc-100 hover:border-primary'
+                                                        : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:border-primary dark:hover:border-primary'
                                             }`}
                                         >
                                             <div className="font-medium text-sm">
                                                 {TERM_LABELS[termId]}
                                             </div>
                                             {isTerm6 && !isSelected && (
-                                                <div className="text-xs mt-1 text-blue-600 dark:text-blue-400">
+                                                <div className="text-xs mt-1 text-primary dark:text-primary">
                                                     (Rekommenderat)
                                                 </div>
                                             )}
@@ -2015,7 +2015,7 @@ function DistributeTermsStep({
                                                         <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             {displayCodes}
                                                         </div>
-                                                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2 inline-block">
+                                                        <span className="text-sm font-semibold text-primary dark:text-primary mt-2 inline-block">
                                                             {representative.points} poäng
                                                         </span>
                                                     </div>
@@ -2031,15 +2031,15 @@ function DistributeTermsStep({
                                                                         key={termId}
                                                                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
                                                                             isSelected
-                                                                                ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-                                                                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-500'
+                                                                                ? 'bg-accent dark:bg-accent/40 border-primary text-foreground dark:text-foreground'
+                                                                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-primary dark:hover:border-primary'
                                                                         }`}
                                                                     >
                                                                         <input
                                                                             type="checkbox"
                                                                             checked={isSelected}
                                                                             onChange={() => handleTermToggle(termId)}
-                                                                            className="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
+                                                                            className="w-4 h-4 text-primary border-zinc-300 rounded focus:ring-ring"
                                                                         />
                                                                         <span className="text-xs font-medium">
                                                                             {TERM_LABELS[termId]}
@@ -2091,7 +2091,7 @@ function DistributeTermsStep({
                                                         <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                                                             {course.courseCode}
                                                         </div>
-                                                        <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-2 inline-block">
+                                                        <span className="text-sm font-semibold text-primary dark:text-primary mt-2 inline-block">
                                                             {course.points} poäng
                                                         </span>
                                                     </div>
@@ -2107,15 +2107,15 @@ function DistributeTermsStep({
                                                                         key={termId}
                                                                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${
                                                                             isSelected
-                                                                                ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-400 dark:border-blue-600 text-blue-900 dark:text-blue-100'
-                                                                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-blue-300 dark:hover:border-blue-500'
+                                                                                ? 'bg-accent dark:bg-accent/40 border-primary text-foreground dark:text-foreground'
+                                                                                : 'bg-white dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-primary dark:hover:border-primary'
                                                                         }`}
                                                                     >
                                                                         <input
                                                                             type="checkbox"
                                                                             checked={isSelected}
                                                                             onChange={() => handleTermToggle(termId)}
-                                                                            className="w-4 h-4 text-blue-600 border-zinc-300 rounded focus:ring-blue-500"
+                                                                            className="w-4 h-4 text-primary border-zinc-300 rounded focus:ring-ring"
                                                                         />
                                                                         <span className="text-xs font-medium">
                                                                             {TERM_LABELS[termId]}
@@ -2201,23 +2201,23 @@ function ValidateStep({ selectedCourses, totalPoints, pointsByTerm, isValid }: V
                 {/* Total Points Check */}
                 <div className={`p-4 rounded-lg border ${
                     totalPoints === 2500
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                        ? 'bg-primary/10 dark:bg-primary/10 border-primary'
+                        : 'bg-accent dark:bg-accent/20 border-border'
                 }`}>
                     <div className="flex items-center gap-2">
                         {totalPoints === 2500 ? (
-                            <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                         ) : (
-                            <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-accent-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         )}
                         <div>
                             <div className="font-medium">Totalt antal poäng: {totalPoints} / 2500</div>
                             {totalPoints !== 2500 && (
-                                <div className="text-sm text-yellow-600 dark:text-yellow-400">
+                                <div className="text-sm text-accent-foreground">
                                     {totalPoints < 2500 ? `Saknas ${2500 - totalPoints} poäng` : `För många poäng (${totalPoints - 2500} för mycket)`}
                                 </div>
                             )}
@@ -2243,16 +2243,16 @@ function ValidateStep({ selectedCourses, totalPoints, pointsByTerm, isValid }: V
                 {/* All Courses Assigned Check */}
                 <div className={`p-4 rounded-lg border ${
                     allCoursesAssigned
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700'
+                        ? 'bg-primary/10 dark:bg-primary/10 border-primary'
+                        : 'bg-accent dark:bg-accent/20 border-border'
                 }`}>
                     <div className="flex items-center gap-2">
                         {allCoursesAssigned ? (
-                            <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                         ) : (
-                            <svg className="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="w-5 h-5 text-accent-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         )}
@@ -2261,7 +2261,7 @@ function ValidateStep({ selectedCourses, totalPoints, pointsByTerm, isValid }: V
                                 {allCoursesAssigned ? 'Alla kurser är tilldelade' : 'Vissa kurser är inte tilldelade'}
                             </div>
                             {!allCoursesAssigned && (
-                                <div className="text-sm text-yellow-600 dark:text-yellow-400">
+                                <div className="text-sm text-accent-foreground">
                                     {selectedCourses.filter(c => !c.term || c.term === 'unassigned').length} kurser saknar termin
                                 </div>
                             )}

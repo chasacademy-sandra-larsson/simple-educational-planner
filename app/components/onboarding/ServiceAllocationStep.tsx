@@ -533,17 +533,17 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
     <div>
       <div className="mb-8">
         <h2 className="text-2xl mb-2">Tjänstefördelning</h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Koppla lärare till kurser och klasser för optimal schemaläggning
         </p>
       </div>
 
       {/* Academic Year Selector */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+      <div className="mb-6 bg-accent border border-primary rounded-lg px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-600" />
-            <p className="text-sm text-blue-900">
+            <Calendar className="w-5 h-5 text-primary" />
+            <p className="text-sm text-foreground">
               Planera tjänstefördelning för:
             </p>
           </div>
@@ -556,7 +556,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                 setAllocations([]);
                 onChange([]);
               }}
-              className="px-3 py-1.5 border border-blue-300 rounded-lg text-sm font-medium text-blue-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="px-3 py-1.5 border border-primary rounded-lg text-sm font-medium text-foreground bg-card focus:ring-2 focus:ring-ring focus:border-primary"
             >
               {ACADEMIC_YEARS.map((year) => (
                 <option key={year.value} value={year.value}>
@@ -564,13 +564,13 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                 </option>
               ))}
             </select>
-            <div className="text-sm text-blue-700">
+            <div className="text-sm text-primary">
               <span className="font-medium">{requiredPositions.classCount}</span> aktiva klasser · <span className="font-medium">{requiredPositions.totalPoints}</span> poäng
             </div>
           </div>
         </div>
         {selectedAcademicYear > 2026 && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+          <div className="mt-2 flex items-center gap-2 text-xs text-accent-foreground bg-accent px-3 py-2 rounded-lg border border-border">
             <AlertCircle className="w-4 h-4" />
             <span>Planering för framtida läsår kan påverkas av förändringar i läraranställningar.</span>
           </div>
@@ -581,12 +581,12 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
         <>
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <Sliders className="w-5 h-5 text-gray-700" />
-              <h3 className="font-semibold text-gray-900">Optimeringsparametrar</h3>
+              <Sliders className="w-5 h-5 text-foreground" />
+              <h3 className="font-semibold text-foreground">Optimeringsparametrar</h3>
             </div>
             
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <p className="text-sm text-gray-600 mb-6">
+            <div className="bg-card border border-border rounded-xl p-6">
+              <p className="text-sm text-muted-foreground mb-6">
                 Justera viktningen av olika faktorer vid automatisk tjänstefördelning
               </p>
 
@@ -594,18 +594,18 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-foreground">
                         Prioritera behörighet
                       </label>
                       <div className="group relative">
-                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-10">
+                        <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-foreground text-white text-xs rounded-lg py-2 px-3 z-10">
                           Hur viktigt är det att lärare har formell behörighet för kursen?
                           <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
                       </div>
                     </div>
-                    <span className="text-sm text-gray-900 font-medium">{optimizationSettings.prioritizeQualification}%</span>
+                    <span className="text-sm text-foreground font-medium">{optimizationSettings.prioritizeQualification}%</span>
                   </div>
                   <input
                     type="range"
@@ -616,25 +616,25 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                       ...prev,
                       prioritizeQualification: parseInt(e.target.value)
                     }))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-foreground">
                         Balansera arbetsbelastning
                       </label>
                       <div className="group relative">
-                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-10">
+                        <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-foreground text-white text-xs rounded-lg py-2 px-3 z-10">
                           Fördela poäng jämnt mellan lärare baserat på anställningsandel
                           <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
                       </div>
                     </div>
-                    <span className="text-sm text-gray-900 font-medium">{optimizationSettings.balanceWorkload}%</span>
+                    <span className="text-sm text-foreground font-medium">{optimizationSettings.balanceWorkload}%</span>
                   </div>
                   <input
                     type="range"
@@ -645,25 +645,25 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                       ...prev,
                       balanceWorkload: parseInt(e.target.value)
                     }))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-foreground">
                         Föredra kontinuitet
                       </label>
                       <div className="group relative">
-                        <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 z-10">
+                        <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-foreground text-white text-xs rounded-lg py-2 px-3 z-10">
                           Behåll samma lärare för en klass över tid när möjligt
                           <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
                       </div>
                     </div>
-                    <span className="text-sm text-gray-900 font-medium">{optimizationSettings.preferContinuity}%</span>
+                    <span className="text-sm text-foreground font-medium">{optimizationSettings.preferContinuity}%</span>
                   </div>
                   <input
                     type="range"
@@ -674,7 +674,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                       ...prev,
                       preferContinuity: parseInt(e.target.value)
                     }))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
                 </div>
               </div>
@@ -682,31 +682,31 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
           </div>
 
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               Välj hur du vill fortsätta
             </label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => handleMatchingModeClick('automatic')}
-                className="p-6 rounded-xl border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition text-center"
+                className="p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition text-center"
               >
-                <Zap className="w-8 h-8 mx-auto mb-3 text-blue-600" />
-                <p className="font-semibold text-lg mb-1 text-gray-900">
+                <Zap className="w-8 h-8 mx-auto mb-3 text-primary" />
+                <p className="font-semibold text-lg mb-1 text-foreground">
                   Automatisk matchning
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Gå vidare och låt systemet optimera
                 </p>
               </button>
               <button
                 onClick={() => handleMatchingModeClick('manual')}
-                className="p-6 rounded-xl border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition text-center"
+                className="p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition text-center"
               >
-                <HandIcon className="w-8 h-8 mx-auto mb-3 text-blue-600" />
-                <p className="font-semibold text-lg mb-1 text-gray-900">
+                <HandIcon className="w-8 h-8 mx-auto mb-3 text-primary" />
+                <p className="font-semibold text-lg mb-1 text-foreground">
                   Manuell matchning
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Tilldela lärare till kurser själv
                 </p>
               </button>
@@ -720,30 +720,30 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               {matchingMode === 'automatic' ? (
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-lg">
-                  <Zap className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-blue-900">Automatisk matchning</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-accent rounded-lg">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <span className="font-medium text-foreground">Automatisk matchning</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-4 py-2 bg-purple-100 rounded-lg">
-                  <HandIcon className="w-5 h-5 text-purple-600" />
-                  <span className="font-medium text-purple-900">Manuell matchning</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-accent rounded-lg">
+                  <HandIcon className="w-5 h-5 text-accent-foreground" />
+                  <span className="font-medium text-accent-foreground">Manuell matchning</span>
                 </div>
               )}
             </div>
             <button
               onClick={() => setShowAllocationView(false)}
-              className="text-sm text-gray-600 hover:text-gray-900 transition"
+              className="text-sm text-muted-foreground hover:text-foreground transition"
             >
               ← Tillbaka till inställningar
             </button>
           </div>
 
           {activeClasses.length === 0 || teachers.length === 0 ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="bg-accent border border-border rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-900">
+                <AlertCircle className="w-5 h-5 text-accent-foreground flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-accent-foreground">
                   <p className="font-medium mb-1">Data saknas</p>
                   <p>
                     {activeClasses.length === 0 && classes.length > 0 && `Inga klasser är aktiva läsår ${selectedAcademicYear}/${selectedAcademicYear + 1}. Välj ett annat läsår. `}
@@ -757,15 +757,15 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
           ) : (
             <div>
               {/* Teacher Workload Summary Widget */}
-              <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+              <div className="mb-6 bg-accent border-2 border-border rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center">
                       <Users className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">Lärarbelastning</h3>
-                      <p className="text-sm text-gray-600">
+                      <h3 className="font-semibold text-foreground">Lärarbelastning</h3>
+                      <p className="text-sm text-muted-foreground">
                         {workloadSummary.active} av {workloadSummary.total} lärare har tilldelningar · Snitt: {workloadSummary.avgWorkload}%
                       </p>
                     </div>
@@ -773,33 +773,33 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                   
                   <div className="flex items-center gap-3">
                     {workloadSummary.overloaded > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-red-100 rounded-lg">
-                        <AlertCircle className="w-4 h-4 text-red-600" />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-destructive" />
                         <div>
-                          <p className="text-xs text-red-600 font-medium">{workloadSummary.overloaded} överbelastade</p>
+                          <p className="text-xs text-destructive font-medium">{workloadSummary.overloaded} överbelastade</p>
                         </div>
                       </div>
                     )}
                     {workloadSummary.optimal > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-green-100 rounded-lg">
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg">
+                        <CheckCircle2 className="w-4 h-4 text-primary" />
                         <div>
-                          <p className="text-xs text-green-600 font-medium">{workloadSummary.optimal} optimal nivå</p>
+                          <p className="text-xs text-primary font-medium">{workloadSummary.optimal} optimal nivå</p>
                         </div>
                       </div>
                     )}
                     {workloadSummary.underutilized > 0 && (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                        <Info className="w-4 h-4 text-gray-600" />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
+                        <Info className="w-4 h-4 text-muted-foreground" />
                         <div>
-                          <p className="text-xs text-gray-600 font-medium">{workloadSummary.underutilized} underutnyttjade</p>
+                          <p className="text-xs text-muted-foreground font-medium">{workloadSummary.underutilized} underutnyttjade</p>
                         </div>
                       </div>
                     )}
                     
                     <button
                       onClick={() => setShowTeacherStats(!showTeacherStats)}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+                      className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition text-sm font-medium"
                     >
                       {showTeacherStats ? 'Dölj detaljer' : 'Visa alla lärare'}
                     </button>
@@ -809,27 +809,27 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
 
               {/* Teacher Stats Expandable Panel */}
               {showTeacherStats && (
-                <div className="mb-6 bg-white border-2 border-purple-200 rounded-xl overflow-hidden">
-                  <div className="bg-purple-50 px-6 py-4 border-b border-purple-200">
+                <div className="mb-6 bg-card border-2 border-border rounded-xl overflow-hidden">
+                  <div className="bg-accent px-6 py-4 border-b border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Users className="w-5 h-5 text-purple-700" />
-                        <h3 className="font-semibold text-gray-900">Alla lärare ({teachers.length})</h3>
+                        <Users className="w-5 h-5 text-accent-foreground" />
+                        <h3 className="font-semibold text-foreground">Alla lärare ({teachers.length})</h3>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <input
                             type="text"
                             placeholder="Sök lärare..."
                             value={teacherSearchQuery}
                             onChange={(e) => setTeacherSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            className="pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                           />
                         </div>
                         <button
                           onClick={() => setShowTeacherStats(false)}
-                          className="text-gray-500 hover:text-gray-700 transition"
+                          className="text-muted-foreground hover:text-foreground transition"
                         >
                           <X className="w-5 h-5" />
                         </button>
@@ -840,18 +840,18 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                   <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                       {filteredTeacherStats.map(teacher => (
-                        <div key={teacher.id} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-300 transition">
+                        <div key={teacher.id} className="border-2 border-border rounded-lg p-4 hover:border-border transition">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900 truncate">{teacher.name}</p>
-                              <p className="text-sm text-gray-500">{teacher.courseCount} kurser tilldelade</p>
+                              <p className="font-semibold text-foreground truncate">{teacher.name}</p>
+                              <p className="text-sm text-muted-foreground">{teacher.courseCount} kurser tilldelade</p>
                             </div>
                             <span className={`text-lg font-bold ml-2 ${
-                              teacher.percentage >= 100 ? 'text-red-600' :
-                              teacher.percentage >= 80 ? 'text-orange-600' :
-                              teacher.percentage >= 50 ? 'text-blue-600' :
-                              teacher.percentage > 0 ? 'text-gray-600' :
-                              'text-gray-400'
+                              teacher.percentage >= 100 ? 'text-destructive' :
+                              teacher.percentage >= 80 ? 'text-accent-foreground' :
+                              teacher.percentage >= 50 ? 'text-primary' :
+                              teacher.percentage > 0 ? 'text-muted-foreground' :
+                              'text-muted-foreground'
                             }`}>
                               {teacher.percentage}%
                             </span>
@@ -859,44 +859,44 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                           
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">{teacher.allocatedPoints} / 600 poäng</span>
+                              <span className="text-muted-foreground">{teacher.allocatedPoints} / 600 poäng</span>
                               {teacher.percentage >= 100 && (
-                                <span className="text-xs text-red-600 font-medium">Överbelastad!</span>
+                                <span className="text-xs text-destructive font-medium">Överbelastad!</span>
                               )}
                               {teacher.percentage >= 80 && teacher.percentage < 100 && (
-                                <span className="text-xs text-green-600 font-medium">Optimal</span>
+                                <span className="text-xs text-primary font-medium">Optimal</span>
                               )}
                               {teacher.percentage < 50 && teacher.percentage > 0 && (
-                                <span className="text-xs text-gray-500">Underutnyttjad</span>
+                                <span className="text-xs text-muted-foreground">Underutnyttjad</span>
                               )}
                               {teacher.percentage === 0 && (
-                                <span className="text-xs text-gray-400">Inga tilldelningar</span>
+                                <span className="text-xs text-muted-foreground">Inga tilldelningar</span>
                               )}
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
                               <div 
                                 className={`h-full transition-all ${
-                                  teacher.percentage >= 100 ? 'bg-red-500' :
-                                  teacher.percentage >= 80 ? 'bg-green-500' :
-                                  teacher.percentage >= 50 ? 'bg-blue-500' :
-                                  teacher.percentage > 0 ? 'bg-gray-400' :
-                                  'bg-gray-300'
+                                  teacher.percentage >= 100 ? 'bg-destructive/100' :
+                                  teacher.percentage >= 80 ? 'bg-primary/100' :
+                                  teacher.percentage >= 50 ? 'bg-accent0' :
+                                  teacher.percentage > 0 ? 'bg-muted-foreground' :
+                                  'bg-muted'
                                 }`}
                                 style={{ width: `${Math.min(teacher.percentage, 100)}%` }}
                               ></div>
                             </div>
                             
                             {teacher.subjects && teacher.subjects.length > 0 && (
-                              <div className="pt-2 border-t border-gray-200">
-                                <p className="text-xs text-gray-500 mb-1">Behörigheter:</p>
+                              <div className="pt-2 border-t border-border">
+                                <p className="text-xs text-muted-foreground mb-1">Behörigheter:</p>
                                 <div className="flex flex-wrap gap-1">
                                   {teacher.subjects.slice(0, 3).map((subject: string, idx: number) => (
-                                    <span key={idx} className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                                    <span key={idx} className="text-xs px-2 py-0.5 bg-accent text-accent-foreground rounded">
                                       {subject}
                                     </span>
                                   ))}
                                   {teacher.subjects.length > 3 && (
-                                    <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                    <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
                                       +{teacher.subjects.length - 3}
                                     </span>
                                   )}
@@ -909,7 +909,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                       
                       {filteredTeacherStats.length === 0 && (
                         <div className="col-span-full text-center py-8">
-                          <p className="text-gray-500">Inga lärare hittades</p>
+                          <p className="text-muted-foreground">Inga lärare hittades</p>
                         </div>
                       )}
                     </div>
@@ -919,44 +919,44 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
 
               {/* Statistics Overview */}
               <div className="mb-6 grid grid-cols-4 gap-4">
-                  <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <p className="text-xs text-gray-600 mb-1">Totalt</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalInstances}</p>
-                    <p className="text-xs text-gray-500">kurser ({stats.totalPoints}p)</p>
+                  <div className="bg-card border border-border rounded-lg p-4">
+                    <p className="text-xs text-muted-foreground mb-1">Totalt</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalInstances}</p>
+                    <p className="text-xs text-muted-foreground">kurser ({stats.totalPoints}p)</p>
                   </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-xs text-green-700 mb-1">Tilldelade</p>
-                    <p className="text-2xl font-bold text-green-700">{stats.assignedInstances}</p>
-                    <p className="text-xs text-green-600">{stats.assignedPoints}p ({stats.progress}%)</p>
+                  <div className="bg-primary/10 border border-primary rounded-lg p-4">
+                    <p className="text-xs text-foreground mb-1">Tilldelade</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.assignedInstances}</p>
+                    <p className="text-xs text-primary">{stats.assignedPoints}p ({stats.progress}%)</p>
                   </div>
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <p className="text-xs text-orange-700 mb-1">Otilldelade</p>
-                    <p className="text-2xl font-bold text-orange-700">{stats.unassignedInstances}</p>
-                    <p className="text-xs text-orange-600">{stats.unassignedPoints}p återstår</p>
+                  <div className="bg-accent border border-border rounded-lg p-4">
+                    <p className="text-xs text-accent-foreground mb-1">Otilldelade</p>
+                    <p className="text-2xl font-bold text-accent-foreground">{stats.unassignedInstances}</p>
+                    <p className="text-xs text-accent-foreground">{stats.unassignedPoints}p återstår</p>
                   </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p className="text-xs text-red-700 mb-1">Obehöriga</p>
-                    <p className="text-2xl font-bold text-red-700">{stats.unqualifiedAssignments}</p>
-                    <p className="text-xs text-red-600">behöver åtgärdas</p>
+                  <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
+                    <p className="text-xs text-destructive mb-1">Obehöriga</p>
+                    <p className="text-2xl font-bold text-destructive">{stats.unqualifiedAssignments}</p>
+                    <p className="text-xs text-destructive">behöver åtgärdas</p>
                   </div>
                 </div>
 
                 {/* Search and Filter */}
                 <div className="mb-4 flex items-center gap-3">
                   <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder="Sök klass, kurs, kategori eller lärare..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-4 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-primary"
                     />
                   </div>
                   <select
                     value={filterBy}
                     onChange={(e) => setFilterBy(e.target.value as any)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-primary"
                   >
                     <option value="all">Visa alla</option>
                     <option value="unassigned">Bara otilldelade</option>
@@ -974,27 +974,27 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                         const isExpanded = expandedCategories.has(category);
 
                         return (
-                          <div key={category} className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden">
+                          <div key={category} className="bg-card border-2 border-border rounded-xl overflow-hidden">
                             {/* Category Header */}
                             <button
                               onClick={() => toggleCategory(category)}
-                              className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition"
+                              className="w-full px-6 py-4 flex items-center justify-between bg-accent hover:from-accent hover:to-accent transition"
                             >
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
                                   <Package className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="text-left">
-                                  <h3 className="font-semibold text-gray-900">{category}</h3>
-                                  <p className="text-sm text-gray-600">
+                                  <h3 className="font-semibold text-foreground">{category}</h3>
+                                  <p className="text-sm text-muted-foreground">
                                     {instances.length} kurser · {unassigned.length} otilldelade ({unassignedPoints}p) · {assigned.length} tilldelade ({assignedPoints}p)
                                   </p>
                                 </div>
                               </div>
                               {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-gray-400" />
+                                <ChevronUp className="w-5 h-5 text-muted-foreground" />
                               ) : (
-                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                <ChevronDown className="w-5 h-5 text-muted-foreground" />
                               )}
                             </button>
 
@@ -1005,33 +1005,33 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                 {unassigned.length > 0 && (
                                   <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                                      <h4 className="font-semibold text-gray-900">Otilldelade kurser (Potten)</h4>
-                                      <span className="text-sm text-orange-600 font-medium">
+                                      <div className="w-3 h-3 rounded-full bg-accent0"></div>
+                                      <h4 className="font-semibold text-foreground">Otilldelade kurser (Potten)</h4>
+                                      <span className="text-sm text-accent-foreground font-medium">
                                         {unassignedPoints} poäng
                                       </span>
                                     </div>
-                                    <div className="bg-orange-50 border border-orange-200 rounded-lg overflow-hidden">
+                                    <div className="bg-accent border border-border rounded-lg overflow-hidden">
                                       <table className="w-full">
-                                        <thead className="bg-orange-100 border-b border-orange-200">
+                                        <thead className="bg-accent border-b border-border">
                                           <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-orange-900">Klass</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-orange-900">Kurs</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-orange-900">Poäng</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-orange-900">Tilldela lärare</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Klass</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Kurs</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Poäng</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Tilldela lärare</th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-orange-200">
+                                        <tbody className="divide-y divide-border">
                                           {unassigned.map((instance) => (
-                                            <tr key={instance.id} className="hover:bg-orange-100 transition">
-                                              <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                            <tr key={instance.id} className="hover:bg-accent transition">
+                                              <td className="px-4 py-2 text-sm font-medium text-foreground">
                                                 <div className="flex items-center gap-2">
                                                   {instance.className}
-                                                  <span className="text-xs text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">åk {instance.yearLevel}</span>
+                                                  <span className="text-xs text-accent-foreground bg-accent px-1.5 py-0.5 rounded">åk {instance.yearLevel}</span>
                                                 </div>
                                               </td>
-                                              <td className="px-4 py-2 text-sm text-gray-900">{instance.courseName}</td>
-                                              <td className="px-4 py-2 text-sm font-semibold text-orange-700">{instance.points}p</td>
+                                              <td className="px-4 py-2 text-sm text-foreground">{instance.courseName}</td>
+                                              <td className="px-4 py-2 text-sm font-semibold text-accent-foreground">{instance.points}p</td>
                                               <td className="px-4 py-2">
                                                 <select
                                                   onChange={(e) => {
@@ -1039,7 +1039,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                                       handleAddAllocation(instance.classId, instance.courseCode, e.target.value);
                                                     }
                                                   }}
-                                                  className="w-full px-3 py-1.5 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                                  className="w-full px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                                                   defaultValue=""
                                                 >
                                                   <option value="" disabled>Välj lärare...</option>
@@ -1068,25 +1068,25 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                 {assigned.length > 0 && (
                                   <div>
                                     <div className="flex items-center gap-2 mb-3">
-                                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                      <h4 className="font-semibold text-gray-900">Tilldelade kurser</h4>
-                                      <span className="text-sm text-green-600 font-medium">
+                                      <div className="w-3 h-3 rounded-full bg-primary/100"></div>
+                                      <h4 className="font-semibold text-foreground">Tilldelade kurser</h4>
+                                      <span className="text-sm text-primary font-medium">
                                         {assignedPoints} poäng
                                       </span>
                                     </div>
-                                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                                    <div className="bg-card border border-border rounded-lg overflow-hidden">
                                       <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
+                                        <thead className="bg-muted border-b border-border">
                                           <tr>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Klass</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Kurs</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Poäng</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Lärare</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">Status</th>
-                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-700"></th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-foreground">Klass</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-foreground">Kurs</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-foreground">Poäng</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-foreground">Lärare</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-foreground">Status</th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-foreground"></th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200">
+                                        <tbody className="divide-y divide-border">
                                           {assigned.map((instance) => {
                                             const firstAllocation = instance.allocations[0];
                                             const assignedTeacher = teachers.find(t => t.id === firstAllocation.teacherId);
@@ -1098,15 +1098,15 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                             );
 
                                             return (
-                                              <tr key={instance.id} className="hover:bg-gray-50 transition">
-                                                <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                                              <tr key={instance.id} className="hover:bg-muted transition">
+                                                <td className="px-4 py-2 text-sm font-medium text-foreground">
                                                   <div className="flex items-center gap-2">
                                                     {instance.className}
-                                                    <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">åk {instance.yearLevel}</span>
+                                                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">åk {instance.yearLevel}</span>
                                                   </div>
                                                 </td>
-                                                <td className="px-4 py-2 text-sm text-gray-900">{instance.courseName}</td>
-                                                <td className="px-4 py-2 text-sm font-semibold text-gray-900">{instance.points}p</td>
+                                                <td className="px-4 py-2 text-sm text-foreground">{instance.courseName}</td>
+                                                <td className="px-4 py-2 text-sm font-semibold text-foreground">{instance.points}p</td>
                                                 <td className="px-4 py-2">
                                                   <select
                                                     value={assignedTeacher?.id || ''}
@@ -1116,7 +1116,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                                         handleAddAllocation(instance.classId, instance.courseCode, e.target.value);
                                                       }
                                                     }}
-                                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    className="w-full px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-primary"
                                                   >
                                                     {teachers.map((teacher) => (
                                                       <option key={teacher.id} value={teacher.id}>
@@ -1127,11 +1127,11 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                                 </td>
                                                 <td className="px-4 py-2">
                                                   {hasQualification ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-foreground text-xs font-medium">
                                                       <CheckCircle2 className="w-3 h-3" /> Behörig
                                                     </span>
                                                   ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-accent text-accent-foreground text-xs font-medium">
                                                       <AlertCircle className="w-3 h-3" /> Obehörig
                                                     </span>
                                                   )}
@@ -1139,7 +1139,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                                 <td className="px-4 py-2">
                                                   <button
                                                     onClick={() => handleRemoveAllocation(firstAllocation.id)}
-                                                    className="text-red-600 hover:text-red-700 transition"
+                                                    className="text-destructive hover:text-destructive transition"
                                                     title="Ta bort från lärare (lägg tillbaka i potten)"
                                                   >
                                                     <X className="w-4 h-4" />
@@ -1161,58 +1161,58 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                 </div>
 
                 {/* Mentorskap Section */}
-                <div className="mt-6 bg-white border-2 border-pink-200 rounded-xl overflow-hidden">
-                  <div className="bg-gradient-to-r from-pink-50 to-rose-50 px-6 py-4 border-b border-pink-200">
+                <div className="mt-6 bg-card border-2 border-border rounded-xl overflow-hidden">
+                  <div className="bg-accent px-6 py-4 border-b border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-pink-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
                           <Heart className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">Mentorskap</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="font-semibold text-foreground">Mentorskap</h3>
+                          <p className="text-sm text-muted-foreground">
                             {Object.keys(mentorships).filter(id => activeClasses.some(c => c.id === id)).length} av {activeClasses.length} klasser har mentor
                           </p>
                         </div>
                       </div>
-                      <div className="bg-pink-100 px-3 py-1 rounded-full">
-                        <p className="text-xs text-pink-700 font-medium">Räknas ej som tjänstepoäng</p>
+                      <div className="bg-accent px-3 py-1 rounded-full">
+                        <p className="text-xs text-accent-foreground font-medium">Räknas ej som tjänstepoäng</p>
                       </div>
                     </div>
                   </div>
                   
                   <div className="p-6">
-                    <div className="bg-pink-50 border border-pink-200 rounded-lg overflow-hidden">
+                    <div className="bg-accent border border-border rounded-lg overflow-hidden">
                       <table className="w-full">
-                        <thead className="bg-pink-100 border-b border-pink-200">
+                        <thead className="bg-accent border-b border-border">
                           <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-pink-900">Klass</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-pink-900">Program</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-pink-900">Mentor 1</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-pink-900">Mentor 2 (valfritt)</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Klass</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Program</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Mentor 1</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-accent-foreground">Mentor 2 (valfritt)</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-pink-200">
+                        <tbody className="divide-y divide-border">
                           {activeClasses.map((classItem) => {
                             const assignedMentors = mentorships[classItem.id] || [];
                             const isSaving = savingMentorFor === classItem.id;
                             const classYearLevel = getClassYearLevel(classItem.startYear, selectedAcademicYear);
 
                             return (
-                              <tr key={classItem.id} className={`hover:bg-pink-100 transition ${isSaving ? 'opacity-70' : ''}`}>
-                                <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                              <tr key={classItem.id} className={`hover:bg-accent transition ${isSaving ? 'opacity-70' : ''}`}>
+                                <td className="px-4 py-2 text-sm font-medium text-foreground">
                                   <div className="flex items-center gap-2">
                                     {classItem.name || classItem.classCode}
-                                    <span className="text-xs text-pink-600 bg-pink-100 px-1.5 py-0.5 rounded">åk {classYearLevel}</span>
-                                    {isSaving && <Loader2 className="w-4 h-4 animate-spin text-pink-600" />}
+                                    <span className="text-xs text-accent-foreground bg-accent px-1.5 py-0.5 rounded">åk {classYearLevel}</span>
+                                    {isSaving && <Loader2 className="w-4 h-4 animate-spin text-accent-foreground" />}
                                   </div>
                                 </td>
-                                <td className="px-4 py-2 text-sm text-gray-600">{classItem.program || classItem.programName || 'Ej specificerat'}</td>
+                                <td className="px-4 py-2 text-sm text-muted-foreground">{classItem.program || classItem.programName || 'Ej specificerat'}</td>
                                 <td className="px-4 py-2">
                                   <select
                                     value={assignedMentors[0] || ''}
                                     onChange={(e) => handleMentorChange(classItem.id, 0, e.target.value || null, assignedMentors)}
-                                    className="w-full px-3 py-1.5 border border-pink-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                                    className="w-full px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                                     disabled={isSaving}
                                   >
                                     <option value="">Välj mentor 1...</option>
@@ -1231,7 +1231,7 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                                   <select
                                     value={assignedMentors[1] || ''}
                                     onChange={(e) => handleMentorChange(classItem.id, 1, e.target.value || null, assignedMentors)}
-                                    className="w-full px-3 py-1.5 border border-pink-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                                    className="w-full px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                                     disabled={!assignedMentors[0] || isSaving}
                                   >
                                     <option value="">Ingen andra mentor</option>
@@ -1253,10 +1253,10 @@ export function ServiceAllocationStep({ data, onChange, classes, teachers }: Ser
                       </table>
                     </div>
                     
-                    <div className="mt-4 bg-pink-50 border border-pink-200 rounded-lg p-3">
+                    <div className="mt-4 bg-accent border border-border rounded-lg p-3">
                       <div className="flex items-start gap-2">
-                        <Info className="w-4 h-4 text-pink-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-pink-900">
+                        <Info className="w-4 h-4 text-accent-foreground flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-accent-foreground">
                           Mentorskap är ett pedagogiskt ansvar som inte räknas som undervisningspoäng. 
                           Mentorer ansvarar för elevhälsa, studievägledning och kontakt med vårdnadshavare.
                         </p>

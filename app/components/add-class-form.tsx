@@ -119,12 +119,12 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
     };
 
     return (
-        <div className="p-4 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg border border-zinc-200 dark:border-zinc-600">
+        <div className="p-4 bg-muted rounded-lg border border-border">
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">Add New Class</h4>
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                    <h4 className="font-semibold text-foreground">Add New Class</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
                         {step === 'class-code' && 'Step 1: Enter class details'}
                         {step === 'program' && 'Step 2: Select program'}
                         {step === 'orientation' && 'Step 3: Select orientation'}
@@ -133,7 +133,7 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                 </div>
                 <button
                     onClick={onCancel}
-                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                    className="text-muted-foreground hover:text-foreground"
                 >
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -143,7 +143,7 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
 
             {/* Error Message */}
             {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
+                <div className="mb-4 p-3 bg-destructive/10 border border-destructive rounded text-sm text-destructive">
                     {error}
                 </div>
             )}
@@ -153,20 +153,20 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                 {step === 'class-code' && (
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Class Code *
                             </label>
                             <input
                                 type="text"
                                 value={classCode}
                                 onChange={(e) => setClassCode(e.target.value)}
-                                className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                className="w-full px-3 py-2 rounded border border-border bg-card text-foreground"
                                 placeholder="e.g., TE26, EK25"
                                 autoFocus
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                            <label className="block text-sm font-medium text-foreground mb-2">
                                 Start Year *
                             </label>
                             <input
@@ -175,9 +175,9 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                                 max="2050"
                                 value={startYear}
                                 onChange={(e) => setStartYear(parseInt(e.target.value))}
-                                className="w-full px-3 py-2 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                className="w-full px-3 py-2 rounded border border-border bg-card text-foreground"
                             />
-                            <p className="mt-1 text-sm text-zinc-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Graduation year: {startYear + 3}
                             </p>
                         </div>
@@ -189,8 +189,8 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                     <div>
                         <ProgramSelector onSelect={handleProgramSelect} />
                         {selectedProgramCode && programData && (
-                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                                <p className="text-sm text-blue-900 dark:text-blue-100">
+                            <div className="mt-4 p-3 bg-accent rounded">
+                                <p className="text-sm text-primary">
                                     Selected: <strong>{programData.name}</strong> ({selectedProgramCode})
                                 </p>
                             </div>
@@ -206,8 +206,8 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                             onSelect={handleOrientationSelect}
                         />
                         {selectedOrientationCode && orientationData && (
-                            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
-                                <p className="text-sm text-blue-900 dark:text-blue-100">
+                            <div className="mt-4 p-3 bg-accent rounded">
+                                <p className="text-sm text-primary">
                                     Selected: <strong>{orientationData.name}</strong>
                                 </p>
                             </div>
@@ -218,24 +218,24 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                 {/* Step 4: Review */}
                 {step === 'review' && (
                     <div className="space-y-4">
-                        <div className="p-3 bg-zinc-100 dark:bg-zinc-600/50 rounded space-y-2">
-                            <h5 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">Class Details</h5>
+                        <div className="p-3 bg-muted rounded space-y-2">
+                            <h5 className="font-semibold text-foreground text-sm">Class Details</h5>
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
-                                    <span className="text-zinc-600 dark:text-zinc-400">Class Code:</span>
-                                    <p className="font-medium text-zinc-900 dark:text-zinc-100">{classCode}</p>
+                                    <span className="text-muted-foreground">Class Code:</span>
+                                    <p className="font-medium text-foreground">{classCode}</p>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-600 dark:text-zinc-400">Start Year:</span>
-                                    <p className="font-medium text-zinc-900 dark:text-zinc-100">{startYear}</p>
+                                    <span className="text-muted-foreground">Start Year:</span>
+                                    <p className="font-medium text-foreground">{startYear}</p>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-600 dark:text-zinc-400">Program:</span>
-                                    <p className="font-medium text-zinc-900 dark:text-zinc-100">{programData?.name}</p>
+                                    <span className="text-muted-foreground">Program:</span>
+                                    <p className="font-medium text-foreground">{programData?.name}</p>
                                 </div>
                                 <div>
-                                    <span className="text-zinc-600 dark:text-zinc-400">Orientation:</span>
-                                    <p className="font-medium text-zinc-900 dark:text-zinc-100">
+                                    <span className="text-muted-foreground">Orientation:</span>
+                                    <p className="font-medium text-foreground">
                                         {orientationData?.name || 'N/A'}
                                     </p>
                                 </div>
@@ -243,7 +243,7 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                         </div>
 
                         <div>
-                            <h5 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 text-sm">Course Overview</h5>
+                            <h5 className="font-semibold text-foreground mb-3 text-sm">Course Overview</h5>
                             <CourseSummary
                                 programCode={selectedProgramCode}
                                 orientationCode={selectedOrientationCode}
@@ -253,11 +253,11 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                 )}
 
                 {/* Navigation Buttons */}
-                <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
+                <div className="flex gap-2 mt-4 pt-4 border-t border-border">
                     <button
                         type="button"
                         onClick={step === 'class-code' ? onCancel : handleBack}
-                        className="px-4 py-2 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                        className="px-4 py-2 border border-border text-foreground rounded hover:bg-muted transition-colors"
                     >
                         {step === 'class-code' ? 'Cancel' : 'Back'}
                     </button>
@@ -266,7 +266,7 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                             type="button"
                             onClick={handleNext}
                             disabled={!canProceed[step]}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white rounded transition-colors"
+                            className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-primary-foreground rounded transition-colors"
                         >
                             Next
                         </button>
@@ -274,7 +274,7 @@ export default function AddClassForm({ projectId, onCancel, onSuccess }: AddClas
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded transition-colors"
+                            className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-primary-foreground rounded transition-colors"
                         >
                             {loading ? 'Creating...' : 'Create Class'}
                         </button>

@@ -44,15 +44,15 @@ export default function CourseList({ programCode, orientationCode }: CourseListP
     }
 
     if (loading) {
-        return <div className="mt-4 text-zinc-500">Loading courses...</div>;
+        return <div className="mt-4 text-muted-foreground">Loading courses...</div>;
     }
 
     if (error) {
-        return <div className="mt-4 text-red-500">{error}</div>;
+        return <div className="mt-4 text-destructive">{error}</div>;
     }
 
     if (courses.length === 0) {
-        return <div className="mt-4 text-zinc-500">No courses found for this program.</div>;
+        return <div className="mt-4 text-muted-foreground">No courses found for this program.</div>;
     }
 
     // Group courses by category
@@ -65,43 +65,43 @@ export default function CourseList({ programCode, orientationCode }: CourseListP
 
         return (
             <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">
                     {title}
                 </h3>
                 <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-zinc-300 dark:divide-zinc-700">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted">
                             <tr>
                                 <th
                                     scope="col"
-                                    className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:pl-6"
+                                    className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6"
                                 >
                                     Course Code
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                    className="px-3 py-3.5 text-left text-sm font-semibold text-foreground"
                                 >
                                     Course Name
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                    className="px-3 py-3.5 text-left text-sm font-semibold text-foreground"
                                 >
                                     Points
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900">
+                        <tbody className="divide-y divide-border bg-card">
                             {coursesData.map((course, index) => (
                                 <tr key={`${course.courseCode}-${index}`}>
-                                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 sm:pl-6">
+                                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-foreground sm:pl-6">
                                         {course.courseCode}
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
                                         {course.name}
                                     </td>
-                                    <td className="whitespace-nowrap px-3 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                    <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
                                         {course.points}
                                     </td>
                                 </tr>
@@ -115,14 +115,14 @@ export default function CourseList({ programCode, orientationCode }: CourseListP
 
     return (
         <div className="mt-8 w-full">
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
+            <div className="mb-6 p-4 bg-accent rounded-lg border border-primary">
+                <p className="text-sm text-primary">
                     <strong>Information:</strong> Totala antalet poäng för ett nationellt gymnasieprogram är 2 500 poäng,
                     varav 200 poäng alltid är avsatta för individuellt val.
                 </p>
             </div>
 
-            <h2 className="text-xl font-semibold mb-6 text-zinc-900 dark:text-zinc-100">
+            <h2 className="text-xl font-semibold mb-6 text-foreground">
                 Program Structure
             </h2>
 
@@ -132,42 +132,42 @@ export default function CourseList({ programCode, orientationCode }: CourseListP
 
             {/* Individual Choice Table */}
             <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-lg font-semibold mb-3 text-foreground">
                     Individuellt val
                 </h3>
                 <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                    <table className="min-w-full divide-y divide-zinc-300 dark:divide-zinc-700">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted">
                             <tr>
                                 <th
                                     scope="col"
-                                    className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:pl-6"
+                                    className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-foreground sm:pl-6"
                                 >
                                     Course Code
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                    className="px-3 py-3.5 text-left text-sm font-semibold text-foreground"
                                 >
                                     Course Name
                                 </th>
                                 <th
                                     scope="col"
-                                    className="px-3 py-3.5 text-left text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                                    className="px-3 py-3.5 text-left text-sm font-semibold text-foreground"
                                 >
                                     Points
                                 </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 bg-white dark:bg-zinc-900">
+                        <tbody className="divide-y divide-border bg-card">
                             <tr>
-                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 sm:pl-6">
+                                <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-foreground sm:pl-6">
                                     -
                                 </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
                                     Individuellt val
                                 </td>
-                                <td className="whitespace-nowrap px-3 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+                                <td className="whitespace-nowrap px-3 py-4 text-sm text-muted-foreground">
                                     200
                                 </td>
                             </tr>

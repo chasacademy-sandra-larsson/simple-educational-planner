@@ -21,5 +21,7 @@
   },
   "menuColor": "default",
   "menuAccent": "subtle",
-  "registries": {}
+  "registries": {
+    "@ss-themes": "https://shadcnstudio.com/r/themes/{name}.json"
+  }
 }

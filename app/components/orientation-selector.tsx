@@ -41,11 +41,11 @@ export default function OrientationSelector({ programCode, onSelect }: Orientati
     }
 
     if (loading) {
-        return <div className="text-zinc-500">Loading orientations...</div>;
+        return <div className="text-muted-foreground">Loading orientations...</div>;
     }
 
     if (error) {
-        return <div className="text-red-500">{error}</div>;
+        return <div className="text-destructive">{error}</div>;
     }
 
     if (orientations.length === 0) {
@@ -56,13 +56,13 @@ export default function OrientationSelector({ programCode, onSelect }: Orientati
         <div className="w-full max-w-md">
             <label
                 htmlFor="orientation-select"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+                className="block text-sm font-medium text-foreground dark:text-foreground mb-2"
             >
                 Select Orientation (Inriktning)
             </label>
             <select
                 id="orientation-select"
-                className="block w-full rounded-md border-zinc-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-zinc-800 dark:border-zinc-700 dark:text-white sm:text-sm p-2 border"
+                className="block w-full rounded-md border-border shadow-sm focus:border-ring focus:ring-ring dark:bg-background dark:border-border dark:text-foreground sm:text-sm p-2 border"
                 onChange={(e) => onSelect(e.target.value)}
                 defaultValue=""
             >
