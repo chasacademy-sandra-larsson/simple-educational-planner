@@ -1,6 +1,6 @@
 # UI-konsolidering — migreringsplan
 
-Konkret plan för att gå från dagens **två parallella UI:n** till **en samlad arbetsyta**, enligt [ADR-0009](./adr/0009-single-workspace-ui.md). Kompletterar [`SCHEDULER-V1-PLAN.md`](./SCHEDULER-V1-PLAN.md) (solver-spec) och [`CONTEXT.md`](../CONTEXT.md) (glossary).
+Konkret plan för att gå från dagens **två parallella UI:n** till **en samlad arbetsyta**, enligt [ADR-0009](./adr/0009-single-workspace-ui.md), med ett AI-drivet intag ovanpå enligt [ADR-0010](./adr/0010-ai-intake-agent.md). Kompletterar [`SCHEDULER-V1-PLAN.md`](./SCHEDULER-V1-PLAN.md) (solver-spec) och [`CONTEXT.md`](../CONTEXT.md) (glossary).
 
 Konceptskiss av målbilden: kontrollrums-Artifact (schema i mitten, resurser vänster, preflight höger).
 
@@ -51,6 +51,8 @@ Mål: `/projects/[id]` (idag tunn "Översikt") blir kontrollrummet.
 Mål: resurshantering utan att lämna arbetsytan.
 - Flytta lärare/salar/inställningar till drawers som öppnas från vänsterrailen.
 - **Avdubbling**: välj tabb-implementationen per domän (se tabell), skörda de bättre bitarna ur wizard-stegen (CSV-import, subject-gap-analys) in i den överlevande.
+- **Defaults-exponering (gratis-fixen)**: inställningspanelen visar redan-defaultade fält som skrivskyddad text ("Lektionstid: 08:00–17:00 (standard)") bakom en "Avancerat"-disclosure, istället för öppna inmatningsfält som ser obligatoriska ut. Alla tid/lunch/rast-fält har redan fallbacks i `DEFAULT_SETTINGS` (`server/src/solver/data-loader.ts`) — UI:t ska sluta låtsas att de är obligatoriska beslut. Minskar också parameterytan för Fas 5-agenten.
+- **Skörda inte allt**: `ServiceAllocationStep`s auto-matchningsheuristik (hårdkodad prefix-matchning, buggig `MAX_POINTS_PER_TEACHER = 600`, döda optimerings-reglage) ska **inte** migreras till tabben — den ersätts av Fas 5-agentens `assign_course_teacher`-flöde (ADR-0010).
 - Behåll djuplänkar: `/projects/[id]/teachers` etc. öppnar rätt drawer istället för egen helsida (thin redirects/route-handlers).
 - Sparning per ändring (inte batch).
 - Verifiering: lägg till lärare/sal och redigera tid-inställning från arbetsytan; ändring persisteras direkt och syns vid nästa generering.
@@ -67,6 +69,17 @@ Mål: den tunga curriculum-biten får en genomtänkt egen yta.
 - `ClassesAndCoursePlanStep` (Skolverket-driven, nästlad wizard-i-wizard, term-för-term) är den enskilt tyngsta UX-knuten — förtjänar egen skiss innan kod.
 - Skörda den fungerande logiken (program/inriktning/kurs-hämtning via Skolverket-proxyn, 2500-poängsvalidering) — kasta bara steg-strukturen.
 - **Beslut som behöver tas separat**: ska kursplanering ligga i arbetsytan (drawer) eller vara en egen full yta? Curriculum har status `draft/approved/archived` — approve-flödet påverkar layouten.
+
+### Fas 5 — Intags-agenten (chat + filer)
+Mål: prompta + ladda upp filer istället för att klicka formulär, enligt [ADR-0010](./adr/0010-ai-intake-agent.md).
+- Chatpanel i kontrollrummet (AI SDK `useChat`) mot ny streamande route `server/src/routes/assistant.ts` (`POST /api/projects/:projectId/assistant`), under samma JWT-middleware som övriga routes.
+- Verktyg som återanvänder befintlig route-/service-logik: `list_*`, `add_teacher`, `set_service_points`, `assign_course_teacher`, `add_room`, `update_project_settings`, `run_preflight`, `generate_schedule`. Inga destruktiva verktyg i v1.
+- Agent-loopen: läs in fil → skriv → kör preflight → fråga riktat om luckor (tjänstegrad, lärartilldelning, kapacitet — de irreducibla fakta) → upprepa tills grönt → generera. Preflight är den deterministiska "vad saknas"-källan; agenten hittar aldrig på värden.
+- Filuppladdning: endpoint som extraherar text/struktur ur CSV/XLSX server-side (riktig XLSX-parser, t.ex. SheetJS — dagens `.xlsx`-accept är trasig).
+- Nya beroenden i `server/`: `ai` + `@ai-sdk/anthropic`. Ny env-var `ANTHROPIC_API_KEY` (endast server-side); skapa `server/.env.example` (saknas idag).
+- Skrivgrind: agenten skriver grunddata direkt (redigerbart i kontrollrummet); schemat gate:as som alltid av draft → "Använd" (ADR-0008). Chatten sammanfattar varje skrivning; kontrollrummets tabeller är granskningsytan.
+- **Sekvensering**: kräver Fas 1–2 (kontrollrummet måste finnas som granskningsyta; lärar-ytans avdubbling avgör vilka funktioner verktygen speglar). Kan köra parallellt med Fas 3–4.
+- Verifiering: ladda upp en rörig personallista (CSV + XLSX) → agenten skriver lärare → preflight-luckor rapporteras i chatten → svara på frågorna → generera → draft syns i rutnätet.
 
 ## Risker & att bevaka
 - **Skolverket-pickern** i `ClassesAndCoursePlanStep` bär mest logik — får inte tappas. Fas 4 skördar innan Fas 3 raderar.
