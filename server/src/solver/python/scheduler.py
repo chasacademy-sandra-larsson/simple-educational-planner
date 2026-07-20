@@ -849,7 +849,8 @@ def main():
         # Create and run solver
         solver = ScheduleSolver(input_data)
         solver.build_model()
-        result = solver.solve(time_limit_seconds=120)
+        time_limit = int(input_data.get('timeLimitSeconds', 120))
+        result = solver.solve(time_limit_seconds=time_limit)
 
         # Output result as JSON
         print(json.dumps(result))

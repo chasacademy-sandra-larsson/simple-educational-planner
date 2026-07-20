@@ -32,16 +32,21 @@ router.use(authMiddleware);
 router.post('/projects/:id/schedules/generate', async (req: AuthRequest, res: Response) => {
     try {
         const { id: projectId } = req.params;
-        const { name, academicYear, termType, specificTerm } = req.body as {
+        const { name, academicYear, termType, specificTerm, timeoutSeconds } = req.body as {
             name?: string;
             academicYear: string;
             termType: 'fall' | 'spring';
             specificTerm?: string; // Optional: specific term (term1, term2, etc.)
+            timeoutSeconds?: number; // Solver time limit: 60 (snabb), 120 (normal), 300 (grundlig)
         };
 
         // Validate input
         if (!academicYear || !termType) {
             return res.status(400).json({ error: 'academicYear and termType are required' });
+        }
+
+        if (timeoutSeconds !== undefined && (typeof timeoutSeconds !== 'number' || timeoutSeconds < 10 || timeoutSeconds > 600)) {
+            return res.status(400).json({ error: 'timeoutSeconds must be a number between 10 and 600' });
         }
 
         if (!['fall', 'spring'].includes(termType)) {
@@ -89,7 +94,10 @@ router.post('/projects/:id/schedules/generate', async (req: AuthRequest, res: Re
         }
 
         // Generate the schedule
-        console.log('[Schedule API] Starting schedule generation...');
+        if (timeoutSeconds) {
+            solverInput.timeLimitSeconds = timeoutSeconds;
+        }
+        console.log(`[Schedule API] Starting schedule generation (time limit: ${solverInput.timeLimitSeconds ?? 120}s)...`);
         const result = await generateSchedule(solverInput);
         console.log(`[Schedule API] Generation complete: success=${result.success}, status=${result.status}, lessons=${result.lessons.length}`);
 

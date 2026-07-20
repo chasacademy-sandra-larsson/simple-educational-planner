@@ -270,6 +270,7 @@ export interface GenerateScheduleRequest {
     academicYear: string;
     termType: TermType;
     specificTerm?: string; // Optional: specific term (term1, term2, etc.) - defaults to first term of termType
+    timeoutSeconds?: number; // Solver time limit: 60 (snabb), 120 (normal), 300 (grundlig)
 }
 
 export interface GenerateScheduleResponse {

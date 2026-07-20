@@ -28,13 +28,16 @@ const PYTHON_SOLVER_PATH = path.resolve(
 );
 
 /**
- * Find the Python executable (python3 or python)
+ * Find a Python executable that has ortools installed.
+ * Prefers the project venv (server/.venv) over system pythons.
  */
 function findPython(): string | null {
-    const candidates = ['python3', 'python'];
+    const venvPython = path.resolve(__dirname, '..', '..', '.venv', 'bin', 'python');
+    const candidates = [venvPython, 'python3', 'python'];
     for (const cmd of candidates) {
         try {
-            execSync(`${cmd} --version`, { stdio: 'pipe' });
+            if (cmd === venvPython && !fs.existsSync(venvPython)) continue;
+            execSync(`"${cmd}" -c "import ortools"`, { stdio: 'pipe' });
             return cmd;
         } catch {
             // Try next candidate
@@ -74,7 +77,7 @@ export async function generateSchedule(input: SolverInput): Promise<SolverResult
                 lessons: [],
                 solverTimeMs: Date.now() - startTime,
                 totalConflicts: 0,
-                message: 'Python 3 not found. Please install Python 3 and ensure it is in your PATH.',
+                message: 'Ingen Python med ortools hittades. Installera med: pip install -r src/solver/python/requirements.txt (gärna i server/.venv).',
             });
             return;
         }
@@ -90,6 +93,7 @@ export async function generateSchedule(input: SolverInput): Promise<SolverResult
             teachers: input.teachers,
             rooms: input.rooms,
             settings: input.settings,
+            timeLimitSeconds: input.timeLimitSeconds,
         };
 
         console.log(`[Solver] Starting with ${input.courses.length} courses, ${input.classes.length} classes`);
@@ -164,7 +168,12 @@ export async function generateSchedule(input: SolverInput): Promise<SolverResult
             });
         });
 
-        // Send input to Python process
+        // Send input to Python process.
+        // Guard stdin against EPIPE — if the child dies before reading its input
+        // (e.g. import error), an unhandled stream error would crash the server.
+        pythonProcess.stdin.on('error', (err) => {
+            console.error('[Solver] Failed to write to Python stdin:', err.message);
+        });
         const inputJson = JSON.stringify(pythonInput);
         console.log(`[Solver] Sending ${inputJson.length} bytes to Python`);
         pythonProcess.stdin.write(inputJson);

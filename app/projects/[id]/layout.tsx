@@ -25,7 +25,7 @@ function ProjectLayout({ children }: { children: ReactNode }) {
     const activeTab = getActiveTab();
 
     const navItems = [
-        { value: 'summary', label: 'Översikt', icon: '📊', href: `/projects/${projectId}` },
+        { value: 'summary', label: 'Kontrollrum', icon: '📊', href: `/projects/${projectId}` },
         { value: 'classes', label: 'Klasser', icon: '👥', href: `/projects/${projectId}/classes` },
         { value: 'schedule', label: 'Schema', icon: '📅', href: `/projects/${projectId}/schedule` },
         { value: 'scheduling', label: 'Schemaläggning', icon: '⚙️', href: `/projects/${projectId}/scheduling` },

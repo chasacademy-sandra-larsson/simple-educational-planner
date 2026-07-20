@@ -69,6 +69,7 @@ export interface SolverInput {
     teachers: SolverTeacher[];
     rooms: SolverRoom[];
     settings: SolverProjectSettings;
+    timeLimitSeconds?: number; // Solver time limit per run (default 120)
 }
 
 // Output types
