@@ -13,20 +13,12 @@ function ProjectLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
 
-    const getActiveTab = () => {
-        if (pathname.endsWith('/classes')) return 'classes';
-        if (pathname.endsWith('/schedule')) return 'schedule';
-        if (pathname.endsWith('/scheduling')) return 'scheduling';
-        return 'summary';
-    };
-    const activeTab = getActiveTab();
+    const activeTab = pathname.endsWith('/classes') ? 'classes' : 'summary';
 
-    // Lärare, salar och inställningar hanteras som drawers i kontrollrummet (Fas 2, ADR-0009).
+    // Allt utom kursplanering bor i kontrollrummet — resurser och underlag som drawers (ADR-0009).
     const navItems = [
         { value: 'summary', label: 'Kontrollrum', icon: '📊', href: `/projects/${projectId}` },
         { value: 'classes', label: 'Klasser', icon: '👥', href: `/projects/${projectId}/classes` },
-        { value: 'schedule', label: 'Schema', icon: '📅', href: `/projects/${projectId}/schedule` },
-        { value: 'scheduling', label: 'Schemaläggning', icon: '⚙️', href: `/projects/${projectId}/scheduling` },
     ];
 
     if (loading) {

@@ -1,12 +1,16 @@
 "use client";
 
-import WeeklySchedule from '@/app/components/weekly-schedule';
-import { useProject } from '../ProjectContext';
+// Djuplänk (Fas 3, ADR-0009): arbetsbelastnings-underlaget bor nu som drawer i kontrollrummet.
+import { useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function SchedulePage() {
-    const { project } = useProject();
+export default function ScheduleRedirect() {
+    const router = useRouter();
+    const params = useParams();
 
-    if (!project) return null;
+    useEffect(() => {
+        router.replace(`/projects/${params.id}?panel=workload`);
+    }, [router, params.id]);
 
-    return <WeeklySchedule project={project} />;
+    return null;
 }

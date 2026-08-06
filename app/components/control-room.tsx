@@ -16,12 +16,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Zap, RefreshCw, Users, DoorOpen, Settings } from 'lucide-react';
+import { Zap, RefreshCw, Users, DoorOpen, Settings, Calculator } from 'lucide-react';
 import TeachersPanel from '@/app/components/panels/teachers-panel';
 import RoomsPanel from '@/app/components/panels/rooms-panel';
 import SettingsPanel from '@/app/components/panels/settings-panel';
+import WeeklySchedule from '@/app/components/weekly-schedule';
 
-type PanelId = 'teachers' | 'rooms' | 'settings';
+type PanelId = 'teachers' | 'rooms' | 'settings' | 'workload';
 
 interface ControlRoomProps {
     project: ProjectWithDetails;
@@ -151,7 +152,7 @@ export default function ControlRoom({ project, teachers, rooms }: ControlRoomPro
     // Djuplänkar: /projects/[id]?panel=teachers|rooms|settings öppnar rätt drawer
     useEffect(() => {
         const panel = new URLSearchParams(window.location.search).get('panel');
-        if (panel === 'teachers' || panel === 'rooms' || panel === 'settings') {
+        if (panel === 'teachers' || panel === 'rooms' || panel === 'settings' || panel === 'workload') {
             setOpenPanel(panel);
         }
     }, []);
@@ -496,6 +497,13 @@ export default function ControlRoom({ project, teachers, rooms }: ControlRoomPro
                                 <Settings className="w-4 h-4 text-muted-foreground" />
                                 Inställningar
                             </button>
+                            <button
+                                onClick={() => setOpenPanel('workload')}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+                            >
+                                <Calculator className="w-4 h-4 text-muted-foreground" />
+                                Underlag (min/vecka)
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -656,6 +664,20 @@ export default function ControlRoom({ project, teachers, rooms }: ControlRoomPro
                     </SheetHeader>
                     <div className="px-4 pb-8">
                         <SettingsPanel />
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            <Sheet open={openPanel === 'workload'} onOpenChange={(open) => !open && setOpenPanel(null)}>
+                <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+                    <SheetHeader>
+                        <SheetTitle>Underlag — minuter per vecka</SheetTitle>
+                        <SheetDescription>
+                            Beräknad arbetsbelastning per kurs och termin (inte det placerade schemat).
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="px-4 pb-8">
+                        <WeeklySchedule project={project} />
                     </div>
                 </SheetContent>
             </Sheet>

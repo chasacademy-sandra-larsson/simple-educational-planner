@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, X, Upload } from 'lucide-react';
 import { api, ApiError } from '@/app/lib/api';
-import type { CreateTeacherRequest } from '@/app/lib/api/types';
+import type { CreateTeacherRequest, ProjectWithDetails, Teacher } from '@/app/lib/api/types';
 import { useProject } from '@/app/projects/[id]/ProjectContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -93,6 +93,56 @@ export default function TeachersPanel() {
     const [existingDistributions, setExistingDistributions] = useState<Record<string, { count: number; totalPoints: number }>>({});
     const [assignmentViewAcademicYear, setAssignmentViewAcademicYear] = useState<string | null>(null);
     const [teacherAssignments, setTeacherAssignments] = useState<TeacherAssignment[]>([]);
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // CSV-import (skördad ur wizardens TeachersStep): namn, e-post, ämnen (|-separerade), [tjänst-%]
+    // Varje rad sparas direkt via API:t (inkrementell sparning).
+    const handleCsvImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            setImporting(true);
+            try {
+                const text = e.target?.result as string;
+                const lines = text.split('\n').filter(line => line.trim());
+                if (lines.length < 2) {
+                    toast.error('Filen måste innehålla minst en rad med data (utöver header)');
+                    return;
+                }
+
+                let created = 0;
+                const failures: string[] = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const parts = lines[i].split(/[,;\t]/).map(p => p.trim());
+                    const [name, email, subjectsStr] = parts;
+                    if (!name) {
+                        failures.push(`Rad ${i + 1}: namn saknas`);
+                        continue;
+                    }
+                    const subject = (subjectsStr || '').split('|').map(s => s.trim()).filter(Boolean).join(', ');
+                    try {
+                        await api.teachers.create(projectId, { name, email: email || undefined, subject: subject || undefined });
+                        created++;
+                    } catch {
+                        failures.push(`Rad ${i + 1}: kunde inte spara ${name}`);
+                    }
+                }
+
+                await fetchTeachers();
+                if (created > 0) toast.success(`${created} lärare importerade`);
+                if (failures.length > 0) toast.warning(`${failures.length} rader hoppades över: ${failures.slice(0, 3).join('; ')}${failures.length > 3 ? ' …' : ''}`);
+            } catch {
+                toast.error('Kunde inte läsa filen. Kontrollera att formatet är korrekt.');
+            } finally {
+                setImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsText(file);
+    };
 
     const fetchServiceDistributions = useCallback(async () => {
         try {
@@ -381,8 +431,8 @@ export default function TeachersPanel() {
                                                         await api.serviceDistributions.createForAllTeachers(projectId, academicYear, teacherCapacity);
                                                         await fetchServiceDistributions();
                                                         await loadAssignmentsForYear(academicYear);
-                                                    } catch (err: any) {
-                                                        const msg = err instanceof ApiError ? err.message : err?.message || 'Okänt fel';
+                                                    } catch (err) {
+                                                        const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Okänt fel';
                                                         toast.error(`Kunde inte skapa tjänstefördelning: ${msg}`);
                                                     }
                                                 }}
@@ -409,10 +459,29 @@ export default function TeachersPanel() {
             {/* Create Teacher Form */}
             <div className="mb-6">
                 {!showTeacherForm ? (
-                    <Button variant="outline" className="w-full h-auto p-4 border-2 border-dashed" onClick={() => setShowTeacherForm(true)}>
-                        <Plus className="w-5 h-5" />
-                        Lägg till lärare
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1 h-auto p-4 border-2 border-dashed" onClick={() => setShowTeacherForm(true)}>
+                            <Plus className="w-5 h-5" />
+                            Lägg till lärare
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-auto p-4 border-2 border-dashed"
+                            disabled={importing}
+                            onClick={() => fileInputRef.current?.click()}
+                            title="CSV: namn, e-post, ämnen (|-separerade)"
+                        >
+                            <Upload className="w-5 h-5" />
+                            {importing ? 'Importerar…' : 'Importera CSV'}
+                        </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv,.txt"
+                            onChange={handleCsvImport}
+                            className="hidden"
+                        />
+                    </div>
                 ) : (
                     <Card>
                         <CardHeader>
@@ -494,8 +563,8 @@ function AssignmentView({
     setTeacherAssignments: React.Dispatch<React.SetStateAction<TeacherAssignment[]>>;
     teacherCapacity: number;
     projectId: string;
-    project: any;
-    teachers: any[];
+    project: ProjectWithDetails;
+    teachers: Teacher[];
     onBack: () => void;
 }) {
     const vacantCourses = allCoursesForYear.filter(c => !c.teacherId);
@@ -665,10 +734,11 @@ function AssignmentView({
                         onClick={async () => {
                             try {
                                 for (const assignment of teacherAssignments) {
+                                    let distributionId = assignment.id;
+
                                     if (!assignment.teacherId || assignment.id.startsWith('temp-')) {
                                         const teacher = teachers.find(t => t.name === assignment.name);
                                         if (!teacher) { console.warn(`Teacher not found: ${assignment.name}`); continue; }
-                                        assignment.teacherId = teacher.id;
 
                                         const distributions = await api.serviceDistributions.getAll(projectId, academicYear);
                                         let distribution = distributions.find(d => d.teacherId === teacher.id);
@@ -677,22 +747,20 @@ function AssignmentView({
                                             distribution = result.distributions.find(d => d.teacherId === teacher.id);
                                         }
                                         if (!distribution) { console.error(`Could not create distribution for ${teacher.name}`); continue; }
-                                        assignment.id = distribution.id;
+                                        distributionId = distribution.id;
                                     }
 
                                     const courseInstanceIds: string[] = [];
-                                    project.classes?.forEach((cls: any) => {
-                                        if (cls.curriculum?.courses) {
-                                            cls.curriculum.courses.forEach((course: any) => {
-                                                const courseAcademicYear = formatAcademicYear(cls.startYear, course.year);
-                                                if (courseAcademicYear === academicYear && assignment.courses.includes(course.courseCode) && course.id) {
-                                                    courseInstanceIds.push(course.id);
-                                                }
-                                            });
-                                        }
+                                    project.classes?.forEach(cls => {
+                                        cls.curriculum?.courses?.forEach(course => {
+                                            const courseAcademicYear = formatAcademicYear(cls.startYear, course.year);
+                                            if (courseAcademicYear === academicYear && assignment.courses.includes(course.courseCode) && course.id) {
+                                                courseInstanceIds.push(course.id);
+                                            }
+                                        });
                                     });
 
-                                    await api.serviceDistributions.update(projectId, assignment.id, courseInstanceIds);
+                                    await api.serviceDistributions.update(projectId, distributionId, courseInstanceIds);
                                 }
                                 toast.success('Tjänstefördelning sparad!');
                                 onBack();

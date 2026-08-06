@@ -1,12 +1,16 @@
 "use client";
 
-import ScheduleGenerator from '@/app/components/schedule-generator';
-import { useProject } from '../ProjectContext';
+// Djuplänk (Fas 3, ADR-0009): generering + preflight bor nu i kontrollrummet.
+import { useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function SchedulingPage() {
-    const { project, fetchProject } = useProject();
+export default function SchedulingRedirect() {
+    const router = useRouter();
+    const params = useParams();
 
-    if (!project) return null;
+    useEffect(() => {
+        router.replace(`/projects/${params.id}`);
+    }, [router, params.id]);
 
-    return <ScheduleGenerator project={project} onUpdate={fetchProject} />;
+    return null;
 }

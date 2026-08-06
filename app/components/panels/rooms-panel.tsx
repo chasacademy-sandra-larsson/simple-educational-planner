@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, X, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { api, ApiError } from '@/app/lib/api';
 import type { CreateRoomRequest } from '@/app/lib/api/types';
 import { useProject } from '@/app/projects/[id]/ProjectContext';
@@ -20,6 +21,53 @@ export default function RoomsPanel() {
     const [newRoom, setNewRoom] = useState<CreateRoomRequest>({ roomNumber: '', roomType: '', capacity: undefined, notes: '' });
     const [creatingRoom, setCreatingRoom] = useState(false);
     const [roomError, setRoomError] = useState('');
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // CSV-import (skördad ur wizardens RoomsStep): salsnummer, kapacitet, [typ]
+    // Varje rad sparas direkt via API:t (inkrementell sparning).
+    const handleCsvImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            setImporting(true);
+            try {
+                const text = e.target?.result as string;
+                const lines = text.split('\n').filter(line => line.trim());
+                const startIndex = lines[0]?.toLowerCase().includes('namn') ||
+                    lines[0]?.toLowerCase().includes('kapacitet') ? 1 : 0;
+
+                let created = 0;
+                let skipped = 0;
+                for (let i = startIndex; i < lines.length; i++) {
+                    const parts = lines[i].split(/[,;\t]/).map(p => p.trim());
+                    if (parts.length < 1 || !parts[0]) { skipped++; continue; }
+                    try {
+                        await api.rooms.create(projectId, {
+                            roomNumber: parts[0],
+                            capacity: parseInt(parts[1]) || 30,
+                            roomType: parts[2] || undefined,
+                        });
+                        created++;
+                    } catch {
+                        skipped++;
+                    }
+                }
+
+                await fetchRooms();
+                if (created > 0) toast.success(`${created} salar importerade`);
+                if (skipped > 0) toast.warning(`${skipped} rader hoppades över`);
+            } catch {
+                toast.error('Kunde inte läsa filen. Kontrollera formatet.');
+            } finally {
+                setImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsText(file);
+    };
 
     const handleCreateRoom = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,14 +101,33 @@ export default function RoomsPanel() {
             {/* Create Room Form */}
             <div className="mb-6">
                 {!showRoomForm ? (
-                    <Button
-                        variant="outline"
-                        className="w-full h-auto p-4 border-2 border-dashed"
-                        onClick={() => setShowRoomForm(true)}
-                    >
-                        <Plus className="w-5 h-5" />
-                        Lägg till sal
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            className="flex-1 h-auto p-4 border-2 border-dashed"
+                            onClick={() => setShowRoomForm(true)}
+                        >
+                            <Plus className="w-5 h-5" />
+                            Lägg till sal
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-auto p-4 border-2 border-dashed"
+                            disabled={importing}
+                            onClick={() => fileInputRef.current?.click()}
+                            title="CSV: salsnummer, kapacitet, [typ]"
+                        >
+                            <Upload className="w-5 h-5" />
+                            {importing ? 'Importerar…' : 'Importera CSV'}
+                        </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".csv,.txt"
+                            onChange={handleCsvImport}
+                            className="hidden"
+                        />
+                    </div>
                 ) : (
                     <Card>
                         <CardHeader>
