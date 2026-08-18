@@ -28,6 +28,17 @@ Konceptskiss av målbilden: kontrollrums-Artifact (schema i mitten, resurser vä
 | `schedule-generator.tsx` (tabb `scheduling`) | Generering + preflight + status-lista | **Blir generera-action + högerpanel** |
 | `weekly-schedule.tsx` (tabb `schedule`) | Arbetsbelastnings-kalkyl per termin (ej placerat) | **Degraderas** till sekundärt underlags-läge |
 
+## Status
+
+| Fas | Läge | Commit |
+|---|---|---|
+| 0 — Dashboard → projektlista | ✅ Klar | `5705441` |
+| 1 — Kontrollrummet | ✅ Klar | `c3361c3` |
+| 2 — Resurser som drawers + defaults-exponering | ✅ Klar | `625a258` |
+| 3 — Riv wizarden + slå ihop schema-ytorna | ✅ Klar | `ec880c8` |
+| 4 — Kursplanerings-ytan | 🔶 Pågår — kartläggning klar, skiss återstår (se Fas 4-noter nedan) |  |
+| 5 — Intags-agenten (AI-chat) | Ej påbörjad (ADR-0010) |  |
+
 ## Faser
 
 Ordnade så att varje fas är körbar och shipbar för sig. Ingen fas lämnar appen trasig.
@@ -69,6 +80,16 @@ Mål: den tunga curriculum-biten får en genomtänkt egen yta.
 - `ClassesAndCoursePlanStep` (Skolverket-driven, nästlad wizard-i-wizard, term-för-term) är den enskilt tyngsta UX-knuten — förtjänar egen skiss innan kod.
 - Skörda den fungerande logiken (program/inriktning/kurs-hämtning via Skolverket-proxyn, 2500-poängsvalidering) — kasta bara steg-strukturen.
 - **Beslut som behöver tas separat**: ska kursplanering ligga i arbetsytan (drawer) eller vara en egen full yta? Curriculum har status `draft/approved/archived` — approve-flödet påverkar layouten.
+
+**Kartläggningsfynd (aug 2026) — input till skissen:**
+- `ComprehensiveCoursePlanner` (2277 rader) är en wizard-i-tabben: 6 steg inuti varje klass-accordion, batch-sparning på slutet — samma mönster som revs ur resten av appen.
+- **2500-poängsregeln upprätthålls aldrig** (`isValidTotal = true` hårdkodat) — visas men blockerar inte sparning.
+- **TE/webbspecifika fördjupningskurser är hårdkodade** (`WEBB2000X` m.fl.) i en generisk komponent; Skolverket-proxyn levererar redan auktoritativa `diplomaProject`/`individualOption`-poäng som ignoreras.
+- **Approve-flödet finns inte i backend**: `status` skrivs `'draft'` en gång, ingen endpoint ändrar den. Läsvägen föredrar redan `approved` — endpointen saknas. Ny yta kräver status-transitions-endpoint.
+- Trippelrepresentation `term`/`terms`/`year` är en ständig buggkälla i plannern.
+- **Döda filer att radera i Fas 4**: `class-course-planner.tsx`, `course-planner.tsx`, `course-list.tsx` (legacy år-baserad planner) och `onboarding/ClassesAndCoursePlanStep.tsx` (aldrig inkopplad — dess termmatris-UI och 2500-banner skördas som designidéer, inte kod).
+- `PUT /classes/:classId/curriculum` gör full delete+reinsert av `course_instances` men **bevarar teacherId/roomId/lessonDuration/year/terms** per courseCode — notera att befintlig year/terms vinner över payloadens.
+- **Designriktning för skissen**: en byggyta istället för steg — kurskatalog (Skolverket-driven, per kategori) till vänster, terminskolumner T1–T6 med per-termins poänglast i mitten, poängbudget/validering (2500-mätare, per kategori) till höger, status-badge + "Godkänn"-knapp gated på giltighet. Klasser väljs i rail som i kontrollrummet. `/projects/[id]/classes` förblir egen full yta (tabben), inte drawer.
 
 ### Fas 5 — Intags-agenten (chat + filer)
 Mål: prompta + ladda upp filer istället för att klicka formulär, enligt [ADR-0010](./adr/0010-ai-intake-agent.md).
