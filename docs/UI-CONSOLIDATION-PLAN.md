@@ -36,7 +36,7 @@ Konceptskiss av målbilden: kontrollrums-Artifact (schema i mitten, resurser vä
 | 1 — Kontrollrummet | ✅ Klar | `c3361c3` |
 | 2 — Resurser som drawers + defaults-exponering | ✅ Klar | `625a258` |
 | 3 — Riv wizarden + slå ihop schema-ytorna | ✅ Klar | `ec880c8` |
-| 4 — Kursplanerings-ytan | 🔶 Pågår — kartläggning klar, skiss återstår (se Fas 4-noter nedan) |  |
+| 4 — Kursplanerings-ytan | 🔶 Pågår — kartläggning + [skiss](https://claude.ai/code/artifact/e8ab61b7-bf90-48c9-9181-4cb7003d9eff) klara, bygget återstår |  |
 | 5 — Intags-agenten (AI-chat) | Ej påbörjad (ADR-0010) |  |
 
 ## Faser
@@ -90,6 +90,15 @@ Mål: den tunga curriculum-biten får en genomtänkt egen yta.
 - **Döda filer att radera i Fas 4**: `class-course-planner.tsx`, `course-planner.tsx`, `course-list.tsx` (legacy år-baserad planner) och `onboarding/ClassesAndCoursePlanStep.tsx` (aldrig inkopplad — dess termmatris-UI och 2500-banner skördas som designidéer, inte kod).
 - `PUT /classes/:classId/curriculum` gör full delete+reinsert av `course_instances` men **bevarar teacherId/roomId/lessonDuration/year/terms** per courseCode — notera att befintlig year/terms vinner över payloadens.
 - **Designriktning för skissen**: en byggyta istället för steg — kurskatalog (Skolverket-driven, per kategori) till vänster, terminskolumner T1–T6 med per-termins poänglast i mitten, poängbudget/validering (2500-mätare, per kategori) till höger, status-badge + "Godkänn"-knapp gated på giltighet. Klasser väljs i rail som i kontrollrummet. `/projects/[id]/classes` förblir egen full yta (tabben), inte drawer.
+
+**Skissen (aug 2026)** — interaktiv Artifact: <https://claude.ai/code/artifact/e8ab61b7-bf90-48c9-9181-4cb7003d9eff>. Fyra zoner (klasser 158px · katalog 258px · terminer 1fr · budget 292px) i samma tokens som kontrollrummet. Tre demo-klasser visar de tre lägena: blockerad (TE26, 1900 p), giltig men obalanserad (TE25, 2500 p + fyra mjuka varningar), godkänd och grön (TE24). Kurser placeras med drag-drop eller klick-kurs → klick-termin; ⇄ på kortet spänner kursen över båda terminerna i året.
+
+**Beslut som skissen tvingar fram (utöver approve-endpointen):**
+- **Programfördjupning saknar egen kategori.** Skolverket-proxyn levererar `PROGRAMME_SPECIALIZATION`, men `CourseAssignment.category`-unionen i `app/lib/api/types.ts` har den inte — dagens planner märker om kurserna till `ORIENTATION` (`comprehensive-course-planner.tsx`, specialization-steget). Utan egen kategori går inriktning 300 p och programfördjupning 400 p inte att validera var för sig, vilket budgetpanelen bygger på. Kräver ny kategori i union + DB-data-migrering av felmärkta rader.
+- **`GYMNASIEARBETE` finns som label men aldrig som kategorivärde** — gymnasiearbetet sparas som `PROGRAMME_SPECIFIC_SUBJECTS`, vilket gör att programgemensamma ämnen ser ut att vara 100 p för mycket. Samma beslut som ovan.
+- **Terminsmodellen**: skissen använder bara `terms: term1..term6` (en eller två terminer per kurs) och härleder `year`. `course_instances` har redan `terms jsonb` + `year int`; `year` blir härledd kolumn eller tas bort. Trippelrepresentationen `term`/`terms`/`year` försvinner.
+- **Balansbandet 350–500 p/termin** finns redan i plannern (`ValidateStep`) — skissen gör det till en synlig skena per termin, som mjuk varning (blockerar inte godkännande).
+- **Godkänd plan som ändras**: skissen låser inte redigering utan kräver "Återöppna som utkast". Alternativet är versionsbump (`class_curricula.version` finns redan).
 
 ### Fas 5 — Intags-agenten (chat + filer)
 Mål: prompta + ladda upp filer istället för att klicka formulär, enligt [ADR-0010](./adr/0010-ai-intake-agent.md).
