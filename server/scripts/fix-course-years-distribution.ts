@@ -40,8 +40,9 @@ async function distributeCourseYears() {
                 'FOUNDATIONAL_SUBJECTS': 1,
                 'PROGRAMME_SPECIFIC_SUBJECTS': 2,
                 'ORIENTATION': 3,
-                'INDIVIDUAL_CHOICE': 4,
-                'GYMNASIEARBETE': 5,
+                'PROGRAMME_SPECIALIZATION': 4,
+                'INDIVIDUAL_CHOICE': 5,
+                'GYMNASIEARBETE': 6,
             };
             const catDiff = (categoryOrder[a.category] || 99) - (categoryOrder[b.category] || 99);
             if (catDiff !== 0) return catDiff;

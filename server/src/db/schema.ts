@@ -90,7 +90,7 @@ export const courseInstances = pgTable('course_instances', {
     courseName: text('course_name').notNull(),
     subject: text('subject'), // Subject from Skolverket (e.g., "fysik", "matematik"). Used for room subject-matching. NULL = not yet populated.
     points: integer('points').notNull(),
-    category: text('category').notNull(), // FOUNDATIONAL_SUBJECTS, PROGRAMME_SPECIFIC_SUBJECTS, ORIENTATION, INDIVIDUAL_CHOICE, GYMNASIEARBETE
+    category: text('category').notNull(), // CourseCategory (src/types): FOUNDATIONAL_SUBJECTS, PROGRAMME_SPECIFIC_SUBJECTS, ORIENTATION, PROGRAMME_SPECIALIZATION, INDIVIDUAL_CHOICE, GYMNASIEARBETE
     year: integer('year').notNull(), // 1, 2, or 3
     terms: jsonb('terms').notNull(), // Array of term IDs: ["term1", "term2", ...]
     lessonDuration: integer('lesson_duration'), // Lesson duration in minutes. NULL = use project's defaultLessonDuration. If set, overrides default for this course.

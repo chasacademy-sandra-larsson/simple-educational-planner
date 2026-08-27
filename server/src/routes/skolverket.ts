@@ -5,6 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { CourseCategory } from '../types';
 
 const router = Router();
 const BASE_URL = "https://api.skolverket.se/syllabus/v1";
@@ -248,7 +249,7 @@ router.get('/programs/:code/courses', async (req: Request, res: Response) => {
 /**
  * Helper function to extract subjects with their courses
  */
-function extractSubjectsWithCourses(subjects: any[], category: string): any[] {
+function extractSubjectsWithCourses(subjects: any[], category: CourseCategory): any[] {
     const result: any[] = [];
 
     for (const subject of subjects) {
@@ -275,7 +276,7 @@ function extractSubjectsWithCourses(subjects: any[], category: string): any[] {
 /**
  * Helper function to add courses from subjects array
  */
-function addCoursesFromSubjects(subjects: any[], category: string, courses: any[]): void {
+function addCoursesFromSubjects(subjects: any[], category: CourseCategory, courses: any[]): void {
     for (const subject of subjects) {
         if (subject.courses && Array.isArray(subject.courses)) {
             for (const course of subject.courses) {

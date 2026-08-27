@@ -197,6 +197,50 @@ export async function getProgramSpecializationSubjects(programCode: string): Pro
   }
 }
 
+export interface ProgramMeta {
+  /** Gymnasiearbetets kurskod, namn och poäng enligt Skolverket. */
+  diplomaProject: { code: string; name: string; points: number };
+  /** Individuella valets omfattning i poäng. */
+  individualOptionPoints: number;
+}
+
+const DEFAULT_PROGRAM_META: ProgramMeta = {
+  diplomaProject: { code: 'GYMNASIEARBETE', name: 'Gymnasiearbete', points: 100 },
+  individualOptionPoints: 200,
+};
+
+/**
+ * Hämtar gymnasiearbetets och individuella valets omfattning för ett program.
+ * Faller tillbaka på de nationella standardvärdena (100 p / 200 p) om
+ * Skolverket inte svarar — de är lika för alla nationella program idag.
+ */
+export async function getProgramMeta(programCode: string): Promise<ProgramMeta> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/programs/${programCode}`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch program meta: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      diplomaProject: {
+        code: data.diplomaProject?.code || DEFAULT_PROGRAM_META.diplomaProject.code,
+        name: data.diplomaProject?.name || DEFAULT_PROGRAM_META.diplomaProject.name,
+        points: data.diplomaProject?.points || DEFAULT_PROGRAM_META.diplomaProject.points,
+      },
+      individualOptionPoints:
+        data.individualOption?.points || DEFAULT_PROGRAM_META.individualOptionPoints,
+    };
+  } catch (error) {
+    console.error('Error fetching program meta:', error);
+    return DEFAULT_PROGRAM_META;
+  }
+}
+
 export async function getCoursesByOrientation(programCode: string, orientationCode: string): Promise<Course[]> {
   try {
     // Use backend proxy with orientation query parameter

@@ -11,6 +11,7 @@ import {
     UpdateCurriculumRequest,
     ProjectClass,
     ClassCurriculum,
+    CurriculumStatus,
     Teacher,
     CreateTeacherRequest,
     Room,
@@ -178,6 +179,13 @@ export const projectsApi = {
         return fetchWithAuth<ClassCurriculum>(`/api/projects/classes/${classId}/curriculum`, {
             method: 'PUT',
             body: JSON.stringify(data),
+        });
+    },
+
+    async updateCurriculumStatus(classId: string, status: CurriculumStatus): Promise<ClassCurriculum> {
+        return fetchWithAuth<ClassCurriculum>(`/api/projects/classes/${classId}/curriculum/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status }),
         });
     },
 

@@ -3,9 +3,21 @@ import { db } from '../db';
 import { projects, projectClasses, courseInstances, classCurricula, teachers, classMentors } from '../db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
-import { CreateProjectRequest, CreateClassRequest, UpdateCurriculumRequest } from '../types';
+import {
+    CreateProjectRequest,
+    CreateClassRequest,
+    UpdateCurriculumRequest,
+    UpdateCurriculumStatusRequest,
+    CurriculumStatus,
+    CURRICULUM_STATUSES,
+    isCurriculumStatus,
+    CourseCategory,
+} from '../types';
 
 const router = Router();
+
+// En komplett gymnasiekursplan omfattar alltid 2500 poäng
+const REQUIRED_TOTAL_POINTS = 2500;
 
 // All routes require authentication
 router.use(authMiddleware);
@@ -362,7 +374,7 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
 
         // Calculate total points
         const totalPoints = courses.reduce((sum: number, course: any) => sum + course.points, 0);
-        const isValid = totalPoints === 2500 ? 1 : 0;
+        const isValid = totalPoints === REQUIRED_TOTAL_POINTS ? 1 : 0;
 
         // Find existing curriculum (approved or draft) or create new one
         const existingCurricula = await db.select()
@@ -431,7 +443,8 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
         await db.delete(courseInstances)
             .where(eq(courseInstances.classId, classId));
 
-        // Insert new course instances, preserving teacher/room/year/terms from existing data
+        // Insert new course instances, preserving teacher/room/lessonDuration from existing data.
+        // year/terms follow the payload so courses can be moved between terms.
         if (courses && courses.length > 0) {
             await db.insert(courseInstances).values(
                 courses.map((course: any) => {
@@ -444,9 +457,9 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
                         subject: course.subject ?? null,
                         points: course.points,
                         category: course.category,
-                        // Preserve year and terms if they exist, otherwise use course values
-                        year: existing?.year ?? course.year ?? 1,
-                        terms: existing?.terms ?? course.terms ?? ['HT', 'VT'],
+                        // Payload wins; existing values are only a fallback when the payload omits them
+                        year: course.year ?? existing?.year ?? 1,
+                        terms: course.terms ?? existing?.terms ?? ['term1'],
                         teacherId: existing?.teacherId || null,
                         roomId: existing?.roomId || null,
                         lessonDuration: existing?.lessonDuration || null,
@@ -471,13 +484,145 @@ router.put('/classes/:classId/curriculum', async (req: AuthRequest, res: Respons
     }
 });
 
+// Tillåtna statusövergångar för en kursplan
+const ALLOWED_CURRICULUM_TRANSITIONS: Record<CurriculumStatus, CurriculumStatus[]> = {
+    draft: ['approved', 'archived'],
+    approved: ['draft', 'archived'],
+    archived: [],
+};
+
+const CURRICULUM_STATUS_LABELS: Record<CurriculumStatus, string> = {
+    draft: 'utkast',
+    approved: 'godkänd',
+    archived: 'arkiverad',
+};
+
+// Ändra status på en klass kursplan (godkänn / återöppna / arkivera)
+router.patch('/classes/:classId/curriculum/status', async (req: AuthRequest, res: Response) => {
+    try {
+        const classId = req.params.classId;
+        const { status: nextStatus } = req.body as UpdateCurriculumStatusRequest;
+
+        if (!isCurriculumStatus(nextStatus)) {
+            return res.status(400).json({
+                error: `Ogiltig status. Tillåtna värden: ${CURRICULUM_STATUSES.join(', ')}.`,
+            });
+        }
+
+        // Verify class exists and user has access
+        const classData = await db.select()
+            .from(projectClasses)
+            .where(eq(projectClasses.id, classId))
+            .limit(1);
+
+        if (classData.length === 0) {
+            return res.status(404).json({ error: 'Klassen hittades inte' });
+        }
+
+        // Verify project ownership
+        const projectData = await db.select()
+            .from(projects)
+            .where(eq(projects.id, classData[0].projectId))
+            .limit(1);
+
+        if (projectData.length === 0 || projectData[0].userId !== req.userId) {
+            return res.status(403).json({ error: 'Åtkomst nekad' });
+        }
+
+        // Hämta senaste kursplanen för klassen (samma urval som PUT .../curriculum)
+        const existingCurricula = await db.select()
+            .from(classCurricula)
+            .where(eq(classCurricula.classId, classId))
+            .orderBy(desc(classCurricula.version))
+            .limit(1);
+
+        if (existingCurricula.length === 0) {
+            return res.status(404).json({ error: 'Kursplanen hittades inte' });
+        }
+
+        const curriculum = existingCurricula[0];
+        const currentStatus: CurriculumStatus = isCurriculumStatus(curriculum.status)
+            ? curriculum.status
+            : 'draft';
+
+        // Validera övergången
+        const allowedNext = ALLOWED_CURRICULUM_TRANSITIONS[currentStatus];
+        if (!allowedNext.includes(nextStatus)) {
+            return res.status(400).json({
+                error: currentStatus === nextStatus
+                    ? `Kursplanen har redan status "${CURRICULUM_STATUS_LABELS[currentStatus]}".`
+                    : `Ogiltig statusövergång: "${CURRICULUM_STATUS_LABELS[currentStatus]}" kan inte bli "${CURRICULUM_STATUS_LABELS[nextStatus]}".`,
+            });
+        }
+
+        // Räkna om totalpoäng från kursinstanserna — de är källan till sanning
+        const instances = await db.select()
+            .from(courseInstances)
+            .where(eq(courseInstances.curriculumId, curriculum.id));
+
+        const totalPoints = instances.reduce((sum, instance) => sum + instance.points, 0);
+
+        // draft → approved kräver en giltig kursplan (exakt 2500 poäng)
+        if (nextStatus === 'approved' && totalPoints !== REQUIRED_TOTAL_POINTS) {
+            const diff = REQUIRED_TOTAL_POINTS - totalPoints;
+            return res.status(400).json({
+                error: diff > 0
+                    ? `Kursplanen kan inte godkännas: den har ${totalPoints} poäng, ${diff} poäng saknas av ${REQUIRED_TOTAL_POINTS}.`
+                    : `Kursplanen kan inte godkännas: den har ${totalPoints} poäng, ${Math.abs(diff)} poäng för mycket av ${REQUIRED_TOTAL_POINTS}.`,
+                totalPoints,
+                requiredPoints: REQUIRED_TOTAL_POINTS,
+            });
+        }
+
+        // approved → draft ("återöppna") bumpar versionen
+        const isReopen = currentStatus === 'approved' && nextStatus === 'draft';
+
+        const [updatedCurriculum] = await db.update(classCurricula)
+            .set({
+                status: nextStatus,
+                totalPoints,
+                isValid: nextStatus === 'approved' ? 1 : (totalPoints === REQUIRED_TOTAL_POINTS ? 1 : 0),
+                version: isReopen ? curriculum.version + 1 : curriculum.version,
+                updatedAt: new Date(),
+            })
+            .where(eq(classCurricula.id, curriculum.id))
+            .returning();
+
+        res.json({
+            id: updatedCurriculum.id,
+            classId: classId,
+            courses: instances.map(instance => ({
+                id: instance.id,
+                courseCode: instance.courseCode,
+                courseName: instance.courseName,
+                subject: instance.subject,
+                points: instance.points,
+                category: instance.category,
+                year: instance.year,
+                terms: instance.terms,
+                teacherId: instance.teacherId,
+                roomId: instance.roomId,
+                lessonDuration: instance.lessonDuration,
+            })),
+            totalPoints: updatedCurriculum.totalPoints,
+            isValid: updatedCurriculum.isValid,
+            status: updatedCurriculum.status,
+            version: updatedCurriculum.version,
+            updatedAt: updatedCurriculum.updatedAt,
+        });
+    } catch (error) {
+        console.error('Update curriculum status error:', error);
+        res.status(500).json({ error: 'Kunde inte uppdatera kursplanens status' });
+    }
+});
+
 // Helper function to fetch courses from Skolverket API
 async function fetchCoursesFromSkolverket(programCode: string, orientationCode: string): Promise<{
     courseCode: string;
     courseName: string;
     subject: string | null;
     points: number;
-    category: string;
+    category: CourseCategory;
     year: number;
     terms: string[];
 }[]> {
@@ -498,13 +643,13 @@ async function fetchCoursesFromSkolverket(programCode: string, orientationCode: 
             courseName: string;
             subject: string | null;
             points: number;
-            category: string;
+            category: CourseCategory;
             year: number;
             terms: string[];
         }[] = [];
 
         // Helper to add courses from a subject list
-        const addCoursesFromSubjects = (subjects: any[], category: string) => {
+        const addCoursesFromSubjects = (subjects: any[], category: CourseCategory) => {
             if (!subjects || !Array.isArray(subjects)) return;
             
             for (const subject of subjects) {
@@ -702,7 +847,6 @@ router.post('/:id/initialize-curricula', async (req: AuthRequest, res: Response)
 
         // Find classes that need initialization (no curriculum, incomplete courses, or not 2500 points)
         const MIN_COURSES_FOR_COMPLETE = 20;
-        const REQUIRED_TOTAL_POINTS = 2500;
         const classesNeedingInit = classes.filter(cls => {
             const curriculum = curriculaByClass.get(cls.id);
             if (!curriculum) return true;
@@ -729,7 +873,7 @@ router.post('/:id/initialize-curricula', async (req: AuthRequest, res: Response)
 
                 // Calculate total points
                 const totalPoints = courses.reduce((sum, c) => sum + c.points, 0);
-                const isValid = totalPoints === 2500 ? 1 : 0;
+                const isValid = totalPoints === REQUIRED_TOTAL_POINTS ? 1 : 0;
 
                 // Create or update curriculum
                 let curriculum = curriculaByClass.get(cls.id);

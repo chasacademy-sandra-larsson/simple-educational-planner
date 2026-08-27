@@ -38,6 +38,16 @@
   --sidebar-border: #e4e8ef;
   --sidebar-ring: #0152cb;
 
+  /* Kurskategorier i kursplaneringen — behöver sex urskiljbara nyanser,
+     till skillnad från chart-skalan som är hela blåfamiljen. */
+  --cat-foundational: #0152cb;
+  --cat-programme: #0f7b8a;
+  --cat-orientation: #6b4fbb;
+  --cat-specialization: #b26a00;
+  --cat-individual: #55607a;
+  --cat-diploma: #b0355b;
+  --category-tint: 14%;
+
   --font-sans: Inter, sans-serif;
   --font-serif: Source Serif 4, serif;
   --font-mono: IBM Plex Mono, monospace;
@@ -89,6 +99,14 @@
   --sidebar-accent-foreground: #e4e8ef;
   --sidebar-border: #2f3b50;
   --sidebar-ring: #0265fd;
+
+  --cat-foundational: #4c9bff;
+  --cat-programme: #3fb6c6;
+  --cat-orientation: #a78bfa;
+  --cat-specialization: #e2a13c;
+  --cat-individual: #93a0b8;
+  --cat-diploma: #f07c9e;
+  --category-tint: 22%;
 
   --shadow-2xs: 0 1px 3px 0px rgb(0 0 0 / 0.05);
   --shadow-xs: 0 1px 3px 0px rgb(0 0 0 / 0.05);

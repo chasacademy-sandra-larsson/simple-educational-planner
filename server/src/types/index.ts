@@ -1,12 +1,44 @@
 // TypeScript types for API requests and responses
 
+/**
+ * Kurskategorier enligt Skolverkets programstruktur.
+ * Motsvarar nycklarna i ProgramStructure.categories (src/data/program-structures.ts).
+ */
+export const COURSE_CATEGORIES = [
+    'FOUNDATIONAL_SUBJECTS',      // Gymnasiegemensamma ämnen
+    'PROGRAMME_SPECIFIC_SUBJECTS', // Programgemensamma ämnen
+    'ORIENTATION',                 // Inriktning
+    'PROGRAMME_SPECIALIZATION',    // Programfördjupning
+    'INDIVIDUAL_CHOICE',           // Individuellt val
+    'GYMNASIEARBETE',              // Gymnasiearbete
+] as const;
+
+export type CourseCategory = typeof COURSE_CATEGORIES[number];
+
+export function isCourseCategory(value: unknown): value is CourseCategory {
+    return typeof value === 'string' && (COURSE_CATEGORIES as readonly string[]).includes(value);
+}
+
 export interface CourseAssignment {
     courseCode: string;
     courseName: string;
     points: number;
-    category: 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE' | 'GYMNASIEARBETE';
+    category: CourseCategory;
     year: 1 | 2 | 3;
     terms: ("term1" | "term2" | "term3" | "term4" | "term5" | "term6")[]; // Array of terms this course spans over
+}
+
+/** Livscykel för en kursplan (class_curricula.status) */
+export const CURRICULUM_STATUSES = ['draft', 'approved', 'archived'] as const;
+
+export type CurriculumStatus = typeof CURRICULUM_STATUSES[number];
+
+export function isCurriculumStatus(value: unknown): value is CurriculumStatus {
+    return typeof value === 'string' && (CURRICULUM_STATUSES as readonly string[]).includes(value);
+}
+
+export interface UpdateCurriculumStatusRequest {
+    status: CurriculumStatus;
 }
 
 export interface CreateProjectRequest {

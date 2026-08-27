@@ -36,7 +36,7 @@ Konceptskiss av målbilden: kontrollrums-Artifact (schema i mitten, resurser vä
 | 1 — Kontrollrummet | ✅ Klar | `c3361c3` |
 | 2 — Resurser som drawers + defaults-exponering | ✅ Klar | `625a258` |
 | 3 — Riv wizarden + slå ihop schema-ytorna | ✅ Klar | `ec880c8` |
-| 4 — Kursplanerings-ytan | 🔶 Pågår — kartläggning + [skiss](https://claude.ai/code/artifact/e8ab61b7-bf90-48c9-9181-4cb7003d9eff) klara, bygget återstår |  |
+| 4 — Kursplanerings-ytan | ✅ Klar — [skiss](https://claude.ai/code/artifact/e8ab61b7-bf90-48c9-9181-4cb7003d9eff) + byggd yta | `curriculum-workbench` |
 | 5 — Intags-agenten (AI-chat) | Ej påbörjad (ADR-0010) |  |
 
 ## Faser
@@ -99,6 +99,15 @@ Mål: den tunga curriculum-biten får en genomtänkt egen yta.
 - **Terminsmodellen**: skissen använder bara `terms: term1..term6` (en eller två terminer per kurs) och härleder `year`. `course_instances` har redan `terms jsonb` + `year int`; `year` blir härledd kolumn eller tas bort. Trippelrepresentationen `term`/`terms`/`year` försvinner.
 - **Balansbandet 350–500 p/termin** finns redan i plannern (`ValidateStep`) — skissen gör det till en synlig skena per termin, som mjuk varning (blockerar inte godkännande).
 - **Godkänd plan som ändras**: skissen låser inte redigering utan kräver "Återöppna som utkast". Alternativet är versionsbump (`class_curricula.version` finns redan).
+
+**Så här byggdes den (aug 2026):**
+- `app/components/curriculum-workbench.tsx` ersätter `ComprehensiveCoursePlanner` i `/projects/[id]/classes`. Domänlogiken (kategorier, terminer, poängbudget, validering) ligger i `app/lib/curriculum.ts` — komponenten räknar inte poäng själv.
+- Ny endpoint `PATCH /api/projects/classes/:classId/curriculum/status` (`server/src/routes/projects.ts`). Övergångar: `draft↔approved`, `draft|approved→archived`. Godkännande kräver 2500 p (summan räknas om ur `course_instances`, inte ur lagrade `total_points`), återöppning bumpar `version`. Godkänd plan är låst i UI:t.
+- **Buggfix som blockerade hela ytan**: `PUT .../curriculum` lät befintliga `year`/`terms` vinna över payloaden, så en kurs aldrig kunde flyttas mellan terminer. Precedensen är omvänd; `teacherId`/`roomId`/`lessonDuration` bevaras fortfarande. Fel default `['HT','VT']` bytt mot `['term1']`.
+- **Målen kan inte summeras rakt av.** Skolverket listar alternativen inom gymnasiegemensamma ämnen i samma lista (Svenska *och* Svenska som andraspråk) — för TE blir katalogsumman 1400 p där kravet är 1100 p. Därför får bara de entydiga kategorierna exakta tak (programgemensamma, inriktning, gymnasiearbete, individuellt val, tillsammans 1000 p för TE), medan gymnasiegemensamma + programfördjupning delar på resten (1500 p). Se `SHARED_BUDGET_CATEGORIES`.
+- `terms` normaliseras vid inläsning: gammal data har `['HT','VT']` och översätts med `year` till `term1`..`term6` (`normalizeTerms`), precis som solverns data-loader gör. Auto-initieringen skriver fortfarande `HT`/`VT` — den vägen bör konverteras separat.
+- Kurser som finns i Skolverkets katalog får sin kategori och poäng därifrån vid inläsning. **Testprojektets data behöver det**: `Gymnasium 27 Klasser` har 2400 p stämplade som `FOUNDATIONAL_SUBJECTS` per klass (och alla kursplaner står som `approved` utan att någon endpoint satt det). Utan självläkningen visar varje klass fyra blockerande fel.
+- **Kvar att radera** (blockerades av behörighetskontrollen vid bygget): `app/components/class-course-planner.tsx`, `course-planner.tsx`, `course-list.tsx` och `app/components/onboarding/ClassesAndCoursePlanStep.tsx` (samt den tomma `onboarding/`-katalogen). Inga referenser pekar på dem.
 
 ### Fas 5 — Intags-agenten (chat + filer)
 Mål: prompta + ladda upp filer istället för att klicka formulär, enligt [ADR-0010](./adr/0010-ai-intake-agent.md).

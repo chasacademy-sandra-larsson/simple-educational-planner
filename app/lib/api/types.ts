@@ -1,15 +1,33 @@
 // TypeScript types for API requests and responses
 // These should match the backend types
 
+/**
+ * Kurskategorierna som Skolverket-proxyn levererar. PROGRAMME_SPECIALIZATION
+ * (programfördjupning) och GYMNASIEARBETE är egna kategorier — tidigare
+ * smögs de in som ORIENTATION respektive PROGRAMME_SPECIFIC_SUBJECTS, vilket
+ * gjorde inriktning och programfördjupning omöjliga att validera var för sig.
+ */
+export type CourseCategory =
+    | 'FOUNDATIONAL_SUBJECTS'
+    | 'PROGRAMME_SPECIFIC_SUBJECTS'
+    | 'ORIENTATION'
+    | 'PROGRAMME_SPECIALIZATION'
+    | 'INDIVIDUAL_CHOICE'
+    | 'GYMNASIEARBETE';
+
+export type TermId = 'term1' | 'term2' | 'term3' | 'term4' | 'term5' | 'term6';
+
+export type CurriculumStatus = 'draft' | 'approved' | 'archived';
+
 export interface CourseAssignment {
     id?: string; // Course instance ID
     courseCode: string;
     courseName: string;
     subject?: string | null; // Skolverket subject for room allowedSubjects matching
     points: number;
-    category: 'FOUNDATIONAL_SUBJECTS' | 'PROGRAMME_SPECIFIC_SUBJECTS' | 'ORIENTATION' | 'INDIVIDUAL_CHOICE' | 'GYMNASIEARBETE';
+    category: CourseCategory;
     year: 1 | 2 | 3;
-    terms: ("term1" | "term2" | "term3" | "term4" | "term5" | "term6")[]; // Array of terms this course spans over
+    terms: TermId[]; // Array of terms this course spans over
     teacherId?: string | null;
     teacherName?: string | null;
     roomId?: string | null;
@@ -67,7 +85,7 @@ export interface ClassCurriculum {
     courses: CourseAssignment[];
     totalPoints: number;
     isValid: number;
-    status: 'draft' | 'approved' | 'archived';
+    status: CurriculumStatus;
     version: number;
     createdAt?: string;
     updatedAt?: string;
@@ -120,6 +138,10 @@ export interface CreateClassRequest {
 
 export interface UpdateCurriculumRequest {
     courses: CourseAssignment[];
+}
+
+export interface UpdateCurriculumStatusRequest {
+    status: CurriculumStatus;
 }
 
 export interface Teacher {

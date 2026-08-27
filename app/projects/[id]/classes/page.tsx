@@ -4,12 +4,10 @@ import { useState } from 'react';
 import { Plus, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import { api, ApiError } from '@/app/lib/api';
 import AddClassForm from '@/app/components/add-class-form';
-import ComprehensiveCoursePlanner from '@/app/components/comprehensive-course-planner';
+import CurriculumWorkbench from '@/app/components/curriculum-workbench';
 import { useProject } from '../ProjectContext';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 export default function ClassesPage() {
     const { projectId, project, fetchProject } = useProject();
@@ -57,9 +55,8 @@ export default function ClassesPage() {
     ) || [];
 
     return (
-        <div>
-            {/* Add Class Form */}
-            <div className="mb-6">
+        <div className="space-y-6">
+            <div>
                 {!showClassDialog ? (
                     <Button
                         variant="outline"
@@ -81,9 +78,9 @@ export default function ClassesPage() {
                 )}
             </div>
 
-            {/* Initialize Curricula Section */}
+            {/* Klasser utan kursplan kan initieras från Skolverkets programstruktur */}
             {classesWithoutCurricula.length > 0 && (
-                <Alert className="mb-6">
+                <Alert>
                     <AlertTriangle className="w-4 h-4" />
                     <AlertTitle>
                         {classesWithoutCurricula.length} {classesWithoutCurricula.length === 1 ? 'klass saknar' : 'klasser saknar'} kursplan
@@ -117,53 +114,7 @@ export default function ClassesPage() {
                 </Alert>
             )}
 
-            {/* Classes List */}
-            <h3 className="text-lg font-semibold mb-4">Klasser</h3>
-            {project.classes && project.classes.length > 0 ? (
-                <Accordion>
-                    {project.classes.map((cls) => (
-                        <AccordionItem key={cls.id} value={cls.id}>
-                            <AccordionTrigger className="px-4 py-3">
-                                <div className="flex-1 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{cls.classCode}</span>
-                                        {cls.curriculum && cls.curriculum.courses && (
-                                            <Badge variant={cls.curriculum.isValid ? 'default' : 'secondary'}>
-                                                {Array.isArray(cls.curriculum.courses) ? cls.curriculum.courses.length : 0} kurser
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground mt-1">
-                                        {cls.programName}
-                                        {cls.orientationName && cls.orientationName !== cls.programName && (
-                                            <span className="text-xs"> &bull; {cls.orientationName}</span>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                        {cls.startYear} - {cls.graduationYear}
-                                    </div>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 pb-4">
-                                <h4 className="text-base font-semibold mb-4">
-                                    Kursplanering för {cls.classCode}
-                                </h4>
-                                <ComprehensiveCoursePlanner
-                                    classId={cls.id}
-                                    programCode={cls.programCode}
-                                    orientationCode={cls.orientationCode}
-                                    onSaveSuccess={() => fetchProject()}
-                                    hasCurriculum={cls.curriculum && cls.curriculum.courses && Array.isArray(cls.curriculum.courses) && cls.curriculum.courses.length > 0}
-                                />
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
-            ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                    Inga klasser ännu. Klicka på &quot;Lägg till klass&quot; ovan.
-                </div>
-            )}
+            <CurriculumWorkbench />
         </div>
     );
 }
